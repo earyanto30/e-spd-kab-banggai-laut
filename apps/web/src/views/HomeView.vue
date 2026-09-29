@@ -89,6 +89,13 @@ onMounted(() => {
                 severity="secondary"
               />
             </router-link>
+            <router-link to="/pengaturan/pengguna">
+              <GovButton
+                label="Pengguna Sistem"
+                icon="pi pi-user-edit"
+                severity="secondary"
+              />
+            </router-link>
           </div>
         </div>
 

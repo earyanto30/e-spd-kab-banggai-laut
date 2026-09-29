@@ -3,11 +3,12 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { KopSuratModule } from './kop-surat/kop-surat.module';
 import { PegawaiModule } from './pegawai/pegawai.module';
+import { UsersModule } from './users/users.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, KopSuratModule, PegawaiModule],
+  imports: [PrismaModule, AuthModule, KopSuratModule, PegawaiModule, UsersModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -48,6 +48,16 @@ const routes: RouteRecordRaw[] = [
       roles: [Role.SUPER_ADMIN, Role.ADMIN],
     },
   },
+  {
+    path: '/pengaturan/pengguna',
+    alias: ['/pengaturan/users', '/pengaturan'],
+    name: 'PengaturanPengguna',
+    component: () => import('../views/PengaturanPenggunaView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+    },
+  },
 ];
 
 const router = createRouter({
