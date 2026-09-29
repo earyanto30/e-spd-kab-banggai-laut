@@ -20,8 +20,8 @@ export class AuthService implements OnModuleInit {
       await this.prisma.user.create({
         data: {
           username: 'admin_setda',
-          name: 'Administrator SETDA',
-          email: 'admin@setda.go.id',
+          name: 'Administrator SI-SPD Sekda Kab. Banggai Laut',
+          email: 'admin.spd@banggailautkab.go.id',
           password: hashPassword('admin123'),
           role: Role.ADMIN,
         },
@@ -37,8 +37,8 @@ export class AuthService implements OnModuleInit {
       await this.prisma.user.create({
         data: {
           username: 'staff_setda',
-          name: 'Staff Tata Usaha',
-          email: 'staff@setda.go.id',
+          name: 'Staff Administrasi SPD Sekda Kab. Banggai Laut',
+          email: 'staff.spd@banggailautkab.go.id',
           password: hashPassword('staff123'),
           role: Role.STAFF,
         },

@@ -304,7 +304,7 @@ onMounted(() => {
           Data Pegawai (ASN)
         </h1>
         <p class="text-sm text-slate-500 dark:text-zinc-400">
-          Daftar seluruh Aparatur Sipil Negara di lingkungan Sekretariat Daerah untuk penugasan dan perjalanan dinas.
+          Daftar seluruh Aparatur Sipil Negara di lingkungan Sekretariat Daerah Kabupaten Banggai Laut untuk penugasan dan perjalanan dinas.
         </p>
       </div>
 
@@ -362,7 +362,7 @@ onMounted(() => {
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 text-base font-semibold text-slate-700 dark:text-zinc-200">
           <div class="flex items-center gap-2">
             <i class="pi pi-list text-gov-primary dark:text-amber-400"></i>
-            <span>Daftar Pegawai ASN Sekretariat Daerah</span>
+            <span>Daftar Pegawai ASN Sekda Kab. Banggai Laut</span>
           </div>
 
           <!-- Search & Filter Controls -->

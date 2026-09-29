@@ -124,10 +124,10 @@ const toggleSubmenu = (label: string) => {
         </div>
         <div v-if="!collapsed" class="flex flex-col min-w-0 transition-opacity duration-200">
           <span class="font-bold text-base text-slate-800 dark:text-zinc-100 tracking-tight truncate">
-            SI-SETDA
+            SI-SPD
           </span>
           <span class="text-xs text-slate-400 dark:text-zinc-400 truncate">
-            Sekretariat Daerah
+            Sekda Kab. Banggai Laut
           </span>
         </div>
       </router-link>

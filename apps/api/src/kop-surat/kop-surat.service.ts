@@ -55,9 +55,9 @@ export class KopSuratService implements OnModuleInit {
       await this.prisma.kopSurat.create({
         data: {
           id: 'kop-1',
-          nama: 'Kop 1 (Sekretariat Daerah)',
-          keterangan: 'Kop surat dinas resmi Sekretariat Daerah untuk SPD',
-          fileName: 'kop_setda_resmi.pdf',
+          nama: 'Kop 1 (Sekda Kab. Banggai Laut)',
+          keterangan: 'Kop surat dinas resmi Sekretariat Daerah Kabupaten Banggai Laut untuk SPD',
+          fileName: 'kop_sekda_banggai_laut.pdf',
           storedFileName: defaultFileName,
           fileSize: '1.2 KB',
           paperSize: 'A4',
@@ -84,15 +84,15 @@ stream
 BT
 /F1 16 Tf
 50 790 Td
-(PEMERINTAH KABUPATEN CONTOH) Tj
+(PEMERINTAH KABUPATEN BANGGAI LAUT) Tj
 /F1 18 Tf
 0 -24 Td
 (SEKRETARIAT DAERAH) Tj
 /F1 10 Tf
 0 -18 Td
-(Jl. Pahlawan No. 01 Komplek Perkantoran Terpadu - Kode Pos 12345) Tj
+(Jl. Jogugu Sopamena No. 01, Banggai - Kode Pos 94791) Tj
 0 -14 Td
-(Telepon: (021) 87654321  -  Email: setda@kabcontoh.go.id) Tj
+(Telepon: (0453) 21101  -  Email: setda@banggailautkab.go.id) Tj
 ET
 0 0 0 RG
 2.5 w

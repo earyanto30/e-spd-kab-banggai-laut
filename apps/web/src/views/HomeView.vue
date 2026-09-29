@@ -40,15 +40,15 @@ const handleLogout = () => {
     <GovCard>
       <template #title>
         <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100">
-          SI-SETDA
+          SI-SPD Sekda Kab. Banggai Laut
         </div>
       </template>
       <template #subtitle>
-        <span class="text-slate-500 dark:text-zinc-400">Sistem Informasi Sekretariat Daerah</span>
+        <span class="text-slate-500 dark:text-zinc-400">Sistem Informasi Surat Perjalanan Dinas Sekretariat Daerah Kabupaten Banggai Laut</span>
       </template>
       <template #content>
         <p class="text-slate-600 dark:text-zinc-300 mb-6">
-          Sistem Administrasi Pemerintahan Daerah terpadu.
+          Sistem Pengelolaan dan Administrasi Surat Perjalanan Dinas (SPD) di lingkungan Sekretariat Daerah Kabupaten Banggai Laut, Sulawesi Tengah.
         </p>
 
         <!-- Logged In Status Banner -->

@@ -1,5 +1,5 @@
 # Antigravity CLI Context Directive
-# Project: Government Administrative Application (SI-SETDA)
+# Project: SI Surat Perjalanan Dinas Sekda Kab. Banggai Laut (SI-SPD)
 
 ## Core Architecture Constraints
 Do not deviate from the following technological stack. Any suggestions for alternative frameworks or libraries will be rejected as SUBOPTIMAL.

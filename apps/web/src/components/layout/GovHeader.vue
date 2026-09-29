@@ -26,10 +26,10 @@ const { isDark, toggleTheme } = useTheme();
       />
       <div>
         <h1 class="text-base font-semibold text-slate-800 dark:text-zinc-100">
-          {{ (route.name as string) || 'SI-SETDA' }}
+          {{ (route.name as string) || 'SI-SPD Banggai Laut' }}
         </h1>
         <p class="text-xs text-slate-400 dark:text-zinc-400">
-          Portal Pelayanan & Tata Kelola Administrasi
+          Sistem Informasi Surat Perjalanan Dinas Sekda Kab. Banggai Laut
         </p>
       </div>
     </div>

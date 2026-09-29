@@ -1,6 +1,6 @@
-# SI-SETDA (Sistem Informasi Sekretariat Daerah)
+# SI-SPD Sekda Kab. Banggai Laut
 
-Government Administrative Application monorepo built with pnpm workspaces and Turborepo.
+Sistem Informasi Surat Perjalanan Dinas (SPD) di lingkungan Sekretariat Daerah Kabupaten Banggai Laut, Sulawesi Tengah.
 
 ## Project Structure
 

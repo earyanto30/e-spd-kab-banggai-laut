@@ -289,7 +289,7 @@ onMounted(() => {
           Pengaturan Kop Surat
         </h1>
         <p class="text-sm text-slate-500 dark:text-zinc-400">
-          Unggah dan kelola berkas PDF kop surat resmi yang disimpan pada direktori server untuk dokumen SPD.
+          Unggah dan kelola berkas PDF kop surat resmi Sekretariat Daerah Kabupaten Banggai Laut untuk dokumen SPD.
         </p>
       </div>
 

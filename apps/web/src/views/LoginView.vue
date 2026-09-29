@@ -84,9 +84,9 @@ const handleLogin = async () => {
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white bg-opacity-10 border border-white border-opacity-20 mb-3 shadow-inner">
           <i class="pi pi-building text-3xl text-amber-400"></i>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight">SI-SETDA</h1>
+        <h1 class="text-2xl font-bold tracking-tight">SI-SPD</h1>
         <p class="text-xs font-medium text-blue-200 uppercase tracking-widest mt-1">
-          Sistem Informasi Sekretariat Daerah
+          Surat Perjalanan Dinas Sekda Kab. Banggai Laut
         </p>
       </div>
 
@@ -162,7 +162,7 @@ const handleLogin = async () => {
         </form>
 
         <div class="mt-8 pt-6 border-t border-slate-100 dark:border-zinc-800 text-center text-xs text-slate-400 dark:text-zinc-500">
-          Hak Cipta &copy; Pemerintah Daerah &bull; Sekretariat Daerah
+          Hak Cipta &copy; Pemerintah Kabupaten Banggai Laut &bull; Sekretariat Daerah
         </div>
       </div>
     </div>
