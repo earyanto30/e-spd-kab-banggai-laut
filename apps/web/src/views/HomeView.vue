@@ -1,91 +1,108 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import SelectButton from 'primevue/selectbutton';
+import { useRouter } from 'vue-router';
 import { GovButton, GovCard } from '../components/core';
-import { Role, RoleType } from '@si-setda/shared-types';
 
-const roles: RoleType[] = [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN];
-const selectedRole = ref<RoleType>((localStorage.getItem('user_role') as RoleType) || Role.USER);
+const router = useRouter();
 const authToken = ref<string | null>(null);
 const userName = ref<string | null>(null);
 const currentUsername = ref<string | null>(null);
+const userRole = ref<string>('USER');
 
 const checkAuth = () => {
   authToken.value = localStorage.getItem('auth_token');
   userName.value = localStorage.getItem('user_name');
   currentUsername.value = localStorage.getItem('username');
-  selectedRole.value = (localStorage.getItem('user_role') as RoleType) || Role.USER;
-};
-
-onMounted(() => {
-  checkAuth();
-});
-
-const setRole = (role: RoleType) => {
-  selectedRole.value = role;
-  localStorage.setItem('user_role', role);
+  userRole.value = localStorage.getItem('user_role') || 'USER';
 };
 
 const handleLogout = () => {
   localStorage.removeItem('auth_token');
   localStorage.removeItem('user_name');
   localStorage.removeItem('username');
-  localStorage.setItem('user_role', Role.USER);
+  localStorage.removeItem('user_role');
   checkAuth();
+  router.push('/login');
 };
+
+onMounted(() => {
+  checkAuth();
+});
 </script>
 
 <template>
-  <div class="max-w-3xl mx-auto p-6 space-y-6">
+  <div class="max-w-4xl mx-auto space-y-6">
     <GovCard>
       <template #title>
-        <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100">
+        <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
           SI-SPD Sekda Kab. Banggai Laut
         </div>
       </template>
       <template #subtitle>
-        <span class="text-slate-500 dark:text-zinc-400">Sistem Informasi Surat Perjalanan Dinas Sekretariat Daerah Kabupaten Banggai Laut</span>
+        <span class="text-slate-500 dark:text-zinc-400">
+          Sistem Informasi Surat Perjalanan Dinas Sekretariat Daerah Kabupaten Banggai Laut
+        </span>
       </template>
       <template #content>
         <p class="text-slate-600 dark:text-zinc-300 mb-6">
-          Sistem Pengelolaan dan Administrasi Surat Perjalanan Dinas (SPD) di lingkungan Sekretariat Daerah Kabupaten Banggai Laut, Sulawesi Tengah.
+          Selamat datang di Portal Sistem Informasi Surat Perjalanan Dinas (SI-SPD) Sekretariat Daerah Kabupaten Banggai Laut, Sulawesi Tengah.
         </p>
 
         <!-- Logged In Status Banner -->
-        <div v-if="authToken" class="p-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg space-y-2 mb-6">
-          <div class="flex items-center justify-between">
-            <div>
-              <div class="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
-                Sesi Terautentikasi: {{ userName }} (@{{ currentUsername }})
+        <div v-if="authToken" class="p-5 bg-blue-50 dark:bg-zinc-900 border border-blue-200 dark:border-zinc-800 rounded-xl space-y-4 mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div class="flex items-center gap-3">
+              <div class="w-12 h-12 rounded-xl bg-blue-900 text-amber-300 font-bold text-lg flex items-center justify-center flex-shrink-0">
+                {{ userName ? userName.charAt(0).toUpperCase() : 'U' }}
               </div>
-              <div class="text-xs text-emerald-600 dark:text-emerald-400">
-                Tingkat Otorisasi: <span class="font-mono font-bold">{{ selectedRole }}</span>
+              <div>
+                <div class="text-base font-bold text-slate-800 dark:text-zinc-100">
+                  {{ userName }}
+                </div>
+                <div class="text-xs text-slate-500 dark:text-zinc-400 font-mono">
+                  NIP / Akun: {{ currentUsername }} &bull; Otorisasi: <span class="font-bold text-blue-900 dark:text-amber-400">{{ userRole }}</span>
+                </div>
               </div>
             </div>
+
             <GovButton
               label="Keluar (Logout)"
               icon="pi pi-sign-out"
-              severity="danger"
+              severity="secondary"
               @click="handleLogout"
             />
           </div>
-        </div>
 
-        <div class="p-4 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg space-y-3 mb-6">
-          <div class="text-sm font-semibold text-slate-700 dark:text-zinc-200">Simulasi Role (RBAC):</div>
-          <SelectButton
-            v-model="selectedRole"
-            :options="roles"
-            @update:model-value="(val) => val && setRole(val)"
-          />
-          <div class="text-xs text-slate-500 dark:text-zinc-400">
-            Role saat ini: <span class="font-mono font-bold text-gov-primary dark:text-amber-400">{{ selectedRole }}</span>
+          <!-- Quick Navigation Actions -->
+          <div class="pt-3 border-t border-slate-200 dark:border-zinc-800 flex flex-wrap gap-2.5">
+            <router-link to="/spd/kop-surat">
+              <GovButton
+                label="Pengaturan Kop Surat"
+                icon="pi pi-file-edit"
+                severity="primary"
+              />
+            </router-link>
+            <router-link to="/kepegawaian/asn">
+              <GovButton
+                label="Data Pegawai ASN"
+                icon="pi pi-users"
+                severity="secondary"
+              />
+            </router-link>
           </div>
         </div>
 
-        <div v-if="!authToken" class="flex gap-3">
+        <!-- Not Logged In Prompt -->
+        <div v-else class="p-6 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-4">
+          <div class="text-sm text-slate-600 dark:text-zinc-300">
+            Anda belum masuk ke sesi akun resmi. Silakan masuk menggunakan NIP atau Akun Pegawai.
+          </div>
           <router-link to="/login">
-            <GovButton label="Ke Halaman Login" icon="pi pi-sign-in" severity="primary" />
+            <GovButton
+              label="Masuk ke Sistem"
+              icon="pi pi-sign-in"
+              severity="primary"
+            />
           </router-link>
         </div>
       </template>

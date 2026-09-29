@@ -12,54 +12,96 @@ export class AuthService implements OnModuleInit {
   }
 
   private async seedDefaultUsers() {
-    const existingAdmin = await this.prisma.user.findUnique({
-      where: { username: 'admin_setda' },
+    // 1. Ensure Pegawai record for Fadli A. Arsad exists in master data
+    const nipFadli = '198801152010011002';
+    let pegawaiFadli = await this.prisma.pegawai.findUnique({
+      where: { nip: nipFadli },
     });
 
-    if (!existingAdmin) {
-      await this.prisma.user.create({
+    if (!pegawaiFadli) {
+      pegawaiFadli = await this.prisma.pegawai.create({
         data: {
-          username: 'admin_setda',
-          name: 'Administrator SI-SPD Sekda Kab. Banggai Laut',
-          email: 'admin.spd@banggailautkab.go.id',
-          password: hashPassword('admin123'),
-          role: Role.ADMIN,
+          nip: nipFadli,
+          nama: 'Fadli A. Arsad',
+          pangkat: 'Pembina Utama Muda',
+          golongan: 'IV/c',
+          jabatan: 'Sekretaris Daerah / Super Admin',
+          unitKerja: 'Sekretariat Daerah Kab. Banggai Laut',
+          status: 'PNS',
+          email: 'fadli.arsad@banggailautkab.go.id',
+          noHp: '08114567890',
         },
       });
-      console.log('Seeded default user: admin_setda (password: admin123)');
+      console.log('Seeded default ASN Pegawai: Fadli A. Arsad (NIP: 198801152010011002)');
     }
 
-    const existingStaff = await this.prisma.user.findUnique({
-      where: { username: 'staff_setda' },
+    // 2. Ensure User login account for Fadli A. Arsad exists with SUPER_ADMIN role
+    const existingFadliUser = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: nipFadli },
+          { username: 'fadli.arsad' },
+          { pegawaiId: pegawaiFadli.id },
+        ],
+      },
     });
 
-    if (!existingStaff) {
+    if (!existingFadliUser) {
       await this.prisma.user.create({
         data: {
-          username: 'staff_setda',
-          name: 'Staff Administrasi SPD Sekda Kab. Banggai Laut',
-          email: 'staff.spd@banggailautkab.go.id',
-          password: hashPassword('staff123'),
-          role: Role.STAFF,
+          username: nipFadli,
+          name: 'Fadli A. Arsad',
+          email: 'fadli.arsad@banggailautkab.go.id',
+          password: hashPassword('admin123'),
+          role: Role.SUPER_ADMIN,
+          isActive: true,
+          pegawaiId: pegawaiFadli.id,
         },
       });
-      console.log('Seeded default user: staff_setda (password: staff123)');
+      console.log('Seeded default User: Fadli A. Arsad as SUPER_ADMIN (NIP/Login: 198801152010011002, pass: admin123)');
+    } else {
+      await this.prisma.user.update({
+        where: { id: existingFadliUser.id },
+        data: {
+          role: Role.SUPER_ADMIN,
+          pegawaiId: pegawaiFadli.id,
+          isActive: true,
+        },
+      });
     }
   }
 
   async login(dto: LoginRequestDto): Promise<AuthResponseDto> {
-    const user = await this.prisma.user.findUnique({
-      where: { username: dto.username },
+    const rawUsername = dto.username.trim();
+    const cleanNip = rawUsername.replace(/\s+/g, '');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: rawUsername },
+          { username: cleanNip },
+          { pegawai: { nip: rawUsername } },
+          { pegawai: { nip: cleanNip } },
+        ],
+      },
+      include: {
+        pegawai: true,
+      },
     });
 
     if (!user || !verifyPassword(dto.password, user.password)) {
-      throw new UnauthorizedException('Username atau kata sandi salah');
+      throw new UnauthorizedException('NIP / Username atau kata sandi salah');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Akun pengguna tidak aktif');
     }
 
     const tokenPayload = {
       sub: user.id,
       username: user.username,
       role: user.role,
+      pegawaiId: user.pegawaiId,
     };
 
     const accessToken = signJwt(tokenPayload);
@@ -69,9 +111,12 @@ export class AuthService implements OnModuleInit {
       user: {
         id: user.id,
         username: user.username,
-        name: user.name,
+        name: user.pegawai?.nama || user.name,
         role: user.role as RoleType,
-        email: user.email,
+        email: user.email || user.pegawai?.email || null,
+        isActive: user.isActive,
+        pegawaiId: user.pegawaiId,
+        nip: user.pegawai?.nip || null,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },

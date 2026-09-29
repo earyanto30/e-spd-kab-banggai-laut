@@ -102,17 +102,17 @@ const handleLogin = async () => {
         </GovMessage>
 
         <form novalidate @submit.prevent="handleLogin" class="space-y-5">
-          <!-- Username Input -->
+          <!-- Username / NIP Input -->
           <div class="space-y-2">
             <label for="username" class="block text-sm font-medium text-slate-700 dark:text-zinc-200">
-              Username
+              NIP atau Username
             </label>
             <IconField class="w-full">
               <InputIcon class="pi pi-user text-slate-400 dark:text-zinc-400" />
               <GovInputText
                 id="username"
                 v-model="username"
-                placeholder="cth. admin_setda"
+                placeholder="cth. 198801152010011002"
                 autocomplete="username"
                 :required="true"
                 :block="true"

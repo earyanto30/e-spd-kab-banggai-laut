@@ -10,10 +10,15 @@ datasource db {
 model User {
   id        String   @id @default(cuid())
   username  String   @unique
-  email     String   @unique
+  email     String?  @unique
   name      String
   role      String   @default("USER") // Matches Role in @si-setda/shared-types: SUPER_ADMIN, ADMIN, STAFF, USER
   password  String
+  isActive  Boolean  @default(true)
+
+  pegawaiId String?  @unique
+  pegawai   Pegawai? @relation(fields: [pegawaiId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -42,6 +47,9 @@ model Pegawai {
   status    String   @default("PNS") // PNS | PPPK
   email     String?
   noHp      String?
+
+  user      User?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

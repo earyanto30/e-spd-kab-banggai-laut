@@ -23,9 +23,12 @@ export const hasRequiredRole = (userRole: RoleType, allowedRoles: RoleType[]): b
 export const UserSchema = z.object({
   id: z.string(),
   username: z.string().min(3),
-  email: z.string().email(),
+  email: z.string().nullable().optional(),
   name: z.string().min(1),
   role: z.nativeEnum(Role),
+  isActive: z.boolean().optional(),
+  pegawaiId: z.string().nullable().optional(),
+  nip: z.string().nullable().optional(),
   createdAt: z.date().or(z.string()),
   updatedAt: z.date().or(z.string()),
 });
@@ -33,7 +36,7 @@ export const UserSchema = z.object({
 export type UserDto = z.infer<typeof UserSchema>;
 
 export const LoginRequestSchema = z.object({
-  username: z.string().min(3, 'Username minimal 3 karakter'),
+  username: z.string().min(3, 'NIP atau Username minimal 3 karakter'),
   password: z.string().min(6, 'Password minimal 6 karakter'),
 });
 
