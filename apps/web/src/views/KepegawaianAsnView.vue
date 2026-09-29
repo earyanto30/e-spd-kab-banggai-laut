@@ -10,6 +10,7 @@ import {
   GovMessage,
   GovTable,
 } from '../components/core';
+import { apiFetch } from '../utils/api';
 
 export interface AsnPegawai {
   id: string;
@@ -137,7 +138,7 @@ const form = ref<AsnPegawai>({
 
 const loadData = async () => {
   try {
-    const res = await fetch('/api/pegawai');
+    const res = await apiFetch('/api/pegawai');
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -229,7 +230,7 @@ const handleSave = async () => {
 
   try {
     if (isEditing.value) {
-      const res = await fetch(`/api/pegawai/${form.value.id}`, {
+      const res = await apiFetch(`/api/pegawai/${form.value.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form.value),
@@ -241,7 +242,7 @@ const handleSave = async () => {
         return;
       }
     } else {
-      const res = await fetch('/api/pegawai', {
+      const res = await apiFetch('/api/pegawai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form.value),
@@ -273,7 +274,7 @@ const handleSave = async () => {
 
 const handleDelete = async (item: AsnPegawai) => {
   try {
-    const res = await fetch(`/api/pegawai/${item.id}`, {
+    const res = await apiFetch(`/api/pegawai/${item.id}`, {
       method: 'DELETE',
     });
     if (res.ok) {

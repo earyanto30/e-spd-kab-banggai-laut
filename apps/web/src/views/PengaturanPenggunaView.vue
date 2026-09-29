@@ -13,6 +13,7 @@ import {
   GovTable,
 } from '../components/core';
 import { Role, RoleType } from '@si-setda/shared-types';
+import { apiFetch } from '../utils/api';
 
 export interface LinkedPegawai {
   id: string;
@@ -100,7 +101,7 @@ const loadUsers = async () => {
     if (roleFilter.value !== 'SEMUA') params.append('role', roleFilter.value);
     if (statusFilter.value !== 'SEMUA') params.append('isActive', statusFilter.value);
 
-    const res = await fetch(`/api/users?${params.toString()}`);
+    const res = await apiFetch(`/api/users?${params.toString()}`);
     if (res.ok) {
       list.value = await res.json();
     } else {
@@ -118,7 +119,7 @@ const loadPegawaiOptions = async (userId?: string) => {
     const url = userId
       ? `/api/users/pegawai-options?userId=${encodeURIComponent(userId)}`
       : '/api/users/pegawai-options';
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     if (res.ok) {
       pegawaiOptions.value = await res.json();
     }
@@ -229,7 +230,7 @@ const handleSave = async () => {
     }
 
     if (isEditing.value && form.value.id) {
-      const res = await fetch(`/api/users/${form.value.id}`, {
+      const res = await apiFetch(`/api/users/${form.value.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -243,7 +244,7 @@ const handleSave = async () => {
 
       showAlert('Data pengguna login berhasil diperbarui');
     } else {
-      const res = await fetch('/api/users', {
+      const res = await apiFetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -267,7 +268,7 @@ const handleSave = async () => {
 
 const handleToggleStatus = async (item: UserItem) => {
   try {
-    const res = await fetch(`/api/users/${item.id}/toggle-status`, {
+    const res = await apiFetch(`/api/users/${item.id}/toggle-status`, {
       method: 'PATCH',
     });
     if (!res.ok) {
@@ -292,7 +293,7 @@ const handleDelete = async () => {
   if (!selectedUser.value) return;
 
   try {
-    const res = await fetch(`/api/users/${selectedUser.value.id}`, {
+    const res = await apiFetch(`/api/users/${selectedUser.value.id}`, {
       method: 'DELETE',
     });
 

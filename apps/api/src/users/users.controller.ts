@@ -8,15 +8,21 @@ import {
   Param,
   Body,
   Query,
+  UseGuards,
   BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
   CreateUserSchema,
   UpdateUserSchema,
+  Role,
 } from '@si-setda/shared-types';
+import { AuthGuard } from '../auth/auth.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('users')
+@UseGuards(AuthGuard)
+@Roles(Role.SUPER_ADMIN, Role.ADMIN)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 

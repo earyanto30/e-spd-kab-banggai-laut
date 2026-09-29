@@ -11,6 +11,7 @@ import {
   GovMessage,
   GovTable,
 } from '../components/core';
+import { apiFetch, getAuthToken } from '../utils/api';
 
 export interface KopSuratItem {
   id: string;
@@ -108,13 +109,14 @@ const onFileSelected = (event: Event) => {
 
 const loadData = async () => {
   try {
-    const res = await fetch('/api/kop-surat');
+    const res = await apiFetch('/api/kop-surat');
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
+        const token = getAuthToken();
         list.value = data.map((item) => ({
           ...item,
-          pdfUrl: `/api/kop-surat/${item.id}/stream`,
+          pdfUrl: `/api/kop-surat/${item.id}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`,
         }));
         return;
       }
@@ -168,7 +170,7 @@ const handleSave = async () => {
     formData.append('keterangan', form.value.keterangan.trim());
     formData.append('isDefault', String(form.value.isDefault));
 
-    const res = await fetch('/api/kop-surat/upload', {
+    const res = await apiFetch('/api/kop-surat/upload', {
       method: 'POST',
       body: formData,
     });
@@ -216,7 +218,7 @@ const handleSave = async () => {
 
 const handleSetDefault = async (item: KopSuratItem) => {
   try {
-    const res = await fetch(`/api/kop-surat/${item.id}/default`, {
+    const res = await apiFetch(`/api/kop-surat/${item.id}/default`, {
       method: 'PATCH',
     });
     if (res.ok) {
@@ -244,7 +246,7 @@ const handleDelete = async (item: KopSuratItem) => {
   }
 
   try {
-    const res = await fetch(`/api/kop-surat/${item.id}`, {
+    const res = await apiFetch(`/api/kop-surat/${item.id}`, {
       method: 'DELETE',
     });
     if (res.ok) {

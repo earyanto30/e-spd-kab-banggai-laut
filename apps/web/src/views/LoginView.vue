@@ -12,6 +12,7 @@ import {
 } from '../components/core';
 import { useTheme } from '../composables/useTheme';
 import { LoginRequestSchema } from '@si-setda/shared-types';
+import { apiFetch } from '../utils/api';
 
 const router = useRouter();
 const { isDark, toggleTheme } = useTheme();
@@ -37,7 +38,7 @@ const handleLogin = async () => {
 
   isLoading.value = true;
   try {
-    const response = await fetch('/api/auth/login', {
+    const response = await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
