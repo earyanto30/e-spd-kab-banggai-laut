@@ -1,8 +1,23 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { GovButton } from '../core';
 import { Role, RoleType } from '@si-setda/shared-types';
+
+interface SubMenuItem {
+  label: string;
+  icon?: string;
+  to: string;
+  roles?: RoleType[];
+}
+
+interface MenuItem {
+  label: string;
+  icon: string;
+  to?: string;
+  roles: RoleType[];
+  children?: SubMenuItem[];
+}
 
 const props = defineProps<{
   collapsed: boolean;
@@ -18,7 +33,11 @@ const emit = defineEmits<{
 
 const router = useRouter();
 
-const menuItems = computed(() => [
+const openSubmenus = ref<Record<string, boolean>>({
+  'Surat Perjalanan Dinas': true,
+});
+
+const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Beranda',
     icon: 'pi pi-home',
@@ -26,10 +45,17 @@ const menuItems = computed(() => [
     roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
   },
   {
-    label: 'Persuratan & Disposisi',
-    icon: 'pi pi-envelope',
-    to: '/surat',
+    label: 'Surat Perjalanan Dinas',
+    icon: 'pi pi-briefcase',
     roles: [Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    children: [
+      {
+        label: 'Pengaturan Kop Surat',
+        icon: 'pi pi-file-edit',
+        to: '/spd/kop-surat',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN],
+      },
+    ],
   },
   {
     label: 'Agenda & Dokumen',
@@ -57,8 +83,23 @@ const userInitial = computed(() => {
   return 'U';
 });
 
-const isItemActive = (path: string) => {
+const isItemActive = (path?: string) => {
+  if (!path) return false;
   return router.currentRoute.value.path === path;
+};
+
+const isParentActive = (children?: SubMenuItem[]) => {
+  if (!children) return false;
+  return children.some((sub) => router.currentRoute.value.path.startsWith(sub.to));
+};
+
+const toggleSubmenu = (label: string) => {
+  if (props.collapsed) {
+    emit('toggle');
+    openSubmenus.value[label] = true;
+  } else {
+    openSubmenus.value[label] = !openSubmenus.value[label];
+  }
 };
 </script>
 
@@ -104,8 +145,10 @@ const isItemActive = (path: string) => {
     <!-- Navigation Menu Items -->
     <nav class="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
       <template v-for="item in menuItems" :key="item.label">
+        <!-- Item without sub-menu -->
         <router-link
-          :to="item.to"
+          v-if="!item.children"
+          :to="item.to!"
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
           :class="[
             isItemActive(item.to)
@@ -120,6 +163,55 @@ const isItemActive = (path: string) => {
             {{ item.label }}
           </span>
         </router-link>
+
+        <!-- Item with sub-menu -->
+        <div v-else class="space-y-1">
+          <button
+            type="button"
+            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer text-left"
+            :class="[
+              isParentActive(item.children)
+                ? 'text-blue-900 font-semibold dark:text-amber-400 bg-blue-50 dark:bg-zinc-800/60'
+                : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80',
+              collapsed ? 'justify-center' : 'justify-between'
+            ]"
+            :title="collapsed ? item.label : undefined"
+            @click="toggleSubmenu(item.label)"
+          >
+            <div class="flex items-center gap-3 min-w-0">
+              <i :class="[item.icon, 'text-lg flex-shrink-0', isParentActive(item.children) ? 'text-blue-900 dark:text-amber-400' : 'text-slate-400 dark:text-zinc-400']"></i>
+              <span v-if="!collapsed" class="truncate">
+                {{ item.label }}
+              </span>
+            </div>
+            <i
+              v-if="!collapsed"
+              class="pi text-xs text-slate-400"
+              :class="openSubmenus[item.label] ? 'pi-chevron-down' : 'pi-chevron-right'"
+            ></i>
+          </button>
+
+          <!-- Submenu items -->
+          <div
+            v-if="!collapsed && openSubmenus[item.label]"
+            class="pl-7 pr-1 space-y-1 pt-0.5"
+          >
+            <router-link
+              v-for="sub in item.children"
+              :key="sub.to"
+              :to="sub.to"
+              class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
+              :class="[
+                isItemActive(sub.to)
+                  ? 'bg-blue-900 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100 font-semibold'
+                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/60 hover:text-slate-900 dark:hover:text-zinc-200'
+              ]"
+            >
+              <i :class="[sub.icon || 'pi pi-circle', 'text-xs flex-shrink-0', isItemActive(sub.to) ? 'text-amber-300' : 'text-slate-400 dark:text-zinc-400']"></i>
+              <span class="truncate">{{ sub.label }}</span>
+            </router-link>
+          </div>
+        </div>
       </template>
     </nav>
 

@@ -28,6 +28,16 @@ const routes: RouteRecordRaw[] = [
     name: 'Unauthorized',
     component: () => import('../views/UnauthorizedView.vue'),
   },
+  {
+    path: '/spd/kop-surat',
+    alias: '/pengaturan/kop-surat',
+    name: 'PengaturanKopSurat',
+    component: () => import('../views/PengaturanKopSuratView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+    },
+  },
 ];
 
 const router = createRouter({

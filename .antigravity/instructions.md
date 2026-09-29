@@ -10,18 +10,15 @@ Do not deviate from the following technological stack. Any suggestions for alter
 * **Backend:** NestJS (TypeScript)
 * **Database:** SQLite
 * **ORM:** Prisma
+* **PDF Generation Engine:** Puppeteer (HTML-to-PDF via NestJS backend)
 * **Shared Logic:** TypeScript interfaces and Zod validation schemas
-
-## Directory Structure Anchor
-* `apps/web`: Vue 3 Frontend
-* `apps/api`: NestJS Backend
-* `packages/shared-types`: Shared DTOs, Zod schemas, and RBAC definitions
 
 ## Operational Directives for CLI Agent
 1. **Frontend:** When generating frontend components, exclusively use Vue 3 Composition API (`<script setup>`) and PrimeVue components. Do not use React or Shadcn UI.
 2. **Backend:** When generating backend endpoints, exclusively use NestJS controllers, services, and modules. 
 3. **Database:** Database schemas and migrations must be defined exclusively in `apps/api/prisma/schema.prisma`.
 4. **Security:** Enforce Role-Based Access Control (RBAC) across both frontend routing and backend guards using shared definitions from `packages/shared-types`.
+5. **PDF Generation:** All dynamic document generation (e.g., Surat Perjalanan Dinas / SPPD) must be executed exclusively on the NestJS backend using **Puppeteer** with HTML/CSS templates. Client-side PDF generation libraries are forbidden. Document previews must be implemented via inline binary streams (`Content-Disposition: inline`).
 
 ## Design Standardization & UI Constraints
 You are strictly forbidden from making creative design decisions. You must adhere to the following UI constraints:

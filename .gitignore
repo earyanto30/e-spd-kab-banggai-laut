@@ -12,3 +12,5 @@ dist
 .DS_Store
 .agents/
 graphify-out/
+uploads/
+apps/api/uploads/
