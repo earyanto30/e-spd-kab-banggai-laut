@@ -1,0 +1,14 @@
+node_modules
+dist
+.turbo
+*.local
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.sqlite
+*.sqlite-journal
+.DS_Store
+.agents/
+graphify-out/
