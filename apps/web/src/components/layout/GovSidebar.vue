@@ -35,6 +35,7 @@ const router = useRouter();
 
 const openSubmenus = ref<Record<string, boolean>>({
   'Surat Perjalanan Dinas': true,
+  'Kepegawaian': true,
 });
 
 const menuItems = computed<MenuItem[]>(() => [
@@ -66,8 +67,15 @@ const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Kepegawaian',
     icon: 'pi pi-users',
-    to: '/kepegawaian',
     roles: [Role.ADMIN, Role.SUPER_ADMIN],
+    children: [
+      {
+        label: 'Data ASN',
+        icon: 'pi pi-id-card',
+        to: '/kepegawaian/asn',
+        roles: [Role.ADMIN, Role.SUPER_ADMIN],
+      },
+    ],
   },
   {
     label: 'Pengaturan Sistem',

@@ -31,3 +31,18 @@ model KopSurat {
   updatedAt      DateTime @updatedAt
 }
 
+model Pegawai {
+  id        String   @id @default(cuid())
+  nip       String   @unique
+  nama      String
+  pangkat   String
+  golongan  String
+  jabatan   String
+  unitKerja String   @default("Sekretariat Daerah")
+  status    String   @default("PNS") // PNS | PPPK
+  email     String?
+  noHp      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

@@ -38,6 +38,16 @@ const routes: RouteRecordRaw[] = [
       roles: [Role.SUPER_ADMIN, Role.ADMIN],
     },
   },
+  {
+    path: '/kepegawaian/asn',
+    alias: '/kepegawaian',
+    name: 'KepegawaianAsn',
+    component: () => import('../views/KepegawaianAsnView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+    },
+  },
 ];
 
 const router = createRouter({
