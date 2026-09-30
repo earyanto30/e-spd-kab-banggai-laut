@@ -6,4 +6,10 @@ services:
     ports:
       - "80:80"
     volumes:
-      - /var/compose/espd-kab-banggai-laut/data:/usr/share/nginx/html/uploads
+      # 1. Folder Unggahan Berkas (PDF Kop Surat, Lampiran & Dokumen)
+      - /var/compose/espd-kab-banggai-laut/uploads:/usr/share/nginx/html/uploads
+      # 2. Folder Database & Data Sistem (SQLite Database dev.db)
+      - /var/compose/espd-kab-banggai-laut/data:/app/data
+      # 3. Log Nginx (Opsional untuk pemantauan akses & error)
+      - /var/compose/espd-kab-banggai-laut/logs:/var/log/nginx
+
