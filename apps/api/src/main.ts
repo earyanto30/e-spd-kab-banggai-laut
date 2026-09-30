@@ -7,13 +7,13 @@ async function bootstrap() {
   // Restrict API access to legitimate frontend origins
   app.enableCors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (e.g., local server-to-server or same-host) or from allowed frontend origins
-      const allowedOrigins = [
-        'http://localhost:5173',
-        'http://127.0.0.1:5173',
-        'http://localhost:3000',
-      ];
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests from same-origin, localhost on any port, or configured domains
+      if (
+        !origin ||
+        origin.includes('localhost') ||
+        origin.includes('127.0.0.1') ||
+        origin.includes(process.env.APP_DOMAIN || '')
+      ) {
         callback(null, true);
       } else {
         callback(new Error('Akses diblokir oleh kebijakan keamanan CORS'));
