@@ -1,0 +1,9 @@
+services:
+  app:
+    image: ghcr.io/earyanto30/e-spd-kab-banggai-laut:latest
+    container_name: espd-kab-banggai-laut
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - /var/compose/espd-kab-banggai-laut/data:/usr/share/nginx/html/uploads
