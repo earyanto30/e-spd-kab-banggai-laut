@@ -12,4 +12,6 @@ services:
       - /var/compose/espd-kab-banggai-laut/data:/app/data
       # 3. Log Nginx (Opsional untuk pemantauan akses & error)
       - /var/compose/espd-kab-banggai-laut/logs:/var/log/nginx
+      # 4. File Konfigurasi Environment (.env)
+      - /var/compose/espd-kab-banggai-laut/.env:/app/.env
 
