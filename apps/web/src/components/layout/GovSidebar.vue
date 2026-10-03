@@ -118,41 +118,47 @@ const toggleSubmenu = (label: string) => {
 
 <template>
   <aside
-    class="flex flex-col bg-white dark:bg-zinc-900 border-r border-slate-200 dark:border-zinc-800 transition-all duration-200 z-20 select-none"
+    class="flex flex-col bg-surface border-r border-border transition-all duration-200 z-20 select-none shadow-sm"
     :class="collapsed ? 'w-20' : 'w-64'"
   >
     <!-- Brand / Header Section -->
-    <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-zinc-800 justify-between">
+    <div class="h-16 flex items-center px-4 bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border justify-between text-white dark:text-text-main">
       <router-link to="/" class="flex items-center gap-3 overflow-hidden">
-        <div class="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-200 dark:border-zinc-700">
+        <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-white/20 dark:border-slate-700">
           <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
         </div>
         <div v-if="!collapsed" class="flex flex-col min-w-0 transition-opacity duration-200">
-          <span class="font-bold text-base text-slate-800 dark:text-zinc-100 tracking-tight truncate">
+          <span class="font-bold text-base text-white dark:text-text-main tracking-tight truncate">
             SI-SPD
           </span>
-          <span class="text-xs text-slate-400 dark:text-zinc-400 truncate">
+          <span class="text-xs text-white/80 dark:text-text-muted truncate">
             Sekda Kab. Banggai Laut
           </span>
         </div>
       </router-link>
 
       <div v-if="!collapsed">
-        <GovButton
-          icon="pi pi-chevron-left"
-          severity="secondary"
+        <button
+          type="button"
+          class="w-7 h-7 rounded-lg flex items-center justify-center text-white dark:text-text-main bg-white/10 dark:bg-white/5 hover:bg-white/20 dark:hover:bg-white/10 active:bg-white/30 transition-colors border border-white/10 dark:border-white/5"
+          title="Tutup Sidebar"
           @click="emit('toggle')"
-        />
+        >
+          <i class="pi pi-chevron-left text-xs"></i>
+        </button>
       </div>
     </div>
 
     <!-- Toggle button when collapsed -->
-    <div v-if="collapsed" class="p-2 flex justify-center border-b border-slate-100 dark:border-zinc-800">
-      <GovButton
-        icon="pi pi-chevron-right"
-        severity="secondary"
+    <div v-if="collapsed" class="p-2 flex justify-center bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border">
+      <button
+        type="button"
+        class="w-7 h-7 rounded-lg flex items-center justify-center text-white dark:text-text-main bg-white/10 dark:bg-white/5 hover:bg-white/20 dark:hover:bg-white/10 active:bg-white/30 transition-colors border border-white/10 dark:border-white/5"
+        title="Buka Sidebar"
         @click="emit('toggle')"
-      />
+      >
+        <i class="pi pi-chevron-right text-xs"></i>
+      </button>
     </div>
 
     <!-- Navigation Menu Items -->
@@ -165,14 +171,14 @@ const toggleSubmenu = (label: string) => {
           class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
           :class="[
             isItemActive(item.to)
-              ? 'bg-blue-900 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100'
-              : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80',
+              ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
+              : 'text-text-main hover:bg-canvas hover:text-primary dark:hover:text-primary',
             collapsed ? 'justify-center' : ''
           ]"
           :title="collapsed ? item.label : undefined"
         >
-          <i :class="[item.icon, 'text-lg flex-shrink-0', isItemActive(item.to) ? 'text-amber-300' : 'text-slate-400 dark:text-zinc-400']"></i>
-          <span v-if="!collapsed" class="truncate">
+          <i :class="[item.icon, 'text-lg flex-shrink-0', isItemActive(item.to) ? 'text-accent dark:text-[#0F172A]' : 'text-text-muted']"></i>
+          <span v-if="!collapsed" class="truncate font-medium">
             {{ item.label }}
           </span>
         </router-link>
@@ -184,22 +190,22 @@ const toggleSubmenu = (label: string) => {
             class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer text-left"
             :class="[
               isParentActive(item.children)
-                ? 'text-blue-900 font-semibold dark:text-amber-400 bg-blue-50 dark:bg-zinc-800/60'
-                : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800/80',
+                ? 'text-primary font-semibold bg-primary/5 dark:bg-primary/10 border-l-2 border-primary'
+                : 'text-text-main hover:bg-canvas hover:text-primary dark:hover:text-primary',
               collapsed ? 'justify-center' : 'justify-between'
             ]"
             :title="collapsed ? item.label : undefined"
             @click="toggleSubmenu(item.label)"
           >
             <div class="flex items-center gap-3 min-w-0">
-              <i :class="[item.icon, 'text-lg flex-shrink-0', isParentActive(item.children) ? 'text-blue-900 dark:text-amber-400' : 'text-slate-400 dark:text-zinc-400']"></i>
+              <i :class="[item.icon, 'text-lg flex-shrink-0', isParentActive(item.children) ? 'text-primary' : 'text-text-muted']"></i>
               <span v-if="!collapsed" class="truncate">
                 {{ item.label }}
               </span>
             </div>
             <i
               v-if="!collapsed"
-              class="pi text-xs text-slate-400"
+              class="pi text-xs text-text-muted"
               :class="openSubmenus[item.label] ? 'pi-chevron-down' : 'pi-chevron-right'"
             ></i>
           </button>
@@ -216,11 +222,11 @@ const toggleSubmenu = (label: string) => {
               class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
               :class="[
                 isItemActive(sub.to)
-                  ? 'bg-blue-900 text-white shadow-sm dark:bg-zinc-800 dark:text-zinc-100 font-semibold'
-                  : 'text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800/60 hover:text-slate-900 dark:hover:text-zinc-200'
+                  ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
+                  : 'text-text-muted hover:bg-canvas hover:text-text-main'
               ]"
             >
-              <i :class="[sub.icon || 'pi pi-circle', 'text-xs flex-shrink-0', isItemActive(sub.to) ? 'text-amber-300' : 'text-slate-400 dark:text-zinc-400']"></i>
+              <i :class="[sub.icon || 'pi pi-circle', 'text-xs flex-shrink-0', isItemActive(sub.to) ? 'text-accent dark:text-[#0F172A]' : 'text-text-muted']"></i>
               <span class="truncate">{{ sub.label }}</span>
             </router-link>
           </div>
@@ -229,17 +235,17 @@ const toggleSubmenu = (label: string) => {
     </nav>
 
     <!-- User Profile & Footer Section -->
-    <div class="p-3 border-t border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900">
+    <div class="p-3 border-t border-border bg-canvas">
       <div v-if="!collapsed" class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-9 h-9 rounded-full bg-blue-900 text-amber-300 font-bold text-sm flex items-center justify-center flex-shrink-0">
+          <div class="w-9 h-9 rounded-full bg-primary text-accent dark:text-[#0F172A] font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-sm border border-primary/20">
             {{ userInitial }}
           </div>
           <div class="min-w-0 flex flex-col">
-            <span class="text-xs font-semibold text-slate-800 dark:text-zinc-100 truncate">
+            <span class="text-xs font-semibold text-text-main truncate">
               {{ userName || 'Tamu' }}
             </span>
-            <span class="text-xs text-slate-400 dark:text-zinc-400 truncate">
+            <span class="text-xs text-text-muted truncate">
               {{ userRole || 'USER' }}
             </span>
           </div>
@@ -254,7 +260,7 @@ const toggleSubmenu = (label: string) => {
 
       <div v-else class="flex flex-col items-center gap-2">
         <div
-          class="w-9 h-9 rounded-full bg-blue-900 text-amber-300 font-bold text-sm flex items-center justify-center"
+          class="w-9 h-9 rounded-full bg-primary text-accent dark:text-[#0F172A] font-bold text-sm flex items-center justify-center shadow-sm"
           :title="userName || 'Tamu'"
         >
           {{ userInitial }}

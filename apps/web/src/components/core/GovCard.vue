@@ -3,7 +3,7 @@ import Card from 'primevue/card';
 </script>
 
 <template>
-  <Card v-bind="$attrs">
+  <Card v-bind="$attrs" class="!bg-surface !border !border-slate-200 shadow-sm rounded-xl overflow-hidden">
     <template v-if="$slots.header" #header>
       <slot name="header" />
     </template>

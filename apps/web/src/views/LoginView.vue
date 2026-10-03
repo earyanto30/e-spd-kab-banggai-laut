@@ -73,7 +73,7 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="relative min-h-screen flex items-center justify-center px-4 py-12 bg-slate-100 dark:bg-zinc-950 transition-colors">
+  <div class="relative min-h-screen flex items-center justify-center px-4 py-12 bg-canvas transition-colors">
     <!-- Theme Switcher Top Right -->
     <div class="absolute top-4 right-4">
       <GovButton
@@ -83,23 +83,23 @@ const handleLogin = async () => {
       />
     </div>
 
-    <div class="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
-      <!-- Portal Header -->
-      <div class="bg-blue-900 px-8 py-7 text-white text-center">
-        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white p-2 mb-3 shadow-md">
+    <div class="w-full max-w-md bg-surface border border-border rounded-2xl shadow-lg overflow-hidden">
+      <!-- Portal Header with Maritime Navy #0F4C81 (Light) and Surface #162238 (Dark) -->
+      <div class="bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border px-8 py-7 text-white dark:text-text-main text-center transition-colors">
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white p-2 mb-3 shadow-md border border-white/20 dark:border-slate-700">
           <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
         </div>
-        <h1 class="text-2xl font-bold tracking-tight">SI-SPD</h1>
-        <p class="text-xs font-medium text-blue-200 uppercase tracking-widest mt-1">
+        <h1 class="text-2xl font-bold tracking-tight text-white dark:text-text-main">SI-SPD</h1>
+        <p class="text-xs font-semibold text-white/90 dark:text-accent uppercase tracking-widest mt-1">
           Surat Perjalanan Dinas Sekda Kab. Banggai Laut
         </p>
       </div>
 
       <!-- Form Container -->
-      <div class="p-8">
+      <div class="p-8 bg-surface">
         <div class="mb-6 text-center">
-          <h2 class="text-lg font-semibold text-slate-800 dark:text-zinc-100">Masuk ke Portal</h2>
-          <p class="text-sm text-slate-500 dark:text-zinc-400 mt-1">Gunakan akun resmi pegawai untuk melanjutkan</p>
+          <h2 class="text-lg font-bold text-text-main">Masuk ke Portal</h2>
+          <p class="text-sm text-text-muted mt-1">Gunakan akun resmi pegawai untuk melanjutkan</p>
         </div>
 
         <GovMessage v-if="errorMessage" severity="error" class="mb-5">
@@ -109,11 +109,11 @@ const handleLogin = async () => {
         <form novalidate @submit.prevent="handleLogin" class="space-y-5">
           <!-- Username / NIP Input -->
           <div class="space-y-2">
-            <label for="username" class="block text-sm font-medium text-slate-700 dark:text-zinc-200">
+            <label for="username" class="block text-sm font-semibold text-text-main">
               Username atau NIP
             </label>
             <IconField class="w-full">
-              <InputIcon class="pi pi-user text-slate-400 dark:text-zinc-400" />
+              <InputIcon class="pi pi-user text-text-muted" />
               <GovInputText
                 id="username"
                 v-model="username"
@@ -128,10 +128,10 @@ const handleLogin = async () => {
           <!-- Password Input -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label for="password" class="block text-sm font-medium text-slate-700 dark:text-zinc-200">
+              <label for="password" class="block text-sm font-semibold text-text-main">
                 Kata Sandi
               </label>
-              <a href="#" class="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 font-medium">
+              <a href="#" class="text-xs text-primary hover:text-accent font-medium transition-colors">
                 Lupa sandi?
               </a>
             </div>
@@ -150,7 +150,7 @@ const handleLogin = async () => {
           <!-- Remember Me -->
           <div class="flex items-center gap-2 pt-1">
             <GovCheckbox v-model="rememberMe" inputId="remember" />
-            <label for="remember" class="text-sm text-slate-600 dark:text-zinc-300 cursor-pointer select-none">
+            <label for="remember" class="text-sm text-text-muted cursor-pointer select-none">
               Ingat saya di perangkat ini
             </label>
           </div>
@@ -166,7 +166,7 @@ const handleLogin = async () => {
           />
         </form>
 
-        <div class="mt-8 pt-6 border-t border-slate-100 dark:border-zinc-800 text-center text-xs text-slate-400 dark:text-zinc-500">
+        <div class="mt-8 pt-6 border-t border-border text-center text-xs text-text-muted">
           Hak Cipta &copy; Pemerintah Kabupaten Banggai Laut &bull; Sekretariat Daerah
         </div>
       </div>

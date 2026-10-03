@@ -12,11 +12,11 @@ import { GovButton, GovCard } from '../components/core';
         </div>
       </template>
       <template #content>
-        <p class="text-slate-600 dark:text-zinc-300 mb-6">
+        <p class="text-text-muted mb-6">
           Anda tidak memiliki izin (role) yang sesuai untuk mengakses halaman ini.
         </p>
         <router-link to="/">
-          <GovButton label="Kembali ke Beranda" icon="pi pi-arrow-left" severity="danger" />
+          <GovButton label="Kembali ke Beranda" icon="pi pi-arrow-left" severity="primary" />
         </router-link>
       </template>
     </GovCard>

@@ -337,18 +337,18 @@ onMounted(async () => {
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
       <div>
         <div class="flex items-center gap-2">
-          <router-link to="/" class="text-xs text-slate-400 hover:text-blue-900 dark:hover:text-amber-400">
+          <router-link to="/" class="text-xs text-text-muted hover:text-primary transition-colors">
             Beranda
           </router-link>
           <span class="text-xs text-slate-300">/</span>
-          <span class="text-xs text-slate-500">Pengaturan Sistem</span>
+          <span class="text-xs text-text-muted">Pengaturan Sistem</span>
           <span class="text-xs text-slate-300">/</span>
-          <span class="text-xs font-semibold text-blue-900 dark:text-amber-400">Pengguna Sistem</span>
+          <span class="text-xs font-semibold text-primary">Pengguna Sistem</span>
         </div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight mt-1">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight mt-1">
           Pengaturan Pengguna Sistem (Login User)
         </h1>
-        <p class="text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
+        <p class="text-sm text-text-muted mt-0.5">
           Kelola otorisasi akses pengguna, keterhubungan akun ke ASN, dan peranan sistem (RBAC).
         </p>
       </div>
@@ -383,14 +383,14 @@ onMounted(async () => {
         <template #content>
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-xs font-medium text-slate-500 dark:text-zinc-400">
+              <div class="text-xs font-medium text-text-muted">
                 Total Akun Login
               </div>
-              <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100 mt-1">
+              <div class="text-2xl font-bold text-text-main mt-1">
                 {{ totalUsers }}
               </div>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-zinc-800 text-blue-900 dark:text-amber-400 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-primary/15 text-primary border border-blue-100 dark:border-primary/30 flex items-center justify-center">
               <i class="pi pi-users text-lg"></i>
             </div>
           </div>
@@ -401,14 +401,14 @@ onMounted(async () => {
         <template #content>
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-xs font-medium text-slate-500 dark:text-zinc-400">
+              <div class="text-xs font-medium text-text-muted">
                 Super Admin
               </div>
-              <div class="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
+              <div class="text-2xl font-bold text-accent mt-1">
                 {{ totalSuperAdmin }}
               </div>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/40 text-red-600 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-accent/15 text-accent border border-amber-100 dark:border-accent/30 flex items-center justify-center">
               <i class="pi pi-shield text-lg"></i>
             </div>
           </div>
@@ -419,14 +419,14 @@ onMounted(async () => {
         <template #content>
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-xs font-medium text-slate-500 dark:text-zinc-400">
+              <div class="text-xs font-medium text-text-muted">
                 Admin Sistem
               </div>
-              <div class="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+              <div class="text-2xl font-bold text-primary mt-1">
                 {{ totalAdmin }}
               </div>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-blue-50 dark:bg-primary/15 text-primary border border-blue-100 dark:border-primary/30 flex items-center justify-center">
               <i class="pi pi-cog text-lg"></i>
             </div>
           </div>
@@ -437,14 +437,14 @@ onMounted(async () => {
         <template #content>
           <div class="flex items-center justify-between">
             <div>
-              <div class="text-xs font-medium text-slate-500 dark:text-zinc-400">
+              <div class="text-xs font-medium text-text-muted">
                 Taut Akun Pegawai ASN
               </div>
-              <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+              <div class="text-2xl font-bold text-success mt-1">
                 {{ totalLinkedAsn }}
               </div>
             </div>
-            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">
+            <div class="w-10 h-10 rounded-lg bg-emerald-50 dark:bg-success/15 text-success border border-emerald-100 dark:border-success/30 flex items-center justify-center">
               <i class="pi pi-id-card text-lg"></i>
             </div>
           </div>
@@ -456,7 +456,7 @@ onMounted(async () => {
     <GovCard>
       <template #content>
         <!-- Filter Toolbar -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-4 border-b border-slate-200 dark:border-zinc-800">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 mb-4 border-b border-border">
           <div class="flex-1 max-w-md">
             <GovInputText
               v-model="searchQuery"
@@ -469,10 +469,10 @@ onMounted(async () => {
           <div class="flex flex-wrap items-center gap-3">
             <!-- Filter Role -->
             <div class="flex items-center gap-2">
-              <span class="text-xs font-medium text-slate-600 dark:text-zinc-400">Peran:</span>
+              <span class="text-xs font-medium text-text-muted">Peran:</span>
               <select
                 v-model="roleFilter"
-                class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-blue-900"
+                class="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               >
                 <option value="SEMUA">Semua Peran</option>
                 <option :value="Role.SUPER_ADMIN">SUPER_ADMIN</option>
@@ -484,10 +484,10 @@ onMounted(async () => {
 
             <!-- Filter Status -->
             <div class="flex items-center gap-2">
-              <span class="text-xs font-medium text-slate-600 dark:text-zinc-400">Status:</span>
+              <span class="text-xs font-medium text-text-muted">Status:</span>
               <select
                 v-model="statusFilter"
-                class="px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-blue-900"
+                class="px-2.5 py-1.5 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               >
                 <option value="SEMUA">Semua Status</option>
                 <option value="aktif">Aktif</option>
@@ -508,7 +508,7 @@ onMounted(async () => {
           <!-- Column: No -->
           <Column header="No" class="w-12 text-center">
             <template #body="{ index }">
-              <span class="text-xs text-slate-400 font-mono">{{ index + 1 }}</span>
+              <span class="text-xs text-text-muted font-mono">{{ index + 1 }}</span>
             </template>
           </Column>
 
@@ -516,23 +516,23 @@ onMounted(async () => {
           <Column field="name" header="Nama & Username / NIP" class="min-w-64">
             <template #body="{ data }">
               <div class="flex items-center gap-3">
-                <div class="w-9 h-9 rounded-full bg-blue-900 text-amber-300 font-bold text-xs flex items-center justify-center flex-shrink-0">
+                <div class="w-9 h-9 rounded-full bg-primary text-white dark:text-[#0F172A] font-bold text-xs flex items-center justify-center flex-shrink-0 shadow-sm border border-primary/20">
                   {{ data.name.charAt(0).toUpperCase() }}
                 </div>
                 <div>
-                  <div class="text-sm font-semibold text-slate-800 dark:text-zinc-100 flex items-center gap-2">
+                  <div class="text-sm font-semibold text-text-main flex items-center gap-2">
                     <span>{{ data.name }}</span>
                     <span
                       v-if="data.username === currentLoggedInUsername"
-                      class="text-xs font-normal text-blue-600 bg-blue-50 dark:bg-zinc-800 px-1.5 py-0.5 rounded"
+                      class="text-xs font-medium text-primary bg-blue-50 dark:bg-primary/15 border border-blue-100 dark:border-primary/30 px-1.5 py-0.5 rounded"
                     >
                       (Akun Anda)
                     </span>
                   </div>
-                  <div class="text-xs font-mono text-slate-500 dark:text-zinc-400">
-                    ID/NIP: <span class="font-medium text-slate-700 dark:text-zinc-300">{{ data.username }}</span>
+                  <div class="text-xs font-mono text-text-muted">
+                    ID/NIP: <span class="font-medium text-text-main">{{ data.username }}</span>
                   </div>
-                  <div v-if="data.email" class="text-xs text-slate-400">
+                  <div v-if="data.email" class="text-xs text-text-muted">
                     {{ data.email }}
                   </div>
                 </div>
@@ -544,14 +544,14 @@ onMounted(async () => {
           <Column header="Tautan ASN Pegawai" class="min-w-56">
             <template #body="{ data }">
               <div v-if="data.pegawai" class="space-y-0.5">
-                <div class="text-xs font-medium text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
-                  <i class="pi pi-id-card text-blue-900 dark:text-amber-400 text-xs"></i>
+                <div class="text-xs font-medium text-text-main flex items-center gap-1.5">
+                  <i class="pi pi-id-card text-primary text-xs"></i>
                   <span>{{ data.pegawai.nama }}</span>
                 </div>
-                <div class="text-xs text-slate-500 dark:text-zinc-400">
+                <div class="text-xs text-text-muted">
                   {{ data.pegawai.jabatan }}
                 </div>
-                <div class="text-xs text-slate-400">
+                <div class="text-xs text-text-muted">
                   {{ data.pegawai.unitKerja }}
                 </div>
               </div>
@@ -579,10 +579,10 @@ onMounted(async () => {
           <Column field="isActive" header="Status Akun" class="w-32 text-center">
             <template #body="{ data }">
               <span
-                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-                :class="data.isActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400' : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400'"
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border"
+                :class="data.isActive ? 'bg-emerald-50 dark:bg-success/15 text-success border-emerald-200 dark:border-success/30' : 'bg-amber-50 dark:bg-accent/15 text-accent border-amber-200 dark:border-accent/30'"
               >
-                <span class="w-1.5 h-1.5 rounded-full" :class="data.isActive ? 'bg-emerald-500' : 'bg-red-500'"></span>
+                <span class="w-1.5 h-1.5 rounded-full" :class="data.isActive ? 'bg-success' : 'bg-accent'"></span>
                 {{ data.isActive ? 'Aktif' : 'Nonaktif' }}
               </span>
             </template>
@@ -634,13 +634,13 @@ onMounted(async () => {
       <form class="space-y-4 pt-2" @submit.prevent="handleSave">
         <!-- Opsi Tautkan ASN -->
         <div class="space-y-1">
-          <label for="userPegawai" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label for="userPegawai" class="text-xs font-semibold text-text-main">
             Tautkan ke Pegawai ASN (Opsional)
           </label>
           <select
             id="userPegawai"
             v-model="form.pegawaiId"
-            class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-blue-900"
+            class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
             @change="onPegawaiSelected"
           >
             <option value="">-- Tidak Ditautkan (Akun Sistem Bebas) --</option>
@@ -652,14 +652,14 @@ onMounted(async () => {
               {{ pegawai.nama }} (NIP: {{ pegawai.nip }}) - {{ pegawai.jabatan }}
             </option>
           </select>
-          <p class="text-xs text-slate-400">
+          <p class="text-xs text-text-muted mt-0.5">
             Memilih ASN akan otomatis mengisikan NIP sebagai username login dan nama pegawai.
           </p>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="usernameInput" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="usernameInput" class="text-xs font-semibold text-text-main">
               Username / NIP Login <span class="text-red-500">*</span>
             </label>
             <GovInputText
@@ -672,7 +672,7 @@ onMounted(async () => {
           </div>
 
           <div class="space-y-1">
-            <label for="nameInput" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="nameInput" class="text-xs font-semibold text-text-main">
               Nama Lengkap Pengguna <span class="text-red-500">*</span>
             </label>
             <GovInputText
@@ -687,7 +687,7 @@ onMounted(async () => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="emailInput" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="emailInput" class="text-xs font-semibold text-text-main">
               Email Kedinasan (Opsional)
             </label>
             <GovInputText
@@ -700,13 +700,13 @@ onMounted(async () => {
           </div>
 
           <div class="space-y-1">
-            <label for="roleInput" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="roleInput" class="text-xs font-semibold text-text-main">
               Peran Otorisasi (RBAC) <span class="text-red-500">*</span>
             </label>
             <select
               id="roleInput"
               v-model="form.role"
-              class="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-blue-900"
+              class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               required
             >
               <option :value="Role.SUPER_ADMIN">SUPER_ADMIN (Akses Penuh Seluruh Sistem)</option>
@@ -719,7 +719,7 @@ onMounted(async () => {
 
         <!-- Password input -->
         <div class="space-y-1">
-          <label for="passwordInput" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label for="passwordInput" class="text-xs font-semibold text-text-main">
             {{ isEditing ? 'Ubah Kata Sandi (Kosongkan jika tidak diubah)' : 'Kata Sandi Awal' }}
             <span v-if="!isEditing" class="text-red-500">*</span>
           </label>
@@ -743,7 +743,7 @@ onMounted(async () => {
           />
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-zinc-800">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
           <GovButton
             label="Batal"
             severity="secondary"
@@ -768,16 +768,16 @@ onMounted(async () => {
       class="w-full max-w-md"
     >
       <div class="space-y-4 pt-1">
-        <p class="text-xs text-slate-600 dark:text-zinc-300">
+        <p class="text-xs text-text-main">
           Apakah Anda yakin ingin menghapus akun pengguna
-          <strong class="text-slate-800 dark:text-zinc-100">{{ selectedUser?.name }}</strong>
-          (Username: <code class="font-mono text-red-600">{{ selectedUser?.username }}</code>)?
+          <strong class="text-text-main">{{ selectedUser?.name }}</strong>
+          (Username: <code class="font-mono text-accent">{{ selectedUser?.username }}</code>)?
         </p>
-        <p class="text-xs text-slate-400">
+        <p class="text-xs text-text-muted">
           Tindakan ini tidak dapat dibatalkan. Data riwayat dokumen yang sudah dibuat akan tetap tersimpan.
         </p>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-zinc-800">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
           <GovButton
             label="Batal"
             severity="secondary"

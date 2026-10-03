@@ -15,6 +15,7 @@ defineProps<{
     :striped-rows="stripedRows ?? true"
     :paginator="paginator"
     :rows="rows || 10"
+    class="!bg-surface !border !border-border rounded-lg overflow-hidden shadow-sm"
     v-bind="$attrs"
   >
     <template v-for="(_, slot) in $slots" #[slot]="scope">

@@ -36,37 +36,39 @@ onMounted(() => {
     <GovCard>
       <template #title>
         <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-200 dark:border-zinc-700">
+          <div class="w-12 h-12 rounded-xl bg-surface p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-200">
             <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
           </div>
-          <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
-            SI-SPD Sekda Kab. Banggai Laut
+          <div>
+            <div class="text-2xl font-bold text-text-main tracking-tight">
+              SI-SPD Sekda Kab. Banggai Laut
+            </div>
           </div>
         </div>
       </template>
       <template #subtitle>
-        <span class="text-slate-500 dark:text-zinc-400">
+        <span class="text-text-muted text-sm">
           Sistem Informasi Surat Perjalanan Dinas Sekretariat Daerah Kabupaten Banggai Laut
         </span>
       </template>
       <template #content>
-        <p class="text-slate-600 dark:text-zinc-300 mb-6">
+        <p class="text-text-main text-sm leading-relaxed mb-6">
           Selamat datang di Portal Sistem Informasi Surat Perjalanan Dinas (SI-SPD) Sekretariat Daerah Kabupaten Banggai Laut, Sulawesi Tengah.
         </p>
 
         <!-- Logged In Status Banner -->
-        <div v-if="authToken" class="p-5 bg-blue-50 dark:bg-zinc-900 border border-blue-200 dark:border-zinc-800 rounded-xl space-y-4 mb-6">
+        <div v-if="authToken" class="p-5 bg-surface border border-border rounded-xl space-y-4 mb-6 shadow-sm">
           <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-3">
-              <div class="w-12 h-12 rounded-xl bg-blue-900 text-amber-300 font-bold text-lg flex items-center justify-center flex-shrink-0">
+              <div class="w-12 h-12 rounded-xl bg-primary text-white dark:text-[#0F172A] font-bold text-lg flex items-center justify-center flex-shrink-0 shadow-sm">
                 {{ userName ? userName.charAt(0).toUpperCase() : 'U' }}
               </div>
               <div>
-                <div class="text-base font-bold text-slate-800 dark:text-zinc-100">
+                <div class="text-base font-bold text-text-main">
                   {{ userName }}
                 </div>
-                <div class="text-xs text-slate-500 dark:text-zinc-400 font-mono">
-                  NIP / Akun: {{ currentUsername }} &bull; Otorisasi: <span class="font-bold text-blue-900 dark:text-amber-400">{{ userRole }}</span>
+                <div class="text-xs text-text-muted font-mono mt-0.5">
+                  NIP / Akun: {{ currentUsername }} &bull; Otorisasi: <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-50 dark:bg-primary/15 text-primary border border-blue-200 dark:border-primary/30">{{ userRole }}</span>
                 </div>
               </div>
             </div>
@@ -80,7 +82,7 @@ onMounted(() => {
           </div>
 
           <!-- Quick Navigation Actions -->
-          <div class="pt-3 border-t border-slate-200 dark:border-zinc-800 flex flex-wrap gap-2.5">
+          <div class="pt-3 border-t border-border flex flex-wrap gap-2.5">
             <router-link to="/spd/kop-surat">
               <GovButton
                 label="Pengaturan Kop Surat"
@@ -106,8 +108,8 @@ onMounted(() => {
         </div>
 
         <!-- Not Logged In Prompt -->
-        <div v-else class="p-6 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-4">
-          <div class="text-sm text-slate-600 dark:text-zinc-300">
+        <div v-else class="p-6 bg-surface border border-border rounded-xl text-center space-y-4 shadow-sm">
+          <div class="text-sm text-text-muted">
             Anda belum masuk ke sesi akun resmi. Silakan masuk menggunakan NIP atau Akun Pegawai.
           </div>
           <router-link to="/login">

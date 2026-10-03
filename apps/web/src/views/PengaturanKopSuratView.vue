@@ -312,10 +312,10 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight">
           Pengaturan Kop Surat
         </h1>
-        <p class="text-sm text-slate-500 dark:text-zinc-400">
+        <p class="text-sm text-text-muted mt-0.5">
           Unggah dan kelola berkas PDF kop surat resmi Sekretariat Daerah Kabupaten Banggai Laut untuk dokumen SPD.
         </p>
       </div>
@@ -338,13 +338,13 @@ onMounted(() => {
     <!-- Table of Stored PDF Kop Surat -->
     <GovCard>
       <template #title>
-        <div class="flex items-center justify-between text-base font-semibold text-slate-700 dark:text-zinc-200">
+        <div class="flex items-center justify-between text-base font-semibold text-text-main">
           <div class="flex items-center gap-2">
-            <i class="pi pi-folder text-gov-primary dark:text-amber-400"></i>
+            <i class="pi pi-folder text-primary"></i>
             <span>Daftar Berkas PDF Kop Surat</span>
           </div>
-          <span class="text-xs text-slate-500 font-normal">
-            Direktori Penyimpanan: <code class="font-mono text-gov-primary dark:text-amber-400">uploads/kop-surat/</code> ({{ list.length }} berkas)
+          <span class="text-xs text-text-muted font-normal">
+            Direktori Penyimpanan: <code class="font-mono text-primary bg-blue-50 dark:bg-primary/15 px-1.5 py-0.5 rounded border border-blue-100 dark:border-primary/25">uploads/kop-surat/</code> ({{ list.length }} berkas)
           </span>
         </div>
       </template>
@@ -355,7 +355,7 @@ onMounted(() => {
           <Column header="Tipe Berkas" class="w-28 text-center">
             <template #body>
               <div class="flex items-center justify-center">
-                <div class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 flex items-center justify-center">
+                <div class="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 flex items-center justify-center shadow-xs">
                   <i class="pi pi-file-pdf text-xl"></i>
                 </div>
               </div>
@@ -367,7 +367,7 @@ onMounted(() => {
             <template #body="{ data }">
               <div class="space-y-1">
                 <div class="flex items-center gap-2">
-                  <span class="font-semibold text-slate-800 dark:text-zinc-200">
+                  <span class="font-semibold text-text-main">
                     {{ data.nama }}
                   </span>
                   <Tag
@@ -376,7 +376,7 @@ onMounted(() => {
                     severity="success"
                   />
                 </div>
-                <div v-if="data.keterangan" class="text-xs text-slate-500 dark:text-zinc-400">
+                <div v-if="data.keterangan" class="text-xs text-text-muted">
                   {{ data.keterangan }}
                 </div>
               </div>
@@ -386,11 +386,11 @@ onMounted(() => {
           <!-- Column: Nama Berkas di Folder -->
           <Column header="Berkas di Folder Server">
             <template #body="{ data }">
-              <div class="text-xs text-slate-600 dark:text-zinc-400 space-y-0.5">
-                <div class="font-mono text-slate-700 dark:text-zinc-300 font-medium truncate max-w-xs">
+              <div class="text-xs text-text-muted space-y-0.5">
+                <div class="font-mono text-text-main font-medium truncate max-w-xs">
                   {{ data.fileName }}
                 </div>
-                <div class="text-slate-400 font-mono">
+                <div class="text-text-muted font-mono">
                   Ukuran: {{ data.fileSize || '-' }} • {{ data.createdAt }}
                 </div>
               </div>
@@ -400,8 +400,8 @@ onMounted(() => {
           <!-- Column: Ukuran Kertas -->
           <Column field="paperSize" header="Ukuran Kertas" class="w-36">
             <template #body="{ data }">
-              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 border border-slate-200 dark:border-zinc-700">
-                <i class="pi pi-file mr-1 text-slate-400"></i>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-slate-100 dark:bg-canvas text-text-main border border-border">
+                <i class="pi pi-file mr-1 text-text-muted"></i>
                 {{ data.paperSize || 'A4' }}
               </span>
             </template>
@@ -441,9 +441,9 @@ onMounted(() => {
     <!-- PDF Document Live Preview Card -->
     <GovCard v-if="activePreview && activePdfBlobUrl">
       <template #title>
-        <div class="flex items-center justify-between text-base font-semibold text-slate-700 dark:text-zinc-200">
+        <div class="flex items-center justify-between text-base font-semibold text-text-main">
           <div class="flex items-center gap-2">
-            <i class="pi pi-file-pdf text-red-600"></i>
+            <i class="pi pi-file-pdf text-red-600 dark:text-red-400"></i>
             <span>Pratinjau Berkas PDF: {{ activePreview.nama }} ({{ activePreview.fileName }})</span>
           </div>
           <div class="flex items-center gap-2">
@@ -456,7 +456,7 @@ onMounted(() => {
               :href="activePdfBlobUrl"
               target="_blank"
               rel="noopener noreferrer"
-              class="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 bg-slate-100 dark:bg-zinc-800 rounded font-medium"
+              class="inline-flex items-center gap-1.5 text-xs text-primary hover:text-accent hover:underline px-2.5 py-1 bg-blue-50 dark:bg-primary/15 border border-blue-200 dark:border-primary/25 rounded font-medium transition-colors"
             >
               <i class="pi pi-external-link text-xs"></i>
               <span>Buka di Tab Baru</span>
@@ -466,23 +466,23 @@ onMounted(() => {
       </template>
 
       <template #content>
-        <div class="bg-slate-100 dark:bg-zinc-950 p-4 rounded-lg flex flex-col items-center">
-          <div class="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
+        <div class="bg-canvas p-4 rounded-xl flex flex-col items-center border border-border">
+          <div class="w-full bg-surface rounded-lg shadow-sm border border-border overflow-hidden">
             <object
               :data="activePdfBlobUrl"
               type="application/pdf"
               class="w-full h-portal block"
             >
               <div class="p-8 text-center space-y-3">
-                <i class="pi pi-file-pdf text-4xl text-slate-400"></i>
-                <p class="text-sm text-slate-600 dark:text-zinc-300">
+                <i class="pi pi-file-pdf text-4xl text-text-muted"></i>
+                <p class="text-sm text-text-main">
                   Pratinjau PDF disajikan langsung dari memori terautentikasi aman.
                 </p>
                 <a
                   :href="activePdfBlobUrl"
                   target="_blank"
                   rel="noopener noreferrer"
-                  class="inline-block text-xs text-blue-600 underline"
+                  class="inline-block text-xs text-primary hover:text-accent underline font-medium"
                 >
                   Klik di sini untuk mengunduh atau membuka PDF
                 </a>
@@ -512,7 +512,7 @@ onMounted(() => {
 
         <!-- Label / Nama Kop -->
         <div class="space-y-1">
-          <label for="formNama" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label for="formNama" class="text-xs font-semibold text-text-main">
             Label / Nama Kop Surat
           </label>
           <GovInputText
@@ -526,7 +526,7 @@ onMounted(() => {
 
         <!-- Keterangan Penggunaan -->
         <div class="space-y-1">
-          <label for="formKeterangan" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label for="formKeterangan" class="text-xs font-semibold text-text-main">
             Keterangan / Penggunaan (Opsional)
           </label>
           <GovInputText
@@ -539,20 +539,20 @@ onMounted(() => {
 
         <!-- PDF Upload Dropzone Area -->
         <div class="space-y-2">
-          <label class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label class="text-xs font-semibold text-text-main">
             Pilih Berkas PDF Kop Surat
           </label>
 
           <!-- Dropzone box -->
           <div
-            class="border-2 border-dashed border-slate-300 dark:border-zinc-700 hover:border-blue-900 dark:hover:border-amber-400 rounded-lg p-5 text-center cursor-pointer transition-colors bg-slate-50 dark:bg-zinc-900"
+            class="border-2 border-dashed border-slate-300 dark:border-border hover:border-primary rounded-xl p-5 text-center cursor-pointer transition-colors bg-canvas"
             @click="triggerFileInput"
           >
             <i class="pi pi-file-pdf text-3xl text-red-500 mb-2"></i>
-            <div class="text-sm font-medium text-slate-700 dark:text-zinc-200">
+            <div class="text-sm font-semibold text-text-main">
               Klik untuk memilih berkas PDF
             </div>
-            <div class="text-xs text-slate-400 mt-1">
+            <div class="text-xs text-text-muted mt-1">
               Hanya format berkas PDF (.pdf) • Maksimal 10 MB
             </div>
           </div>
@@ -560,13 +560,13 @@ onMounted(() => {
           <!-- Selected File Details Banner -->
           <div
             v-if="selectedFile"
-            class="flex items-center justify-between p-3 bg-blue-50 dark:bg-zinc-800/80 border border-blue-200 dark:border-zinc-700 rounded-lg text-xs"
+            class="flex items-center justify-between p-3 bg-blue-50 dark:bg-primary/10 border border-blue-200 dark:border-primary/25 rounded-lg text-xs"
           >
             <div class="flex items-center gap-2 min-w-0">
               <i class="pi pi-file-pdf text-red-600 text-lg flex-shrink-0"></i>
               <div class="truncate">
-                <span class="font-medium text-slate-800 dark:text-zinc-200 block truncate">{{ selectedFile.name }}</span>
-                <span class="text-slate-500 dark:text-zinc-400">{{ formatBytes(selectedFile.size) }}</span>
+                <span class="font-medium text-text-main block truncate">{{ selectedFile.name }}</span>
+                <span class="text-text-muted">{{ formatBytes(selectedFile.size) }}</span>
               </div>
             </div>
             <GovButton
@@ -585,13 +585,13 @@ onMounted(() => {
             v-model="form.isDefault"
             input-id="formIsDefault"
           />
-          <label for="formIsDefault" class="text-sm text-slate-700 dark:text-zinc-300 cursor-pointer">
+          <label for="formIsDefault" class="text-sm text-text-main cursor-pointer select-none">
             Jadikan Kop Surat Utama (Default untuk dokumen SPD)
           </label>
         </div>
 
         <!-- Dialog Footer Actions -->
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-zinc-800">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
           <GovButton
             label="Batal"
             severity="secondary"

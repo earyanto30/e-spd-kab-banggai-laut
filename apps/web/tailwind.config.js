@@ -8,12 +8,21 @@ export default {
   theme: {
     extend: {
       colors: {
+        primary: 'var(--color-primary)',
+        canvas: 'var(--color-bg)',
+        surface: 'var(--color-surface)',
+        'text-main': 'var(--color-text-primary)',
+        'text-muted': 'var(--color-text-muted)',
+        accent: 'var(--color-accent)',
+        success: 'var(--color-success)',
+        border: 'var(--color-border)',
         gov: {
-          primary: '#1e3a8a', // navy
-          secondary: '#334155', // slate
-          accent: '#d97706', // amber/gold
-          surface: '#f8fafc',
-          border: '#e2e8f0',
+          primary: 'var(--color-primary)',
+          secondary: 'var(--color-text-muted)',
+          accent: 'var(--color-accent)',
+          surface: 'var(--color-surface)',
+          canvas: 'var(--color-bg)',
+          border: 'var(--color-border)',
         },
       },
       spacing: {

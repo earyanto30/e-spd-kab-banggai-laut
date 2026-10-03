@@ -52,7 +52,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
+  <div class="min-h-screen bg-canvas text-text-main transition-colors">
     <!-- Standard Administrative Sidebar Layout: Only when authenticated and not on isolated pages -->
     <template v-if="showAdminLayout">
       <div class="flex h-screen overflow-hidden">
@@ -76,7 +76,7 @@ onMounted(() => {
           />
 
           <!-- View Outlet -->
-          <main class="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-zinc-950 transition-colors">
+          <main class="flex-1 overflow-y-auto p-6 bg-canvas transition-colors">
             <router-view />
           </main>
         </div>

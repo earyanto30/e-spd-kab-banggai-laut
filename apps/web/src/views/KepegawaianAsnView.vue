@@ -301,10 +301,10 @@ onMounted(() => {
     <!-- Header Page -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
+        <h1 class="text-2xl font-bold text-text-main tracking-tight">
           Data Pegawai (ASN)
         </h1>
-        <p class="text-sm text-slate-500 dark:text-zinc-400">
+        <p class="text-sm text-text-muted mt-0.5">
           Daftar seluruh Aparatur Sipil Negara di lingkungan Sekretariat Daerah Kabupaten Banggai Laut untuk penugasan dan perjalanan dinas.
         </p>
       </div>
@@ -326,33 +326,33 @@ onMounted(() => {
 
     <!-- Stats Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-4 flex items-center gap-4 shadow-sm">
-        <div class="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-950/50 text-blue-900 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
+      <div class="bg-surface border border-border rounded-xl p-4 flex items-center gap-4 shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-blue-50 dark:bg-primary/15 text-primary flex items-center justify-center flex-shrink-0 border border-blue-100 dark:border-primary/25">
           <i class="pi pi-users text-2xl"></i>
         </div>
         <div>
-          <div class="text-xs text-slate-500 dark:text-zinc-400 font-medium">Total Pegawai ASN</div>
-          <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100">{{ list.length }}</div>
+          <div class="text-xs text-text-muted font-medium">Total Pegawai ASN</div>
+          <div class="text-2xl font-bold text-text-main mt-0.5">{{ list.length }}</div>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-4 flex items-center gap-4 shadow-sm">
-        <div class="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+      <div class="bg-surface border border-border rounded-xl p-4 flex items-center gap-4 shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-success/15 text-success flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-success/25">
           <i class="pi pi-id-card text-2xl"></i>
         </div>
         <div>
-          <div class="text-xs text-slate-500 dark:text-zinc-400 font-medium">Pegawai Negeri Sipil (PNS)</div>
-          <div class="text-2xl font-bold text-emerald-700 dark:text-emerald-400">{{ totalPns }}</div>
+          <div class="text-xs text-text-muted font-medium">Pegawai Negeri Sipil (PNS)</div>
+          <div class="text-2xl font-bold text-success mt-0.5">{{ totalPns }}</div>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg p-4 flex items-center gap-4 shadow-sm">
-        <div class="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 flex items-center justify-center flex-shrink-0">
+      <div class="bg-surface border border-border rounded-xl p-4 flex items-center gap-4 shadow-sm">
+        <div class="w-12 h-12 rounded-xl bg-amber-50 dark:bg-accent/15 text-accent flex items-center justify-center flex-shrink-0 border border-amber-100 dark:border-accent/25">
           <i class="pi pi-briefcase text-2xl"></i>
         </div>
         <div>
-          <div class="text-xs text-slate-500 dark:text-zinc-400 font-medium">PPPK / Perjanjian Kerja</div>
-          <div class="text-2xl font-bold text-amber-700 dark:text-amber-400">{{ totalPppk }}</div>
+          <div class="text-xs text-text-muted font-medium">PPPK / Perjanjian Kerja</div>
+          <div class="text-2xl font-bold text-accent mt-0.5">{{ totalPppk }}</div>
         </div>
       </div>
     </div>
@@ -360,9 +360,9 @@ onMounted(() => {
     <!-- Main Table Card -->
     <GovCard>
       <template #title>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 text-base font-semibold text-slate-700 dark:text-zinc-200">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 text-base font-semibold text-text-main">
           <div class="flex items-center gap-2">
-            <i class="pi pi-list text-gov-primary dark:text-amber-400"></i>
+            <i class="pi pi-list text-primary"></i>
             <span>Daftar Pegawai ASN Sekda Kab. Banggai Laut</span>
           </div>
 
@@ -377,27 +377,27 @@ onMounted(() => {
             </div>
 
             <!-- Status Filter Toggle Buttons -->
-            <div class="flex items-center border border-slate-200 dark:border-zinc-700 rounded-lg overflow-hidden bg-slate-50 dark:bg-zinc-800">
+            <div class="flex items-center border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
               <button
                 type="button"
                 class="px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="statusFilter === 'SEMUA' ? 'bg-blue-900 text-white dark:bg-zinc-700' : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700/50'"
+                :class="statusFilter === 'SEMUA' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
                 @click="statusFilter = 'SEMUA'"
               >
                 Semua
               </button>
               <button
                 type="button"
-                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-zinc-700"
-                :class="statusFilter === 'PNS' ? 'bg-blue-900 text-white dark:bg-zinc-700' : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700/50'"
+                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
+                :class="statusFilter === 'PNS' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
                 @click="statusFilter = 'PNS'"
               >
                 PNS
               </button>
               <button
                 type="button"
-                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-slate-200 dark:border-zinc-700"
-                :class="statusFilter === 'PPPK' ? 'bg-blue-900 text-white dark:bg-zinc-700' : 'text-slate-600 dark:text-zinc-300 hover:bg-slate-200 dark:hover:bg-zinc-700/50'"
+                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
+                :class="statusFilter === 'PPPK' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
                 @click="statusFilter = 'PPPK'"
               >
                 PPPK
@@ -413,10 +413,10 @@ onMounted(() => {
           <Column field="nama" header="Pegawai & NIP" sortable>
             <template #body="{ data }">
               <div class="space-y-0.5">
-                <div class="font-semibold text-slate-800 dark:text-zinc-100 text-sm">
+                <div class="font-semibold text-text-main text-sm">
                   {{ data.nama }}
                 </div>
-                <div class="font-mono text-xs text-slate-500 dark:text-zinc-400">
+                <div class="font-mono text-xs text-text-muted">
                   NIP. {{ data.nip }}
                 </div>
               </div>
@@ -427,10 +427,10 @@ onMounted(() => {
           <Column field="jabatan" header="Jabatan & Unit Kerja" sortable>
             <template #body="{ data }">
               <div class="space-y-0.5">
-                <div class="text-xs font-medium text-slate-800 dark:text-zinc-200">
+                <div class="text-xs font-medium text-text-main">
                   {{ data.jabatan }}
                 </div>
-                <div class="text-xs text-slate-500 dark:text-zinc-400">
+                <div class="text-xs text-text-muted">
                   {{ data.unitKerja }}
                 </div>
               </div>
@@ -441,10 +441,10 @@ onMounted(() => {
           <Column field="golongan" header="Pangkat / Golongan" class="w-48">
             <template #body="{ data }">
               <div class="space-y-0.5">
-                <div class="text-xs text-slate-700 dark:text-zinc-300">
+                <div class="text-xs text-text-main">
                   {{ data.pangkat }}
                 </div>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-slate-100 dark:bg-zinc-800 text-blue-900 dark:text-amber-400 border border-slate-200 dark:border-zinc-700">
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-slate-100 dark:bg-canvas text-primary border border-border">
                   Gol. {{ data.golongan }}
                 </span>
               </div>
@@ -499,15 +499,15 @@ onMounted(() => {
     >
       <div v-if="selectedAsn" class="space-y-4 pt-2">
         <!-- Top Profile Banner -->
-        <div class="flex items-center gap-4 p-4 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg">
-          <div class="w-14 h-14 rounded-full bg-blue-900 text-amber-300 font-bold text-xl flex items-center justify-center flex-shrink-0">
+        <div class="flex items-center gap-4 p-4 bg-canvas border border-border rounded-xl">
+          <div class="w-14 h-14 rounded-full bg-primary text-white dark:text-[#0F172A] font-bold text-xl flex items-center justify-center flex-shrink-0 shadow-sm border-2 border-primary/20">
             {{ selectedAsn.nama.charAt(0) }}
           </div>
           <div class="min-w-0">
-            <div class="font-bold text-slate-800 dark:text-zinc-100 text-base">
+            <div class="font-bold text-text-main text-base">
               {{ selectedAsn.nama }}
             </div>
-            <div class="font-mono text-xs text-slate-500">
+            <div class="font-mono text-xs text-text-muted">
               NIP. {{ selectedAsn.nip }}
             </div>
             <div class="mt-1">
@@ -521,25 +521,25 @@ onMounted(() => {
 
         <!-- Detail Information Rows -->
         <div class="space-y-2 text-xs">
-          <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-zinc-800">
-            <span class="text-slate-500">Jabatan:</span>
-            <span class="font-medium text-slate-800 dark:text-zinc-200 text-right">{{ selectedAsn.jabatan }}</span>
+          <div class="flex justify-between py-1.5 border-b border-border">
+            <span class="text-text-muted">Jabatan:</span>
+            <span class="font-medium text-text-main text-right">{{ selectedAsn.jabatan }}</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-zinc-800">
-            <span class="text-slate-500">Unit Kerja:</span>
-            <span class="font-medium text-slate-800 dark:text-zinc-200 text-right">{{ selectedAsn.unitKerja }}</span>
+          <div class="flex justify-between py-1.5 border-b border-border">
+            <span class="text-text-muted">Unit Kerja:</span>
+            <span class="font-medium text-text-main text-right">{{ selectedAsn.unitKerja }}</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-zinc-800">
-            <span class="text-slate-500">Pangkat / Golongan:</span>
-            <span class="font-medium text-slate-800 dark:text-zinc-200 text-right">{{ selectedAsn.pangkat }} (Gol. {{ selectedAsn.golongan }})</span>
+          <div class="flex justify-between py-1.5 border-b border-border">
+            <span class="text-text-muted">Pangkat / Golongan:</span>
+            <span class="font-medium text-text-main text-right">{{ selectedAsn.pangkat }} (Gol. {{ selectedAsn.golongan }})</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-zinc-800">
-            <span class="text-slate-500">Alamat Email:</span>
-            <span class="font-mono text-slate-800 dark:text-zinc-200">{{ selectedAsn.email || '-' }}</span>
+          <div class="flex justify-between py-1.5 border-b border-border">
+            <span class="text-text-muted">Alamat Email:</span>
+            <span class="font-mono text-text-main">{{ selectedAsn.email || '-' }}</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-slate-100 dark:border-zinc-800">
-            <span class="text-slate-500">No. Handphone / WhatsApp:</span>
-            <span class="font-mono text-slate-800 dark:text-zinc-200">{{ selectedAsn.noHp || '-' }}</span>
+          <div class="flex justify-between py-1.5 border-b border-border">
+            <span class="text-text-muted">No. Handphone / WhatsApp:</span>
+            <span class="font-mono text-text-main">{{ selectedAsn.noHp || '-' }}</span>
           </div>
         </div>
 
@@ -563,7 +563,7 @@ onMounted(() => {
       <form class="space-y-4 pt-2" @submit.prevent="handleSave">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="asnNip" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnNip" class="text-xs font-semibold text-text-main">
               Nomor Induk Pegawai (NIP)
             </label>
             <GovInputText
@@ -576,7 +576,7 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1">
-            <label for="asnNama" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnNama" class="text-xs font-semibold text-text-main">
               Nama Lengkap & Gelar
             </label>
             <GovInputText
@@ -591,7 +591,7 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="asnPangkat" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnPangkat" class="text-xs font-semibold text-text-main">
               Pangkat
             </label>
             <GovInputText
@@ -604,7 +604,7 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1">
-            <label for="asnGolongan" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnGolongan" class="text-xs font-semibold text-text-main">
               Golongan Ruang
             </label>
             <GovInputText
@@ -619,7 +619,7 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="asnJabatan" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnJabatan" class="text-xs font-semibold text-text-main">
               Jabatan
             </label>
             <GovInputText
@@ -632,7 +632,7 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1">
-            <label for="asnUnitKerja" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnUnitKerja" class="text-xs font-semibold text-text-main">
               Unit Kerja
             </label>
             <GovInputText
@@ -647,7 +647,7 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="asnEmail" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnEmail" class="text-xs font-semibold text-text-main">
               Email Kedinasan
             </label>
             <GovInputText
@@ -660,7 +660,7 @@ onMounted(() => {
           </div>
 
           <div class="space-y-1">
-            <label for="asnNoHp" class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+            <label for="asnNoHp" class="text-xs font-semibold text-text-main">
               No. Handphone / WhatsApp
             </label>
             <GovInputText
@@ -673,34 +673,34 @@ onMounted(() => {
         </div>
 
         <div class="space-y-1">
-          <label class="text-xs font-semibold text-slate-700 dark:text-zinc-300">
+          <label class="text-xs font-semibold text-text-main">
             Status Kepegawaian
           </label>
           <div class="flex items-center gap-4 pt-1">
-            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-zinc-300">
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-text-main">
               <input
                 v-model="form.status"
                 type="radio"
                 value="PNS"
                 name="statusAsn"
-                class="text-blue-900"
+                class="accent-primary"
               />
               <span>Pegawai Negeri Sipil (PNS)</span>
             </label>
-            <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-700 dark:text-zinc-300">
+            <label class="flex items-center gap-2 cursor-pointer text-xs text-text-main">
               <input
                 v-model="form.status"
                 type="radio"
                 value="PPPK"
                 name="statusAsn"
-                class="text-blue-900"
+                class="accent-primary"
               />
               <span>Pegawai Pemerintah dengan Perjanjian Kerja (PPPK)</span>
             </label>
           </div>
         </div>
 
-        <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-zinc-800">
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border">
           <GovButton
             label="Batal"
             severity="secondary"
