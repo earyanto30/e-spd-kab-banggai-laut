@@ -23,7 +23,11 @@ fi
 
 # Start NestJS API
 echo "==> Starting NestJS API backend on port 3000..."
-cd /app && node apps/api/dist/main.js &
+API_ENTRY="/app/apps/api/dist/main.js"
+if [ ! -f "$API_ENTRY" ] && [ -f "/app/apps/api/dist/src/main.js" ]; then
+    API_ENTRY="/app/apps/api/dist/src/main.js"
+fi
+cd /app && node "$API_ENTRY" &
 API_PID=$!
 
 # Graceful termination handler
