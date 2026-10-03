@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { GovButton } from '../core';
 import { Role, RoleType } from '@si-setda/shared-types';
+import logoUrl from '../../assets/logo.png';
 
 interface SubMenuItem {
   label: string;
@@ -127,8 +128,8 @@ const toggleSubmenu = (label: string) => {
     <!-- Brand / Header Section -->
     <div class="h-16 flex items-center px-4 border-b border-slate-200 dark:border-zinc-800 justify-between">
       <router-link to="/" class="flex items-center gap-3 overflow-hidden">
-        <div class="w-10 h-10 rounded-xl bg-blue-900 text-amber-400 flex items-center justify-center flex-shrink-0 shadow-sm">
-          <i class="pi pi-building text-lg"></i>
+        <div class="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-200 dark:border-zinc-700">
+          <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
         </div>
         <div v-if="!collapsed" class="flex flex-col min-w-0 transition-opacity duration-200">
           <span class="font-bold text-base text-slate-800 dark:text-zinc-100 tracking-tight truncate">

@@ -13,6 +13,7 @@ import {
 import { useTheme } from '../composables/useTheme';
 import { LoginRequestSchema } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
+import logoUrl from '../assets/logo.png';
 
 const router = useRouter();
 const { isDark, toggleTheme } = useTheme();
@@ -82,8 +83,8 @@ const handleLogin = async () => {
     <div class="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl shadow-xl overflow-hidden">
       <!-- Portal Header -->
       <div class="bg-blue-900 px-8 py-7 text-white text-center">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white bg-opacity-10 border border-white border-opacity-20 mb-3 shadow-inner">
-          <i class="pi pi-building text-3xl text-amber-400"></i>
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white p-2 mb-3 shadow-md">
+          <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
         </div>
         <h1 class="text-2xl font-bold tracking-tight">SI-SPD</h1>
         <p class="text-xs font-medium text-blue-200 uppercase tracking-widest mt-1">
@@ -106,14 +107,14 @@ const handleLogin = async () => {
           <!-- Username / NIP Input -->
           <div class="space-y-2">
             <label for="username" class="block text-sm font-medium text-slate-700 dark:text-zinc-200">
-              NIP atau Username
+              Username atau NIP
             </label>
             <IconField class="w-full">
               <InputIcon class="pi pi-user text-slate-400 dark:text-zinc-400" />
               <GovInputText
                 id="username"
                 v-model="username"
-                placeholder="cth. 198801152010011002"
+                placeholder="cth. admin"
                 autocomplete="username"
                 :required="true"
                 :block="true"

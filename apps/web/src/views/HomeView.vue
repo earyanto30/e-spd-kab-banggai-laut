@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { GovButton, GovCard } from '../components/core';
+import logoUrl from '../assets/logo.png';
 
 const router = useRouter();
 const authToken = ref<string | null>(null);
@@ -34,8 +35,13 @@ onMounted(() => {
   <div class="max-w-4xl mx-auto space-y-6">
     <GovCard>
       <template #title>
-        <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
-          SI-SPD Sekda Kab. Banggai Laut
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-white dark:bg-zinc-800 p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-200 dark:border-zinc-700">
+            <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
+          </div>
+          <div class="text-2xl font-bold text-slate-800 dark:text-zinc-100 tracking-tight">
+            SI-SPD Sekda Kab. Banggai Laut
+          </div>
         </div>
       </template>
       <template #subtitle>

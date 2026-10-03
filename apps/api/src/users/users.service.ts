@@ -270,8 +270,8 @@ export class UsersService {
     }
 
     // Protect default admin Fadli A. Arsad or last super admin
-    if (existing.username === '198801152010011002') {
-      throw new BadRequestException('Akun Super Admin Utama (Fadli A. Arsad) tidak dapat dihapus');
+    if (existing.username === '198801152010011002' || existing.username === 'admin') {
+      throw new BadRequestException('Akun Super Admin Utama (Fadli A. Arsad / admin) tidak dapat dihapus');
     }
 
     if (existing.role === Role.SUPER_ADMIN) {

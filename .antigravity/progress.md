@@ -3,3 +3,4 @@ kop surat implemented upload to filesystem add metadata to database table KopSur
 data asn implemented save data to table Pegawai can be used as login linked to user login table
 pengaturan sistem sub-menu pengguna sistem implemented to manage login users, RBAC roles, ASN linking, password reset, and account activation
 api security implemented dynamic JWT Bearer token authentication, RBAC roles guard, App-Client signature verification, and CORS restrictions
+database seeder implemented official Prisma seeder (prisma/seed.js), removed credentials and seed data from runtime TypeScript services, integrated with docker entrypoint and package scripts

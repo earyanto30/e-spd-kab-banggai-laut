@@ -11,8 +11,14 @@ export PATH="/app/apps/api/node_modules/.bin:/app/node_modules/.bin:$PATH"
 echo "==> Initializing / updating SQLite database schema..."
 if [ -f "/app/apps/api/node_modules/.bin/prisma" ]; then
     /app/apps/api/node_modules/.bin/prisma db push --schema=/app/apps/api/prisma/schema.prisma --accept-data-loss
+    echo "==> Running Prisma database seeder..."
+    cd /app/apps/api && /app/apps/api/node_modules/.bin/prisma db seed --schema=/app/apps/api/prisma/schema.prisma || true
+    cd /app
 elif [ -f "/app/node_modules/.bin/prisma" ]; then
     /app/node_modules/.bin/prisma db push --schema=/app/apps/api/prisma/schema.prisma --accept-data-loss
+    echo "==> Running Prisma database seeder..."
+    cd /app/apps/api && /app/node_modules/.bin/prisma db seed --schema=/app/apps/api/prisma/schema.prisma || true
+    cd /app
 fi
 
 # Start NestJS API
