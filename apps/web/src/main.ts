@@ -16,5 +16,7 @@ app.use(PrimeVue, {
     },
   },
 });
-
-app.mount('#app');
+// Wait for initial navigation & route resolution before mounting DOM
+router.isReady().then(() => {
+  app.mount('#app');
+});

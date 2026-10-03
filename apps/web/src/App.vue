@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTheme } from './composables/useTheme';
 import GovSidebar from './components/layout/GovSidebar.vue';
@@ -14,8 +14,11 @@ const sidebarCollapsed = ref(false);
 const userRole = ref<RoleType | string>(Role.USER);
 const userName = ref<string | null>(null);
 const currentUsername = ref<string | null>(null);
+const isAuthenticated = ref(false);
 
 const syncAuthState = () => {
+  const token = localStorage.getItem('auth_token');
+  isAuthenticated.value = !!token;
   userRole.value = (localStorage.getItem('user_role') as RoleType) || Role.USER;
   userName.value = localStorage.getItem('user_name');
   currentUsername.value = localStorage.getItem('username');
@@ -30,11 +33,16 @@ const handleLogout = () => {
   router.push('/login');
 };
 
+const showAdminLayout = computed(() => {
+  return isAuthenticated.value && !route.meta.hideNavbar && route.name !== 'Login';
+});
+
 watch(
   () => route.path,
   () => {
     syncAuthState();
-  }
+  },
+  { immediate: true }
 );
 
 onMounted(() => {
@@ -45,13 +53,8 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 transition-colors">
-    <!-- Blank layout for login and isolated pages -->
-    <template v-if="route.meta.hideNavbar">
-      <router-view />
-    </template>
-
-    <!-- Standard Administrative Sidebar Layout -->
-    <template v-else>
+    <!-- Standard Administrative Sidebar Layout: Only when authenticated and not on isolated pages -->
+    <template v-if="showAdminLayout">
       <div class="flex h-screen overflow-hidden">
         <!-- Sidebar -->
         <GovSidebar
@@ -78,6 +81,11 @@ onMounted(() => {
           </main>
         </div>
       </div>
+    </template>
+
+    <!-- Clean / Blank Layout (Login, Unauthorized, or unauthenticated redirects) -->
+    <template v-else>
+      <router-view />
     </template>
   </div>
 </template>

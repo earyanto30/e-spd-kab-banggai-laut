@@ -1,7 +1,26 @@
+const path = require('node:path');
+const fs = require('node:fs');
+
+// Load root .env file by searching upwards from process.cwd() and __dirname
+(() => {
+  const searchStarts = [process.cwd(), __dirname];
+  for (const start of searchStarts) {
+    let dir = start;
+    for (let i = 0; i < 6; i++) {
+      const candidate = path.resolve(dir, '.env');
+      if (fs.existsSync(candidate) && process.loadEnvFile) {
+        process.loadEnvFile(candidate);
+        return;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+})();
+
 const { PrismaClient } = require('@prisma/client');
 const { scryptSync, randomBytes } = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
 
 const prisma = new PrismaClient();
 

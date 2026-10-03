@@ -1,5 +1,25 @@
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+
+// Load root .env file by searching upwards from process.cwd() and __dirname
+(() => {
+  const searchStarts = [process.cwd(), __dirname];
+  for (const start of searchStarts) {
+    let dir = start;
+    for (let i = 0; i < 6; i++) {
+      const candidate = path.resolve(dir, '.env');
+      if (fs.existsSync(candidate) && process.loadEnvFile) {
+        process.loadEnvFile(candidate);
+        return;
+      }
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+  }
+})();
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
