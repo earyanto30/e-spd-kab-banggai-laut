@@ -7,11 +7,10 @@ services:
       - "80:80"
     volumes:
       # 1. Folder Unggahan Berkas (PDF Kop Surat, Lampiran & Dokumen)
-      - /var/compose/espd-kab-banggai-laut/uploads:/app/uploads
+      - ./uploads:/app/uploads
       # 2. Folder Database & Data Sistem (SQLite Database dev.db)
-      - /var/compose/espd-kab-banggai-laut/data:/app/data
+      - ./data:/app/data
       # 3. Log Nginx (Opsional untuk pemantauan akses & error)
-      - /var/compose/espd-kab-banggai-laut/logs:/var/log/nginx
+      - ./logs:/var/log/nginx
       # 4. File Konfigurasi Environment (.env)
-      - /var/compose/espd-kab-banggai-laut/.env:/app/.env
-
+      - ./.env:/app/.env
