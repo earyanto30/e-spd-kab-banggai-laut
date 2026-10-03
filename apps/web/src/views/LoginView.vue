@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import IconField from 'primevue/iconfield';
 import InputIcon from 'primevue/inputicon';
 import {
@@ -16,6 +16,7 @@ import { apiFetch } from '../utils/api';
 import logoUrl from '../assets/logo.png';
 
 const router = useRouter();
+const route = useRoute();
 const { isDark, toggleTheme } = useTheme();
 
 const username = ref('');
@@ -61,7 +62,9 @@ const handleLogin = async () => {
     localStorage.setItem('user_name', data.user.name);
     localStorage.setItem('username', data.user.username);
     isLoading.value = false;
-    router.push('/');
+
+    const redirectTarget = (route.query.redirect as string) || '/';
+    router.push(redirectTarget);
   } catch (err: any) {
     isLoading.value = false;
     errorMessage.value = err.message || 'Gagal masuk ke sistem';

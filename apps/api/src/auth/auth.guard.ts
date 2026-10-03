@@ -20,13 +20,11 @@ export class AuthGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest();
 
-    // 1. Extract Token from Authorization Header or Query (for iframe streaming)
+    // 1. Extract Token strictly from Authorization Header (never expose in URL query)
     let token: string | null = null;
     const authHeader = req.headers?.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.split(' ')[1] || null;
-    } else if (req.query?.token && typeof req.query.token === 'string') {
-      token = req.query.token;
     }
 
     if (!token) {
@@ -37,7 +35,7 @@ export class AuthGuard implements CanActivate {
 
     // 2. Verify Request Originates from Application (App-only access)
     const clientHeader = req.headers[APP_CLIENT_HEADER];
-    if (!req.query?.token && clientHeader !== APP_CLIENT_ID) {
+    if (clientHeader !== APP_CLIENT_ID) {
       throw new ForbiddenException(
         'Akses ditolak: Permintaan API hanya dapat diakses melalui aplikasi resmi SI-SPD.'
       );

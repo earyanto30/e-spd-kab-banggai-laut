@@ -34,11 +34,7 @@ const emit = defineEmits<{
 
 const router = useRouter();
 
-const openSubmenus = ref<Record<string, boolean>>({
-  'Surat Perjalanan Dinas': true,
-  'Kepegawaian': true,
-  'Pengaturan Sistem': true,
-});
+const openSubmenus = ref<Record<string, boolean>>({});
 
 const menuItems = computed<MenuItem[]>(() => [
   {

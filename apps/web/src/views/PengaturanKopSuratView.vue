@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 import Tag from 'primevue/tag';
@@ -11,7 +11,7 @@ import {
   GovMessage,
   GovTable,
 } from '../components/core';
-import { apiFetch, getAuthToken } from '../utils/api';
+import { apiFetch } from '../utils/api';
 
 export interface KopSuratItem {
   id: string;
@@ -62,9 +62,38 @@ const activePreview = computed<KopSuratItem | null>(() => {
   return list.value.find((item) => item.isDefault) || list.value[0] || null;
 });
 
-const activePdfUrl = computed<string | null>(() => {
-  if (!activePreview.value) return null;
-  return activePreview.value.pdfUrl || `/api/kop-surat/${activePreview.value.id}/stream`;
+const activePdfBlobUrl = ref<string | null>(null);
+const isLoadingPdf = ref<boolean>(false);
+
+watch(
+  () => activePreview.value?.id,
+  async (newId) => {
+    if (activePdfBlobUrl.value) {
+      URL.revokeObjectURL(activePdfBlobUrl.value);
+      activePdfBlobUrl.value = null;
+    }
+    if (!newId) return;
+
+    isLoadingPdf.value = true;
+    try {
+      const res = await apiFetch(`/api/kop-surat/${newId}/stream`);
+      if (res.ok) {
+        const blob = await res.blob();
+        activePdfBlobUrl.value = URL.createObjectURL(blob);
+      }
+    } catch (err) {
+      console.error('Gagal memuat pratinjau PDF:', err);
+    } finally {
+      isLoadingPdf.value = false;
+    }
+  },
+  { immediate: true }
+);
+
+onUnmounted(() => {
+  if (activePdfBlobUrl.value) {
+    URL.revokeObjectURL(activePdfBlobUrl.value);
+  }
 });
 
 const showAlert = (message: string) => {
@@ -113,11 +142,7 @@ const loadData = async () => {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
-        const token = getAuthToken();
-        list.value = data.map((item) => ({
-          ...item,
-          pdfUrl: `/api/kop-surat/${item.id}/stream${token ? `?token=${encodeURIComponent(token)}` : ''}`,
-        }));
+        list.value = data;
         return;
       }
     }
@@ -414,7 +439,7 @@ onMounted(() => {
     </GovCard>
 
     <!-- PDF Document Live Preview Card -->
-    <GovCard v-if="activePreview && activePdfUrl">
+    <GovCard v-if="activePreview && activePdfBlobUrl">
       <template #title>
         <div class="flex items-center justify-between text-base font-semibold text-slate-700 dark:text-zinc-200">
           <div class="flex items-center gap-2">
@@ -428,7 +453,7 @@ onMounted(() => {
               severity="info"
             />
             <a
-              :href="activePdfUrl"
+              :href="activePdfBlobUrl"
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:underline px-2 py-1 bg-slate-100 dark:bg-zinc-800 rounded font-medium"
@@ -444,17 +469,17 @@ onMounted(() => {
         <div class="bg-slate-100 dark:bg-zinc-950 p-4 rounded-lg flex flex-col items-center">
           <div class="w-full bg-white dark:bg-zinc-900 rounded-lg shadow-sm border border-slate-200 dark:border-zinc-800 overflow-hidden">
             <object
-              :data="activePdfUrl"
+              :data="activePdfBlobUrl"
               type="application/pdf"
               class="w-full h-portal block"
             >
               <div class="p-8 text-center space-y-3">
                 <i class="pi pi-file-pdf text-4xl text-slate-400"></i>
                 <p class="text-sm text-slate-600 dark:text-zinc-300">
-                  Pratinjau PDF disajikan langsung dari server folder.
+                  Pratinjau PDF disajikan langsung dari memori terautentikasi aman.
                 </p>
                 <a
-                  :href="activePdfUrl"
+                  :href="activePdfBlobUrl"
                   target="_blank"
                   rel="noopener noreferrer"
                   class="inline-block text-xs text-blue-600 underline"
