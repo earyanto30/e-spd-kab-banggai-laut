@@ -42,9 +42,7 @@ async function main() {
       golongan: 'IV/c',
       jabatan: 'Sekretaris Daerah / Super Admin',
       unitKerja: 'Sekretariat Daerah Kab. Banggai Laut',
-      status: 'PNS',
-      email: process.env.INITIAL_ADMIN_EMAIL || 'fadli.arsad@banggailautkab.go.id',
-      noHp: '08114567890',
+      isASN: true,
     },
     {
       nip: '19680512 199403 1 004',
@@ -53,9 +51,7 @@ async function main() {
       golongan: 'IV/d',
       jabatan: 'Staf Ahli Sekretariat Daerah',
       unitKerja: 'Sekretariat Daerah',
-      status: 'PNS',
-      email: 'bambang.soeprapto@setda.go.id',
-      noHp: '081234567890',
+      isASN: true,
     },
     {
       nip: '19740821 199903 2 002',
@@ -64,9 +60,7 @@ async function main() {
       golongan: 'IV/c',
       jabatan: 'Asisten Pemerintahan dan Kesra',
       unitKerja: 'Sekretariat Daerah - Asisten I',
-      status: 'PNS',
-      email: 'siti.rahmawati@setda.go.id',
-      noHp: '081234567891',
+      isASN: true,
     },
     {
       nip: '19850214 200412 1 001',
@@ -75,9 +69,7 @@ async function main() {
       golongan: 'IV/a',
       jabatan: 'Kepala Bagian Umum dan Protokol',
       unitKerja: 'Sekretariat Daerah - Bagian Umum',
-      status: 'PNS',
-      email: 'dedy.kurniawan@setda.go.id',
-      noHp: '081234567892',
+      isASN: true,
     },
     {
       nip: '19890610 201101 2 008',
@@ -86,9 +78,7 @@ async function main() {
       golongan: 'III/d',
       jabatan: 'Kepala Bagian Hukum',
       unitKerja: 'Sekretariat Daerah - Bagian Hukum',
-      status: 'PNS',
-      email: 'ratna.juwita@setda.go.id',
-      noHp: '081234567893',
+      isASN: true,
     },
     {
       nip: '19920315 201802 1 003',
@@ -97,9 +87,7 @@ async function main() {
       golongan: 'III/c',
       jabatan: 'Pranata Komputer Ahli Muda',
       unitKerja: 'Sekretariat Daerah - Bagian Organisasi',
-      status: 'PNS',
-      email: 'fajar.prasetyo@setda.go.id',
-      noHp: '081234567894',
+      isASN: true,
     },
     {
       nip: '19951104 202012 2 011',
@@ -108,9 +96,7 @@ async function main() {
       golongan: 'II/c',
       jabatan: 'Pengelola Administrasi Perjalanan Dinas',
       unitKerja: 'Sekretariat Daerah - Bagian Umum',
-      status: 'PNS',
-      email: 'nurul.aini@setda.go.id',
-      noHp: '081234567895',
+      isASN: true,
     },
     {
       nip: '19900720 202321 1 005',
@@ -119,9 +105,7 @@ async function main() {
       golongan: 'IX',
       jabatan: 'Analis Kebijakan',
       unitKerja: 'Sekretariat Daerah - Bagian Perekonomian',
-      status: 'PPPK',
-      email: 'eko.wahyudi@setda.go.id',
-      noHp: '081234567896',
+      isASN: true,
     },
   ];
 
@@ -134,9 +118,7 @@ async function main() {
         golongan: pegawaiData.golongan,
         jabatan: pegawaiData.jabatan,
         unitKerja: pegawaiData.unitKerja,
-        status: pegawaiData.status,
-        email: pegawaiData.email,
-        noHp: pegawaiData.noHp,
+        isASN: pegawaiData.isASN,
       },
       create: pegawaiData,
     });

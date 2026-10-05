@@ -20,9 +20,7 @@ export interface AsnPegawai {
   golongan: string;
   jabatan: string;
   unitKerja: string;
-  status: 'PNS' | 'PPPK';
-  email: string;
-  noHp: string;
+  isASN: boolean;
 }
 
 const STORAGE_KEY = 'kepegawaian_asn_list';
@@ -36,9 +34,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'IV/d',
     jabatan: 'Sekretaris Daerah',
     unitKerja: 'Sekretariat Daerah',
-    status: 'PNS',
-    email: 'bambang.soeprapto@setda.go.id',
-    noHp: '081234567890',
+    isASN: true,
   },
   {
     id: 'asn-2',
@@ -48,9 +44,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'IV/c',
     jabatan: 'Asisten Pemerintahan dan Kesra',
     unitKerja: 'Sekretariat Daerah - Asisten I',
-    status: 'PNS',
-    email: 'siti.rahmawati@setda.go.id',
-    noHp: '081234567891',
+    isASN: true,
   },
   {
     id: 'asn-3',
@@ -60,9 +54,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'IV/a',
     jabatan: 'Kepala Bagian Umum dan Protokol',
     unitKerja: 'Sekretariat Daerah - Bagian Umum',
-    status: 'PNS',
-    email: 'dedy.kurniawan@setda.go.id',
-    noHp: '081234567892',
+    isASN: true,
   },
   {
     id: 'asn-4',
@@ -72,9 +64,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'III/d',
     jabatan: 'Kepala Bagian Hukum',
     unitKerja: 'Sekretariat Daerah - Bagian Hukum',
-    status: 'PNS',
-    email: 'ratna.juwita@setda.go.id',
-    noHp: '081234567893',
+    isASN: true,
   },
   {
     id: 'asn-5',
@@ -84,9 +74,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'III/c',
     jabatan: 'Pranata Komputer Ahli Muda',
     unitKerja: 'Sekretariat Daerah - Bagian Organisasi',
-    status: 'PNS',
-    email: 'fajar.prasetyo@setda.go.id',
-    noHp: '081234567894',
+    isASN: true,
   },
   {
     id: 'asn-6',
@@ -96,9 +84,7 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'II/c',
     jabatan: 'Pengelola Administrasi Perjalanan Dinas',
     unitKerja: 'Sekretariat Daerah - Bagian Umum',
-    status: 'PNS',
-    email: 'nurul.aini@setda.go.id',
-    noHp: '081234567895',
+    isASN: true,
   },
   {
     id: 'asn-7',
@@ -108,15 +94,13 @@ const defaultAsnList: AsnPegawai[] = [
     golongan: 'IX',
     jabatan: 'Analis Kebijakan',
     unitKerja: 'Sekretariat Daerah - Bagian Perekonomian',
-    status: 'PPPK',
-    email: 'eko.wahyudi@setda.go.id',
-    noHp: '081234567896',
+    isASN: true,
   },
 ];
 
 const list = ref<AsnPegawai[]>([]);
 const searchQuery = ref('');
-const statusFilter = ref<'SEMUA' | 'PNS' | 'PPPK'>('SEMUA');
+const statusFilter = ref<'SEMUA' | 'ASN' | 'NON_ASN'>('SEMUA');
 const isFormDialogOpen = ref(false);
 const isDetailDialogOpen = ref(false);
 const isEditing = ref(false);
@@ -131,9 +115,7 @@ const form = ref<AsnPegawai>({
   golongan: '',
   jabatan: '',
   unitKerja: 'Sekretariat Daerah',
-  status: 'PNS',
-  email: '',
-  noHp: '',
+  isASN: true,
 });
 
 const loadData = async () => {
@@ -175,12 +157,15 @@ const showAlert = (message: string) => {
   }, 3500);
 };
 
-const totalPns = computed(() => list.value.filter((a) => a.status === 'PNS').length);
-const totalPppk = computed(() => list.value.filter((a) => a.status === 'PPPK').length);
+const totalAsn = computed(() => list.value.filter((a) => a.isASN).length);
+const totalNonAsn = computed(() => list.value.filter((a) => !a.isASN).length);
 
 const filteredList = computed(() => {
   return list.value.filter((asn) => {
-    const matchesStatus = statusFilter.value === 'SEMUA' || asn.status === statusFilter.value;
+    const matchesStatus =
+      statusFilter.value === 'SEMUA' ||
+      (statusFilter.value === 'ASN' && asn.isASN) ||
+      (statusFilter.value === 'NON_ASN' && !asn.isASN);
     const q = searchQuery.value.trim().toLowerCase();
     if (!q) return matchesStatus;
 
@@ -204,9 +189,7 @@ const openCreateDialog = () => {
     golongan: 'III/a',
     jabatan: '',
     unitKerja: 'Sekretariat Daerah',
-    status: 'PNS',
-    email: '',
-    noHp: '',
+    isASN: true,
   };
   isFormDialogOpen.value = true;
 };
@@ -341,8 +324,8 @@ onMounted(() => {
           <i class="pi pi-id-card text-2xl"></i>
         </div>
         <div>
-          <div class="text-xs text-text-muted font-medium">Pegawai Negeri Sipil (PNS)</div>
-          <div class="text-2xl font-bold text-success mt-0.5">{{ totalPns }}</div>
+          <div class="text-xs text-text-muted font-medium">Pegawai ASN</div>
+          <div class="text-2xl font-bold text-success mt-0.5">{{ totalAsn }}</div>
         </div>
       </div>
 
@@ -351,8 +334,8 @@ onMounted(() => {
           <i class="pi pi-briefcase text-2xl"></i>
         </div>
         <div>
-          <div class="text-xs text-text-muted font-medium">PPPK / Perjanjian Kerja</div>
-          <div class="text-2xl font-bold text-accent mt-0.5">{{ totalPppk }}</div>
+          <div class="text-xs text-text-muted font-medium">Pegawai Non ASN</div>
+          <div class="text-2xl font-bold text-accent mt-0.5">{{ totalNonAsn }}</div>
         </div>
       </div>
     </div>
@@ -389,18 +372,18 @@ onMounted(() => {
               <button
                 type="button"
                 class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
-                :class="statusFilter === 'PNS' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
-                @click="statusFilter = 'PNS'"
+                :class="statusFilter === 'ASN' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
+                @click="statusFilter = 'ASN'"
               >
-                PNS
+                ASN
               </button>
               <button
                 type="button"
                 class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
-                :class="statusFilter === 'PPPK' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
-                @click="statusFilter = 'PPPK'"
+                :class="statusFilter === 'NON_ASN' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
+                @click="statusFilter = 'NON_ASN'"
               >
-                PPPK
+                Non ASN
               </button>
             </div>
           </div>
@@ -452,11 +435,11 @@ onMounted(() => {
           </Column>
 
           <!-- Column: Status -->
-          <Column field="status" header="Status" class="w-24 text-center">
+          <Column field="isASN" header="Status" class="w-28 text-center">
             <template #body="{ data }">
               <Tag
-                :value="data.status"
-                :severity="data.status === 'PNS' ? 'success' : 'warn'"
+                :value="data.isASN ? 'ASN' : 'Non ASN'"
+                :severity="data.isASN ? 'success' : 'secondary'"
               />
             </template>
           </Column>
@@ -512,8 +495,8 @@ onMounted(() => {
             </div>
             <div class="mt-1">
               <Tag
-                :value="selectedAsn.status"
-                :severity="selectedAsn.status === 'PNS' ? 'success' : 'warn'"
+                :value="selectedAsn.isASN ? 'ASN' : 'Non ASN'"
+                :severity="selectedAsn.isASN ? 'success' : 'secondary'"
               />
             </div>
           </div>
@@ -533,14 +516,6 @@ onMounted(() => {
             <span class="text-text-muted">Pangkat / Golongan:</span>
             <span class="font-medium text-text-main text-right">{{ selectedAsn.pangkat }} (Gol. {{ selectedAsn.golongan }})</span>
           </div>
-          <div class="flex justify-between py-1.5 border-b border-border">
-            <span class="text-text-muted">Alamat Email:</span>
-            <span class="font-mono text-text-main">{{ selectedAsn.email || '-' }}</span>
-          </div>
-          <div class="flex justify-between py-1.5 border-b border-border">
-            <span class="text-text-muted">No. Handphone / WhatsApp:</span>
-            <span class="font-mono text-text-main">{{ selectedAsn.noHp || '-' }}</span>
-          </div>
         </div>
 
         <div class="flex justify-end pt-2">
@@ -557,7 +532,7 @@ onMounted(() => {
     <Dialog
       v-model:visible="isFormDialogOpen"
       :modal="true"
-      :header="isEditing ? 'Ubah Data Pegawai ASN' : 'Tambah Pegawai ASN Baru'"
+      :header="isEditing ? 'Ubah Data Pegawai' : 'Tambah Pegawai Baru'"
       class="w-full max-w-xl"
     >
       <form class="space-y-4 pt-2" @submit.prevent="handleSave">
@@ -645,33 +620,6 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="space-y-1">
-            <label for="asnEmail" class="text-xs font-semibold text-text-main">
-              Email Kedinasan
-            </label>
-            <GovInputText
-              id="asnEmail"
-              v-model="form.email"
-              type="email"
-              placeholder="Contoh: pegawai@setda.go.id"
-              block
-            />
-          </div>
-
-          <div class="space-y-1">
-            <label for="asnNoHp" class="text-xs font-semibold text-text-main">
-              No. Handphone / WhatsApp
-            </label>
-            <GovInputText
-              id="asnNoHp"
-              v-model="form.noHp"
-              placeholder="Contoh: 081234567890"
-              block
-            />
-          </div>
-        </div>
-
         <div class="space-y-1">
           <label class="text-xs font-semibold text-text-main">
             Status Kepegawaian
@@ -679,23 +627,23 @@ onMounted(() => {
           <div class="flex items-center gap-4 pt-1">
             <label class="flex items-center gap-2 cursor-pointer text-xs text-text-main">
               <input
-                v-model="form.status"
+                v-model="form.isASN"
                 type="radio"
-                value="PNS"
+                :value="true"
                 name="statusAsn"
                 class="accent-primary"
               />
-              <span>Pegawai Negeri Sipil (PNS)</span>
+              <span>ASN</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer text-xs text-text-main">
               <input
-                v-model="form.status"
+                v-model="form.isASN"
                 type="radio"
-                value="PPPK"
+                :value="false"
                 name="statusAsn"
                 class="accent-primary"
               />
-              <span>Pegawai Pemerintah dengan Perjanjian Kerja (PPPK)</span>
+              <span>Non ASN</span>
             </label>
           </div>
         </div>

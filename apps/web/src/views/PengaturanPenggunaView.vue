@@ -46,7 +46,7 @@ export interface PegawaiOption {
   golongan: string;
   jabatan: string;
   unitKerja: string;
-  status: string;
+  isASN?: boolean;
 }
 
 const list = ref<UserItem[]>([]);

@@ -37,9 +37,7 @@ export class AuthService {
           // 3. Pegawai NIP matching
           { pegawai: { nip: rawUsername } },
           { pegawai: { nip: cleanInput } },
-          // 4. Pegawai Email matching
-          { pegawai: { email: lowerInput } },
-          // 5. Special super admin aliases
+          // 4. Special super admin aliases
           ...(isAdminAlias
             ? [
                 { username: 'admin' },
@@ -78,7 +76,7 @@ export class AuthService {
         username: user.username,
         name: user.pegawai?.nama || user.name,
         role: user.role as RoleType,
-        email: user.email || user.pegawai?.email || null,
+        email: user.email || null,
         isActive: user.isActive,
         pegawaiId: user.pegawaiId,
         nip: user.pegawai?.nip || null,

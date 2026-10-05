@@ -8,9 +8,7 @@ export interface CreatePegawaiDto {
   golongan: string;
   jabatan: string;
   unitKerja?: string;
-  status?: string;
-  email?: string;
-  noHp?: string;
+  isASN?: boolean;
 }
 
 export interface UpdatePegawaiDto {
@@ -20,20 +18,18 @@ export interface UpdatePegawaiDto {
   golongan?: string;
   jabatan?: string;
   unitKerja?: string;
-  status?: string;
-  email?: string;
-  noHp?: string;
+  isASN?: boolean;
 }
 
 @Injectable()
 export class PegawaiService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query?: string, status?: string) {
+  async findAll(query?: string, isASN?: string | boolean) {
     const where: any = {};
 
-    if (status && status !== 'SEMUA') {
-      where.status = status;
+    if (isASN !== undefined && isASN !== 'SEMUA' && isASN !== '') {
+      where.isASN = isASN === true || isASN === 'true' || isASN === '1';
     }
 
     if (query && query.trim()) {
@@ -78,9 +74,7 @@ export class PegawaiService {
         golongan: dto.golongan.trim(),
         jabatan: dto.jabatan.trim(),
         unitKerja: dto.unitKerja?.trim() || 'Sekretariat Daerah',
-        status: dto.status?.trim() || 'PNS',
-        email: dto.email?.trim() || null,
-        noHp: dto.noHp?.trim() || null,
+        isASN: dto.isASN !== undefined ? Boolean(dto.isASN) : true,
       },
     });
   }
@@ -109,9 +103,7 @@ export class PegawaiService {
         ...(dto.golongan && { golongan: dto.golongan.trim() }),
         ...(dto.jabatan && { jabatan: dto.jabatan.trim() }),
         ...(dto.unitKerja && { unitKerja: dto.unitKerja.trim() }),
-        ...(dto.status && { status: dto.status.trim() }),
-        email: dto.email !== undefined ? dto.email?.trim() || null : undefined,
-        noHp: dto.noHp !== undefined ? dto.noHp?.trim() || null : undefined,
+        ...(dto.isASN !== undefined && { isASN: Boolean(dto.isASN) }),
       },
     });
   }

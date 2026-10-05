@@ -23,9 +23,9 @@ export class PegawaiController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findAll(
     @Query('q') query?: string,
-    @Query('status') status?: string,
+    @Query('isASN') isASN?: string,
   ) {
-    return this.pegawaiService.findAll(query, status);
+    return this.pegawaiService.findAll(query, isASN);
   }
 
   @Get(':id')

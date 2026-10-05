@@ -35,6 +35,16 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/spd/buat',
+    alias: '/spd',
+    name: 'BuatSpd',
+    component: () => import('../views/BuatSpdView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
     path: '/spd/kop-surat',
     alias: '/pengaturan/kop-surat',
     name: 'PengaturanKopSurat',

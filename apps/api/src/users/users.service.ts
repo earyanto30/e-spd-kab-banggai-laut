@@ -111,7 +111,7 @@ export class UsersService {
         golongan: true,
         jabatan: true,
         unitKerja: true,
-        status: true,
+        isASN: true,
       },
       orderBy: [{ golongan: 'desc' }, { nama: 'asc' }],
     });

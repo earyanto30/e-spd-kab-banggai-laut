@@ -44,9 +44,7 @@ model Pegawai {
   golongan  String
   jabatan   String
   unitKerja String   @default("Sekretariat Daerah")
-  status    String   @default("PNS") // PNS | PPPK
-  email     String?
-  noHp      String?
+  isASN     Boolean  @default(true)
 
   user      User?
 
