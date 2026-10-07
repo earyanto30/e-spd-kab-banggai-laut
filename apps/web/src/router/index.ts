@@ -54,6 +54,15 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/spd/edit/:id',
+    name: 'EditSpd',
+    component: () => import('../views/BuatSpdView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
     path: '/spd/cetak/:id',
     alias: ['/spd/preview/:id', '/spd/:id'],
     name: 'SpdDetailPrint',
@@ -64,8 +73,8 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
-    path: '/spd/kop-surat',
-    alias: '/pengaturan/kop-surat',
+    path: '/pengaturan/kop-surat',
+    alias: '/spd/kop-surat',
     name: 'PengaturanKopSurat',
     component: () => import('../views/PengaturanKopSuratView.vue'),
     meta: {

@@ -7,10 +7,10 @@ import {
   GovButton,
   GovCard,
   GovInputText,
-  GovMessage,
   GovTable,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
+import { useGovToast } from '../composables/useGovToast';
 
 export interface AsnPegawai {
   id: string;
@@ -105,7 +105,7 @@ const isFormDialogOpen = ref(false);
 const isDetailDialogOpen = ref(false);
 const isEditing = ref(false);
 const selectedAsn = ref<AsnPegawai | null>(null);
-const alertMessage = ref<string | null>(null);
+const toast = useGovToast();
 
 const form = ref<AsnPegawai>({
   id: '',
@@ -148,13 +148,6 @@ const loadData = async () => {
 
 const persistData = () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list.value));
-};
-
-const showAlert = (message: string) => {
-  alertMessage.value = message;
-  setTimeout(() => {
-    alertMessage.value = null;
-  }, 3500);
 };
 
 const totalAsn = computed(() => list.value.filter((a) => a.isASN).length);
@@ -207,7 +200,7 @@ const openDetailDialog = (item: AsnPegawai) => {
 
 const handleSave = async () => {
   if (!form.value.nip.trim() || !form.value.nama.trim() || !form.value.jabatan.trim()) {
-    showAlert('NIP, Nama Lengkap, dan Jabatan wajib diisi.');
+    toast.warn('NIP, Nama Lengkap, dan Jabatan wajib diisi.');
     return;
   }
 
@@ -221,7 +214,7 @@ const handleSave = async () => {
       if (res.ok) {
         await loadData();
         isFormDialogOpen.value = false;
-        showAlert('Data pegawai berhasil diperbarui di database.');
+        toast.success('Data pegawai berhasil diperbarui.');
         return;
       }
     } else {
@@ -233,7 +226,7 @@ const handleSave = async () => {
       if (res.ok) {
         await loadData();
         isFormDialogOpen.value = false;
-        showAlert('Data pegawai baru berhasil disimpan ke database.');
+        toast.success('Data pegawai baru berhasil disimpan.');
         return;
       }
     }
@@ -252,7 +245,7 @@ const handleSave = async () => {
 
   persistData();
   isFormDialogOpen.value = false;
-  showAlert(isEditing.value ? 'Data pegawai berhasil diperbarui.' : 'Data pegawai baru berhasil ditambahkan.');
+  toast.success(isEditing.value ? 'Data pegawai berhasil diperbarui.' : 'Data pegawai baru berhasil ditambahkan.');
 };
 
 const handleDelete = async (item: AsnPegawai) => {
@@ -262,7 +255,7 @@ const handleDelete = async (item: AsnPegawai) => {
     });
     if (res.ok) {
       await loadData();
-      showAlert(`Data pegawai ${item.nama} berhasil dihapus dari database.`);
+      toast.success(`Data pegawai ${item.nama} berhasil dihapus.`);
       return;
     }
   } catch {
@@ -271,7 +264,7 @@ const handleDelete = async (item: AsnPegawai) => {
 
   list.value = list.value.filter((a) => a.id !== item.id);
   persistData();
-  showAlert(`Data pegawai ${item.nama} berhasil dihapus.`);
+  toast.success(`Data pegawai ${item.nama} berhasil dihapus.`);
 };
 
 onMounted(() => {
@@ -298,13 +291,6 @@ onMounted(() => {
         severity="primary"
         @click="openCreateDialog"
       />
-    </div>
-
-    <!-- Alert / Feedback -->
-    <div v-if="alertMessage">
-      <GovMessage severity="success" :closable="true">
-        {{ alertMessage }}
-      </GovMessage>
     </div>
 
     <!-- Stats Summary Cards -->

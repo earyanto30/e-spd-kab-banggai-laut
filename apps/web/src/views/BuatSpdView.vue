@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { AutoCompleteCompleteEvent } from 'primevue/autocomplete';
 import {
   GovSelectButton,
@@ -15,6 +15,7 @@ import {
   GovMessage,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
+import { useGovToast } from '../composables/useGovToast';
 
 interface AsnOption {
   id: string;
@@ -34,9 +35,15 @@ interface KopSuratOption {
 }
 
 const router = useRouter();
+const route = useRoute();
+const toast = useGovToast();
 
-// 1. Form State
-const form = reactive({
+const spdId = computed(() => (route.params.id as string) || null);
+const isEditMode = computed(() => !!spdId.value);
+const existingSpd = ref<any>(null);
+const loadingExisting = ref(false);
+
+const getInitialForm = () => ({
   pemberiPerintah: 'Pengguna Anggaran (PA)',
   pegawai: null as AsnOption | null,
   maksudList: [''] as string[],
@@ -47,6 +54,22 @@ const form = reactive({
   tanggalBerangkat: null as Date | null,
   kopSuratId: null as string | null,
 });
+
+// 1. Form State
+const form = reactive(getInitialForm());
+
+const resetForm = () => {
+  Object.assign(form, getInitialForm());
+  const defaultKop = kopSuratList.value.find((k) => k.isDefault) || kopSuratList.value[0];
+  if (defaultKop) {
+    form.kopSuratId = defaultKop.id;
+  }
+  existingSpd.value = null;
+  createdSpd.value = null;
+  submitSuccess.value = false;
+  submitError.value = '';
+  Object.keys(errors).forEach((key) => delete errors[key]);
+};
 
 const totalMaksudChars = computed(() => {
   return form.maksudList.reduce((acc, str) => acc + (str ? str.length : 0), 0);
@@ -113,7 +136,7 @@ const loadKopSurat = async () => {
     if (res.ok) {
       kopSuratList.value = await res.json();
       const defaultKop = kopSuratList.value.find((k) => k.isDefault) || kopSuratList.value[0];
-      if (defaultKop && !form.kopSuratId) {
+      if (defaultKop && !form.kopSuratId && !isEditMode.value) {
         form.kopSuratId = defaultKop.id;
       }
     }
@@ -128,9 +151,68 @@ const selectedKop = computed(() => {
   return kopSuratList.value.find((k) => k.id === form.kopSuratId);
 });
 
-onMounted(() => {
-  loadKopSurat();
+// Load Existing SPD for Edit Mode
+const loadExistingSpd = async (id: string) => {
+  loadingExisting.value = true;
+  try {
+    const res = await apiFetch(`/api/spd/${id}`);
+    if (res.ok) {
+      const data = await res.json();
+      existingSpd.value = data;
+
+      form.pemberiPerintah = data.pemberiPerintah || 'Pengguna Anggaran (PA)';
+      form.pegawai = data.pegawai || null;
+
+      // Parse multi-agenda
+      const lines = (data.dalamRangka || '')
+        .split(/\r?\n/)
+        .map((l: string) => l.trim().replace(/^\d+[\.\)]\s*/, ''))
+        .filter(Boolean);
+      form.maksudList = lines.length > 0 ? lines : [''];
+
+      // Parse alatAngkut
+      if (data.alatAngkut) {
+        form.alatAngkut = data.alatAngkut.split(',').map((s: string) => s.trim()).filter(Boolean);
+      } else {
+        form.alatAngkut = [];
+      }
+
+      form.tempatBerangkat = data.tempatBerangkat || 'Banggai';
+      form.tempatTujuan = data.tempatTujuan || '';
+      form.lamaHari = Number(data.lamaHari) || 1;
+      form.tanggalBerangkat = data.tanggalBerangkat ? new Date(data.tanggalBerangkat) : null;
+      if (data.kopSuratId) {
+        form.kopSuratId = data.kopSuratId;
+      }
+    } else {
+      submitError.value = 'Gagal memuat data Surat Perjalanan Dinas yang akan diedit.';
+    }
+  } catch (err: any) {
+    submitError.value = err.message || 'Terjadi kesalahan saat memuat data SPD.';
+  } finally {
+    loadingExisting.value = false;
+  }
+};
+
+onMounted(async () => {
+  await loadKopSurat();
+  if (isEditMode.value && spdId.value) {
+    await loadExistingSpd(spdId.value);
+  } else {
+    resetForm();
+  }
 });
+
+watch(
+  () => route.fullPath,
+  async () => {
+    if (isEditMode.value && spdId.value) {
+      await loadExistingSpd(spdId.value);
+    } else {
+      resetForm();
+    }
+  }
+);
 
 // 4. Format Lama Perjalanan: [value] ([terbilang]) Hari
 const angkaTerbilang = (n: number): string => {
@@ -178,7 +260,10 @@ const validate = (): boolean => {
 
 // Submit handler
 const handleSubmit = async () => {
-  if (!validate()) return;
+  if (!validate()) {
+    toast.warn('Mohon periksa dan lengkapi isian formulir yang wajib diisi.');
+    return;
+  }
 
   isSubmitting.value = true;
   submitSuccess.value = false;
@@ -208,8 +293,11 @@ const handleSubmit = async () => {
       kopSuratId: form.kopSuratId || undefined,
     };
 
-    const res = await apiFetch('/api/spd', {
-      method: 'POST',
+    const url = isEditMode.value ? `/api/spd/${spdId.value}` : '/api/spd';
+    const method = isEditMode.value ? 'PUT' : 'POST';
+
+    const res = await apiFetch(url, {
+      method,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -219,12 +307,21 @@ const handleSubmit = async () => {
     if (res.ok) {
       createdSpd.value = await res.json();
       submitSuccess.value = true;
+      const num = createdSpd.value?.nomorSpd ? ` (Nomor: ${createdSpd.value.nomorSpd})` : '';
+      toast.success(
+        isEditMode.value
+          ? `Perubahan Surat Perjalanan Dinas berhasil disimpan${num}!`
+          : `Surat Perjalanan Dinas berhasil diterbitkan${num}!`,
+        'Dokumen SPD Tersimpan'
+      );
     } else {
       const err = await res.json().catch(() => ({}));
-      submitError.value = err.message || 'Gagal menyimpan data SPD';
+      submitError.value = err.message || (isEditMode.value ? 'Gagal memperbarui data SPD' : 'Gagal menyimpan data SPD');
+      toast.error(submitError.value);
     }
   } catch (err: any) {
     submitError.value = err.message || 'Terjadi kesalahan sistem saat menyimpan SPD';
+    toast.error(submitError.value);
   } finally {
     isSubmitting.value = false;
   }
@@ -242,23 +339,29 @@ const handleCancel = () => {
       <div class="flex items-center gap-2 text-xs font-medium text-text-muted mb-1">
         <router-link to="/" class="hover:underline">Beranda</router-link>
         <span>/</span>
-        <span>Surat Perjalanan Dinas</span>
+        <router-link to="/spd" class="hover:underline">Surat Perjalanan Dinas</router-link>
         <span>/</span>
-        <span class="text-text-main font-semibold">Buat SPD</span>
+        <span class="text-text-main font-semibold">{{ isEditMode ? 'Edit SPD' : 'Buat SPD' }}</span>
       </div>
       <h1 class="text-2xl font-bold tracking-tight text-text-main">
-        Buat Surat Perjalanan Dinas (SPD)
+        {{ isEditMode ? 'Edit Surat Perjalanan Dinas (SPD)' : 'Buat Surat Perjalanan Dinas (SPD)' }}
       </h1>
       <p class="text-sm text-text-muted mt-0.5">
-        Formulir pengajuan dan penerbitan Surat Perjalanan Dinas Sekretariat Daerah Kab. Banggai Laut.
+        {{ isEditMode ? `Memperbarui rincian surat perjalanan dinas nomor ${existingSpd?.nomorSpd || ''}.` : 'Formulir pengajuan dan penerbitan Surat Perjalanan Dinas Sekretariat Daerah Kab. Banggai Laut.' }}
       </p>
+    </div>
+
+    <!-- Loading Skeleton for Edit Mode -->
+    <div v-if="loadingExisting" class="py-16 text-center space-y-3">
+      <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
+      <p class="text-sm text-text-muted">Memuat data Surat Perjalanan Dinas...</p>
     </div>
 
     <!-- Feedback -->
     <GovMessage v-if="submitSuccess" severity="success" class="mb-4">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <span class="font-semibold">Berhasil!</span> Surat Perjalanan Dinas telah tersimpan dengan Nomor: 
+          <span class="font-semibold">Berhasil!</span> {{ isEditMode ? 'Perubahan Surat Perjalanan Dinas telah tersimpan untuk Nomor:' : 'Surat Perjalanan Dinas telah tersimpan dengan Nomor:' }}
           <span class="font-mono font-bold">{{ createdSpd?.nomorSpd }}</span>.
         </div>
         <div class="flex items-center gap-2">
@@ -267,7 +370,7 @@ const handleCancel = () => {
             icon="pi pi-print"
             size="small"
             severity="primary"
-            @click="router.push('/spd/cetak/' + createdSpd?.id)"
+            @click="router.push('/spd/cetak/' + (createdSpd?.id || spdId))"
           />
         </div>
       </div>
@@ -559,7 +662,7 @@ const handleCancel = () => {
           />
           <GovButton
             type="submit"
-            label="Simpan / Buat SPD"
+            :label="isEditMode ? 'Simpan Perubahan SPD' : 'Simpan / Buat SPD'"
             icon="pi pi-check"
             severity="primary"
             :loading="isSubmitting"

@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTheme } from './composables/useTheme';
 import GovSidebar from './components/layout/GovSidebar.vue';
 import GovHeader from './components/layout/GovHeader.vue';
+import { GovToast } from './components/core';
 import { Role, RoleType } from '@si-setda/shared-types';
 
 const route = useRoute();
@@ -53,6 +54,9 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen bg-canvas text-text-main transition-colors">
+    <!-- Reusable PrimeVue Overlay Toast (visible on all scroll positions & across route transitions) -->
+    <GovToast position="top-right" />
+
     <!-- Standard Administrative Sidebar Layout: Only when authenticated and not on isolated pages -->
     <template v-if="showAdminLayout">
       <div class="flex h-screen overflow-hidden">
@@ -77,7 +81,7 @@ onMounted(() => {
 
           <!-- View Outlet -->
           <main class="flex-1 overflow-y-auto p-6 bg-canvas transition-colors">
-            <router-view />
+            <router-view :key="$route.fullPath" />
           </main>
         </div>
       </div>
@@ -85,7 +89,7 @@ onMounted(() => {
 
     <!-- Clean / Blank Layout (Login, Unauthorized, or unauthenticated redirects) -->
     <template v-else>
-      <router-view />
+      <router-view :key="$route.fullPath" />
     </template>
   </div>
 </template>

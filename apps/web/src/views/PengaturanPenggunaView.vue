@@ -9,11 +9,11 @@ import {
   GovInputText,
   GovPassword,
   GovCheckbox,
-  GovMessage,
   GovTable,
 } from '../components/core';
 import { Role, RoleType } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
+import { useGovToast } from '../composables/useGovToast';
 
 export interface LinkedPegawai {
   id: string;
@@ -60,8 +60,7 @@ const isFormDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isEditing = ref(false);
 const selectedUser = ref<UserItem | null>(null);
-const alertMessage = ref<string | null>(null);
-const alertSeverity = ref<'success' | 'error' | 'warn'>('success');
+const toast = useGovToast();
 
 const currentLoggedInUsername = localStorage.getItem('username') || '';
 
@@ -86,11 +85,10 @@ const form = ref<{
 });
 
 const showAlert = (message: string, severity: 'success' | 'error' | 'warn' = 'success') => {
-  alertMessage.value = message;
-  alertSeverity.value = severity;
-  setTimeout(() => {
-    alertMessage.value = null;
-  }, 4000);
+  if (severity === 'success') toast.success(message);
+  else if (severity === 'error') toast.error(message);
+  else if (severity === 'warn') toast.warn(message);
+  else toast.info(message);
 };
 
 const loadUsers = async () => {
@@ -368,14 +366,6 @@ onMounted(async () => {
         />
       </div>
     </div>
-
-    <!-- Alert Message Component -->
-    <GovMessage
-      v-if="alertMessage"
-      :severity="alertSeverity"
-    >
-      {{ alertMessage }}
-    </GovMessage>
 
     <!-- Summary KPI Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

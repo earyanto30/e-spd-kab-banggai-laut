@@ -19,7 +19,11 @@ export interface KopSuratItem {
 
 @Injectable()
 export class KopSuratService implements OnModuleInit {
-  private readonly uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads', 'kop-surat');
+  private readonly uploadDir = process.env.UPLOAD_DIR || (
+    fs.existsSync(path.join(process.cwd(), 'apps', 'api', 'uploads', 'kop-surat'))
+      ? path.join(process.cwd(), 'apps', 'api', 'uploads', 'kop-surat')
+      : path.join(process.cwd(), 'uploads', 'kop-surat')
+  );
 
   constructor(private readonly prisma: PrismaService) {}
 

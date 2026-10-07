@@ -8,10 +8,10 @@ import {
   GovCard,
   GovInputText,
   GovCheckbox,
-  GovMessage,
   GovTable,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
+import { useGovToast } from '../composables/useGovToast';
 
 export interface KopSuratItem {
   id: string;
@@ -46,7 +46,7 @@ const defaultFallbackList: KopSuratItem[] = [
 const list = ref<KopSuratItem[]>([]);
 const isDialogOpen = ref(false);
 const selectedKop = ref<KopSuratItem | null>(null);
-const alertMessage = ref<string | null>(null);
+const toast = useGovToast();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const selectedFile = ref<File | null>(null);
 const isSubmitting = ref(false);
@@ -96,13 +96,6 @@ onUnmounted(() => {
   }
 });
 
-const showAlert = (message: string) => {
-  alertMessage.value = message;
-  setTimeout(() => {
-    alertMessage.value = null;
-  }, 3500);
-};
-
 const triggerFileInput = () => {
   fileInputRef.value?.click();
 };
@@ -122,13 +115,13 @@ const onFileSelected = (event: Event) => {
 
   const file = files[0];
   if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-    showAlert('Hanya berkas format PDF (.pdf) yang diperbolehkan.');
+    toast.warn('Hanya berkas format PDF (.pdf) yang diperbolehkan.');
     target.value = '';
     return;
   }
 
   if (file.size > 10 * 1024 * 1024) {
-    showAlert('Ukuran berkas PDF melebihi batas 10 MB.');
+    toast.warn('Ukuran berkas PDF melebihi batas 10 MB.');
     target.value = '';
     return;
   }
@@ -178,11 +171,11 @@ const openUploadDialog = () => {
 
 const handleSave = async () => {
   if (!form.value.nama.trim()) {
-    showAlert('Label / nama kop surat wajib diisi.');
+    toast.warn('Label / nama kop surat wajib diisi.');
     return;
   }
   if (!selectedFile.value) {
-    showAlert('Silakan pilih berkas PDF kop surat terlebih dahulu.');
+    toast.warn('Silakan pilih berkas PDF kop surat terlebih dahulu.');
     return;
   }
 
@@ -205,7 +198,7 @@ const handleSave = async () => {
       await loadData();
       selectedKop.value = newItem;
       isDialogOpen.value = false;
-      showAlert(`Berkas PDF ${newItem.nama} berhasil diunggah ke folder server.`);
+      toast.success(`Berkas PDF ${newItem.nama} berhasil diunggah.`);
       return;
     }
   } catch {
@@ -238,7 +231,7 @@ const handleSave = async () => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list.value));
   selectedKop.value = newItem;
   isDialogOpen.value = false;
-  showAlert(`Berkas PDF ${newItem.nama} berhasil disimpan.`);
+  toast.success(`Berkas PDF ${newItem.nama} berhasil disimpan.`);
 };
 
 const handleSetDefault = async (item: KopSuratItem) => {
@@ -249,7 +242,7 @@ const handleSetDefault = async (item: KopSuratItem) => {
     if (res.ok) {
       await loadData();
       selectedKop.value = item;
-      showAlert(`${item.nama} ditetapkan sebagai kop surat utama (default).`);
+      toast.success(`${item.nama} ditetapkan sebagai kop surat utama (default).`);
       return;
     }
   } catch {
@@ -261,12 +254,12 @@ const handleSetDefault = async (item: KopSuratItem) => {
   });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list.value));
   selectedKop.value = item;
-  showAlert(`${item.nama} ditetapkan sebagai kop surat utama (default).`);
+  toast.success(`${item.nama} ditetapkan sebagai kop surat utama (default).`);
 };
 
 const handleDelete = async (item: KopSuratItem) => {
   if (list.value.length <= 1) {
-    showAlert('Minimal harus ada 1 berkas kop surat tersimpan.');
+    toast.warn('Minimal harus ada 1 berkas kop surat tersimpan.');
     return;
   }
 
@@ -279,7 +272,7 @@ const handleDelete = async (item: KopSuratItem) => {
       if (selectedKop.value?.id === item.id) {
         selectedKop.value = null;
       }
-      showAlert(`Berkas kop ${item.nama} berhasil dihapus dari folder server.`);
+      toast.success(`Berkas kop ${item.nama} berhasil dihapus.`);
       return;
     }
   } catch {
@@ -295,7 +288,7 @@ const handleDelete = async (item: KopSuratItem) => {
     selectedKop.value = null;
   }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list.value));
-  showAlert(`Berkas kop ${item.nama} berhasil dihapus.`);
+  toast.success(`Berkas kop ${item.nama} berhasil dihapus.`);
 };
 
 const handlePreview = (item: KopSuratItem) => {
@@ -326,13 +319,6 @@ onMounted(() => {
         severity="primary"
         @click="openUploadDialog"
       />
-    </div>
-
-    <!-- Alert / Feedback -->
-    <div v-if="alertMessage">
-      <GovMessage severity="success" :closable="true">
-        {{ alertMessage }}
-      </GovMessage>
     </div>
 
     <!-- Table of Stored PDF Kop Surat -->

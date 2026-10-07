@@ -83,7 +83,7 @@ onMounted(() => {
 
           <!-- Quick Navigation Actions -->
           <div class="pt-3 border-t border-border flex flex-wrap gap-2.5">
-            <router-link to="/spd/kop-surat">
+            <router-link to="/pengaturan/kop-surat">
               <GovButton
                 label="Pengaturan Kop Surat"
                 icon="pi pi-file-edit"

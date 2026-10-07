@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
 import Aura from '@primevue/themes/aura';
 import { definePreset } from '@primevue/themes';
 import App from './App.vue';
@@ -81,6 +82,7 @@ app.use(PrimeVue, {
     },
   },
 });
+app.use(ToastService);
 
 // Wait for initial navigation & route resolution before mounting DOM
 router.isReady().then(() => {

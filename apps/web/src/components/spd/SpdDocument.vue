@@ -25,6 +25,13 @@ export interface SpdData {
   tingkatBiaya?: string | null;
   pengikut?: string | null;
   keterangan?: string | null;
+  kopSuratId?: string | null;
+  kopSurat?: {
+    id: string;
+    nama: string;
+    fileName: string;
+    paperSize?: string;
+  } | null;
   createdAt?: string | Date;
 }
 

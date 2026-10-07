@@ -15,7 +15,10 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **Fase 1** | Backend Database & Persistence SPD (Prisma, Shared Types, REST API, Auto-Numbering) | ✅ **Selesai** | 07 Okt 2026 |
 | **Fase 2** | Layout Dokumen Resmi (Tabel 10 Poin), Font Times New Roman, Margin Presisi & Generator Cetak | ✅ **Selesai** | 07 Okt 2026 |
 | **Fase 3** | Manajemen Riwayat SPD, Filter Status, Cetak Ulang & Ekspor Laporan CSV | ✅ **Selesai** | 07 Okt 2026 |
-| **Penyempurnaan** | Dukungan Multi-Agenda Dinamis "Dalam Rangka" & Penomoran Otomatis Presisi | ✅ **Selesai** | 07 Okt 2026 |
+| **Penyempurnaan 1** | Dukungan Multi-Agenda Dinamis "Dalam Rangka" & Penomoran Otomatis Presisi | ✅ **Selesai** | 07 Okt 2026 |
+| **Penyempurnaan 2** | Integrasi Pembuatan PDF Asli Menggunakan Kop Surat dari Pengaturan Kop Surat | ✅ **Selesai** | 07 Okt 2026 |
+| **Penyempurnaan 3** | Fitur Edit SPD yang Sudah Dibuat (Form Prefill Lengkap & Update API) | ✅ **Selesai** | 07 Okt 2026 |
+| **Penyempurnaan 4** | Notifikasi Alert Overlay & Auto-Disappear Reusable (PrimeVue Toast) | ✅ **Selesai** | 07 Okt 2026 |
 
 ---
 
@@ -160,4 +163,110 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 - **Verifikasi Visual Playwright:**
   - Pengujian pembuatan SPD dengan 2 agenda berhasil disimpan dengan nomor `004/SPD/SETDA/2026`.
   - Verifikasi screenshot cetak membuktikan hasil cetak di Poin 4 identik dengan contoh naskah dinas resmi Kabupaten Banggai Laut.
+
+---
+
+### ✅ Penyempurnaan 2: Integrasi Pembuatan PDF Asli dengan Kop Surat Unggahan (Selesai)
+- **Layanan Pembuatan Dokumen PDF (`apps/api/src/spd/spd-pdf.service.ts`):**
+  - Menggunakan pustaka standar industri `pdf-lib` untuk memuat berkas PDF kop surat resmi yang diunggah dari menu *Pengaturan Kop Surat* (`KOP-SPD-Legal.pdf` / `kop_setda_default.pdf`).
+  - Merender seluruh konten naskah dinas SPD langsung di bawah garis ganda kop surat pada halaman pertama berkas PDF:
+    - Metadata lembar, kode no, dan nomor surat di kanan atas.
+    - Judul dokumen bergaris bawah `SURAT PERJALANAN DINAS (SPD)`.
+    - Tabel 10 poin terstandar dengan garis presisi 0.5 pt dan font resmi `Times New Roman` (vektor tajam).
+    - Dukungan multi-agenda pada poin 4 dengan format *hanging indent* bernomor urut otomatis (`1.`, `2.`, dst.).
+    - Subtabel pengikut 3 baris.
+    - Blok tanda tangan pejabat penandatangan (PA/KPA) yang dapat disesuaikan secara dinamis.
+- **Endpoint API Streaming PDF (`apps/api/src/spd/spd.controller.ts`):**
+  - Endpoint `GET /api/spd/:id/pdf` yang menghasilkan file PDF dengan header `Content-Type: application/pdf` dan nama file otomatis `SPD_[NOMOR_SPD].pdf`.
+  - Mendukung query parameter data penandatangan (`signerNama`, `signerNip`, `signerPangkat`, dll).
+- **Integrasi Antarmuka Pratinjau & Cetak (`apps/web/src/views/SpdDetailPrintView.vue`):**
+  - Tombol aksi primer **"Unduh PDF Resmi"** (ikon PDF merah) untuk langsung mengunduh berkas PDF terpadu dengan kop surat.
+  - Tab pengalih tampilan (*View Mode Switcher*):
+    - **Lembar Dokumen:** Pratinjau responsif HTML untuk cetak printer langsung lewat browser (`window.print()`).
+    - **Pratinjau PDF Asli:** Menampilkan viewer PDF langsung di dalam browser yang merender berkas PDF asli hasil gabungan kop surat unggahan.
+- **Integrasi Tabel Riwayat SPD (`apps/web/src/views/DaftarSpdView.vue`):**
+  - Penambahan tombol aksi cepat "Unduh PDF Resmi" (ikon PDF merah) pada kolom aksi setiap baris dokumen SPD.
+- **Verifikasi Pengujian & Visual:**
+  - Telah diuji pada dokumen SPD #004 menggunakan kop resmi `Kop SPD Legal` (`kop-1791376213740.pdf`), diverifikasi melalui Playwright dan tangkapan layar viewer PDF terbukti presisi 100%.
+
+---
+
+### ✅ Penyempurnaan 3: Fitur Edit SPD yang Sudah Dibuat (Selesai)
+- **Routing & Mode Edit (`apps/web/src/router/index.ts` & `apps/web/src/views/BuatSpdView.vue`):**
+  - Mendaftarkan rute baru `/spd/edit/:id` dengan nama `EditSpd` yang menggunakan kembali komponen formulir `BuatSpdView.vue`.
+  - Deteksi mode adaptif `isEditMode = computed(() => !!route.params.id)`.
+  - Fungsi `loadExistingSpd()` secara otomatis mengambil data SPD berdasarkan ID dari API (`GET /api/spd/:id`) dan memuat semua isian formulir:
+    - Pejabat Pemberi Perintah (PA / KPA).
+    - Pegawai Pelaksana (pencarian instan dan pemuatan profil lengkap pegawai).
+    - Multi-agenda "Dalam Rangka" (dianalisis dan dipecah kembali ke dalam daftar item dinamis).
+    - Alat angkut / moda transportasi (*chips array*).
+    - Tempat berangkat & tujuan.
+    - Lama perjalanan hari & tanggal keberangkatan.
+    - Template kop surat dinas yang telah dipilih sebelumnya.
+  - Judul halaman, remah roti (*breadcrumb*), dan tombol aksi otomatis beradaptasi menjadi *"Edit Surat Perjalanan Dinas"* dan *"Simpan Perubahan SPD"*.
+- **Integrasi API Penyimpanan Perubahan:**
+  - Fungsi pengiriman form secara dinamis memanggil `PUT /api/spd/:id` saat dalam mode edit, atau `POST /api/spd` saat membuat SPD baru.
+  - Notifikasi sukses dengan toast/alert dan pengalihan otomatis ke halaman pratinjau cetak naskah dinas.
+- **Akses Tombol Edit:**
+  - **Tabel Riwayat SPD (`apps/web/src/views/DaftarSpdView.vue`):** Tombol aksi edit (ikon pensil hijau/biru) pada setiap baris data untuk mempercepat pengeditan langsung dari daftar.
+  - **Toolbar Cetak SPD (`apps/web/src/views/SpdDetailPrintView.vue`):** Tombol aksi *"Edit SPD"* pada toolbar atas dokumen cetak untuk memudahkan revisi saat mengecek draf dokumen.
+- **Verifikasi Pengujian:**
+  - Telah diuji secara end-to-end melalui Playwright: membuka data SPD yang telah ada, memperbarui rute tujuan, menyimpan pembaruan, dan memastikan perubahan tersimpan dengan benar di database dan langsung tercermin pada lembar cetak.
+
+---
+
+### ✅ Penyempurnaan 4: Alert CRUD Overlay Reusable (PrimeVue Toast) (Selesai)
+- **Komponen Inti Reusable (`apps/web/src/components/core/GovToast.vue`):**
+  - Komponen wrapper berbasis PrimeVue `Toast` resmi dengan styling terintegrasi tema Civic Banggai Laut (light & dark mode).
+  - Terpasang secara global di akar aplikasi (`apps/web/src/App.vue`), memastikan notifikasi tetap persisten melintasi navigasi rute dan halaman.
+  - Penataan gaya fixed overlay dengan penyesuaian khusus:
+    - **Posisi Selalu di Bawah Navbar:** Ditetapkan `top: 5rem !important;` (80px) pada desktop dan `top: 4.75rem / 4.5rem` pada tablet/mobile, memberikan jarak margin yang presisi di bawah navbar setinggi 64px (`h-16`) tanpa menutupi header, tombol navigasi, atau ikon tema.
+    - **Adaptasi Berbagai Ukuran Layar (*Display Size Responsiveness*):**
+      - *Desktop / Layar Lebar (>= 769px):* Lebar 26rem (416px) dengan posisi pojok kanan atas (`right: 1.5rem`).
+      - *Tablet (<= 768px):* Menyesuaikan lebar otomatis (`width: auto`, `max-width: calc(100vw - 2rem)`) dengan margin seimbang `left: 1rem; right: 1rem`.
+      - *Ponsel Kecil (<= 480px down to 320px):* Margin adaptif `left: 0.75rem; right: 0.75rem; max-width: calc(100vw - 1.5rem)`, memastikan pesan tidak pernah terpotong atau keluar dari batas layar.
+    - Dilengkapi konfigurasi prop `breakpoints` terintegrasi pada komponen `Toast`.
+- **Composable Reusable (`apps/web/src/composables/useGovToast.ts`):**
+  - Menyediakan API yang ringkas dan strongly-typed untuk memicu notifikasi:
+    - `toast.success(message, summary?, life?)` (auto-disappear default 4000ms)
+    - `toast.error(message, summary?, life?)` (auto-disappear default 5000ms)
+    - `toast.warn(message, summary?, life?)` (auto-disappear default 4500ms)
+    - `toast.info(message, summary?, life?)` (auto-disappear default 4000ms)
+  - Pengguna dapat menutup notifikasi secara manual sewaktu-waktu melalui tombol dismiss (*close button*).
+- **Penggantian Alert Statis di Seluruh Modul CRUD:**
+  - **Kepegawaian ASN (`KepegawaianAsnView.vue`):** Penggantian alert statis menjadi Toast saat menambah, mengedit, menghapus pegawai, serta validasi form.
+  - **Pengaturan Kop Surat (`PengaturanKopSuratView.vue`):** Notifikasi Toast saat mengunggah kop PDF, menetapkan kop default, menghapus kop, dan validasi file.
+  - **Pengaturan Pengguna (`PengaturanPenggunaView.vue`):** Notifikasi Toast saat membuat pengguna, memperbarui akun, mengubah status aktif/nonaktif, dan menghapus akun.
+  - **Buat & Edit SPD (`BuatSpdView.vue`):** Notifikasi Toast mengambang saat penerbitan SPD baru atau penyimpanan perubahan draf SPD tanpa mengharuskan pengguna scroll kembali ke atas form.
+  - **Daftar SPD (`DaftarSpdView.vue`):** Notifikasi Toast saat pembaruan status SPD, penghapusan SPD, pengunduhan berkas PDF, serta ekspor CSV.
+  - **Detail & Cetak SPD (`SpdDetailPrintView.vue`):** Notifikasi Toast saat unduh PDF resmi berhasil atau gagal.
+- **Verifikasi Visual Playwright Lintas Resolusi Layar:**
+  - *Full HD (1920x1080):* `top: 80px`, `right: 24px`, tepat di bawah navbar (gap 16px).
+  - *Laptop Standar (1366x768):* `top: 80px`, `right: 24px`, tepat di bawah navbar.
+  - *Tablet (768x1024):* `top: 78.2px`, `isBelowNavbar: true`, responsif penuh di dalam batas layar (`isFullyWithinViewport: true`).
+  - *Mobile Modern (390x844):* `top: 74.9px`, `isBelowNavbar: true`, margin kiri/kanan presisi, konten terbaca sempurna.
+  - *Ultra-small Mobile (320x568):* `top: 72px`, `width: 296px`, tanpa overflow horizontal, 100% berada di dalam viewport.
+
+---
+
+### 🐛 Bugfix: Pembersihan State Formulir saat Berpindah dari Edit SPD ke Buat SPD Baru (Selesai)
+- **Penyebab Masalah:** Komponen `BuatSpdView.vue` digunakan bersama oleh rute `/spd/edit/:id` dan `/spd/buat`. Secara default, Vue Router menggunakan kembali instance komponen yang sama (*component reuse*) tanpa memicu hook `onMounted`, sehingga data formulir lama dari mode edit tetap menempel saat membuka menu *"Buat SPD Baru"*.
+- **Solusi Komprehensif:**
+  1. **Lifecycle Unmount Guard (`apps/web/src/App.vue`):** Menambahkan `:key="$route.fullPath"` pada seluruh `<router-view>` di `App.vue`. Navigasi antar parameter/path rute secara otomatis mereset lifecycle komponen ke kondisi awal.
+  2. **Reactive Form Reset Function (`apps/web/src/views/BuatSpdView.vue`):** Menambahkan fungsi `resetForm()` yang mengembalikan seluruh 9 field form, array multi-agenda, state validasi errors, dan referensi data lama ke nilai default bersih (termasuk memuat kembali kop default).
+  3. **Route Watcher (`watch(() => route.fullPath, ...)`):** Mendeteksi pergantian rute secara reaktif sehingga jika berpindah ke `/spd/buat`, form langsung dibersihkan seketika.
+- **Verifikasi Pengujian:** Telah diuji melalui Playwright: membuka data SPD existing (`/spd/edit/...`), berpindah ke `/spd/buat`, dan memverifikasi bahwa field `tempatTujuan`, `maksudList`, dan `pegawai` telah kembali kosong (*clean reset*).
+
+---
+
+### 🎨 Peningkatan UI & Perbaikan Visual (Selesai)
+1. **Perbaikan Tema Gelap DatePicker PrimeVue (`apps/web/src/style.css`):**
+   - Menyelaraskan seluruh elemen internal popup kalender DatePicker (`p-datepicker-panel`, `p-datepicker-calendar`, `p-datepicker-header`, navigation buttons, cell tanggal, hari ini, dan tanggal terpilih) agar sepenuhnya menggunakan palette warna gelap (`#162238`, `#1E293B`, `#F8FAFC`).
+2. **Revamp Navigasi Sidebar (`apps/web/src/components/layout/GovSidebar.vue`):**
+   - Mengadopsi komponen resmi PrimeVue `PanelMenu` dengan integrasi custom slot `#item` dan `router-link`.
+   - Mengikuti best practice penamaan menu UX: ringkas, berbasis kata benda untuk kategori utama, dan jelas bagi pengguna.
+   - Memperbaiki layout header sidebar saat posisi *collapsed* (`w-20`): menyembunyikan logo agar tombol collapse tetap terpusat (*centered*) dan tidak tumpang-tindih (*overlap*).
+3. **Restrukturisasi Menu Kop Surat:**
+   - Memindahkan submenu Kop Surat dari grup *"Surat Perjalanan Dinas"* ke menu *"Pengaturan"* dengan rute utama `/pengaturan/kop-surat` (tetap menyediakan alias `/spd/kop-surat` untuk backward compatibility).
+   - Memperbarui tautan aksi cepat pada `HomeView.vue`.
 

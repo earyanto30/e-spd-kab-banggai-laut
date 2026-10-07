@@ -1,24 +1,10 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import PanelMenu from 'primevue/panelmenu';
 import { GovButton } from '../core';
 import { Role, RoleType } from '@si-setda/shared-types';
 import logoUrl from '../../assets/logo.png';
-
-interface SubMenuItem {
-  label: string;
-  icon?: string;
-  to: string;
-  roles?: RoleType[];
-}
-
-interface MenuItem {
-  label: string;
-  icon: string;
-  to?: string;
-  roles: RoleType[];
-  children?: SubMenuItem[];
-}
 
 const props = defineProps<{
   collapsed: boolean;
@@ -34,98 +20,129 @@ const emit = defineEmits<{
 
 const router = useRouter();
 
-const openSubmenus = ref<Record<string, boolean>>({});
-
-const menuItems = computed<MenuItem[]>(() => [
+// ── Menu model ────────────────────────────────────────────────────────────────
+// Labels follow UX best practices:
+//   • Top-level: nouns (domain area), short, no verbs
+//   • Sub-items: verb + noun only when the action is distinct (Buat SPD vs Daftar SPD)
+//   • Avoid redundancy: don't repeat parent label in child
+// ─────────────────────────────────────────────────────────────────────────────
+const allMenuItems = [
   {
+    key: 'beranda',
     label: 'Beranda',
     icon: 'pi pi-home',
-    to: '/',
+    route: '/',
     roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
   },
   {
+    key: 'spd',
     label: 'Surat Perjalanan Dinas',
     icon: 'pi pi-briefcase',
     roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
-    children: [
+    items: [
       {
-        label: 'Daftar Riwayat SPD',
+        key: 'spd-daftar',
+        label: 'Daftar SPD',
         icon: 'pi pi-list',
-        to: '/spd',
+        route: '/spd',
         roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
       },
       {
-        label: 'Buat SPD Baru',
+        key: 'spd-buat',
+        label: 'Buat SPD',
         icon: 'pi pi-plus-circle',
-        to: '/spd/buat',
+        route: '/spd/buat',
         roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
-      },
-      {
-        label: 'Pengaturan Kop Surat',
-        icon: 'pi pi-file-edit',
-        to: '/spd/kop-surat',
-        roles: [Role.SUPER_ADMIN, Role.ADMIN],
       },
     ],
   },
   {
-    label: 'Agenda & Dokumen',
-    icon: 'pi pi-calendar',
-    to: '/agenda',
-    roles: [Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
-  },
-  {
+    key: 'kepegawaian',
     label: 'Kepegawaian',
     icon: 'pi pi-users',
     roles: [Role.ADMIN, Role.SUPER_ADMIN],
-    children: [
+    items: [
       {
+        key: 'kepegawaian-asn',
         label: 'Data ASN',
         icon: 'pi pi-id-card',
-        to: '/kepegawaian/asn',
+        route: '/kepegawaian/asn',
         roles: [Role.ADMIN, Role.SUPER_ADMIN],
       },
     ],
   },
   {
-    label: 'Pengaturan Sistem',
+    key: 'pengaturan',
+    label: 'Pengaturan',
     icon: 'pi pi-cog',
     roles: [Role.SUPER_ADMIN, Role.ADMIN],
-    children: [
+    items: [
       {
-        label: 'Pengguna Sistem',
+        key: 'pengaturan-kop',
+        label: 'Kop Surat',
+        icon: 'pi pi-file-edit',
+        route: '/pengaturan/kop-surat',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN],
+      },
+      {
+        key: 'pengaturan-pengguna',
+        label: 'Pengguna',
         icon: 'pi pi-user-edit',
-        to: '/pengaturan/pengguna',
+        route: '/pengaturan/pengguna',
         roles: [Role.SUPER_ADMIN, Role.ADMIN],
       },
     ],
   },
-]);
+];
 
+// Filter menu items by role recursively
+function filterByRole(items: typeof allMenuItems, role: string): any[] {
+  return items
+    .filter((item) => !item.roles || item.roles.includes(role as RoleType))
+    .map((item) => ({
+      ...item,
+      items: item.items
+        ? item.items.filter((sub) => !sub.roles || sub.roles.includes(role as RoleType))
+        : undefined,
+    }))
+    .filter((item) => !item.items || item.items.length > 0 || item.route);
+}
+
+const menuItems = computed(() => filterByRole(allMenuItems, props.userRole || Role.USER));
+
+// Auto-expand the active panel on route change
+const expandedKeys = ref<Record<string, boolean>>({});
+
+function syncExpandedToRoute() {
+  const path = router.currentRoute.value.path;
+  expandedKeys.value = {};
+  for (const item of menuItems.value) {
+    if (item.items?.some((sub: any) => path.startsWith(sub.route))) {
+      expandedKeys.value[item.key] = true;
+    }
+  }
+}
+
+watch(() => router.currentRoute.value.path, syncExpandedToRoute, { immediate: true });
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 const userInitial = computed(() => {
   if (props.userName) return props.userName.charAt(0).toUpperCase();
   if (props.username) return props.username.charAt(0).toUpperCase();
   return 'U';
 });
 
-const isItemActive = (path?: string) => {
-  if (!path) return false;
-  return router.currentRoute.value.path === path;
+const isActive = (route?: string) => {
+  if (!route) return false;
+  return router.currentRoute.value.path === route;
 };
 
-const isParentActive = (children?: SubMenuItem[]) => {
-  if (!children) return false;
-  return children.some((sub) => router.currentRoute.value.path.startsWith(sub.to));
-};
-
-const toggleSubmenu = (label: string) => {
-  if (props.collapsed) {
-    emit('toggle');
-    openSubmenus.value[label] = true;
-  } else {
-    openSubmenus.value[label] = !openSubmenus.value[label];
-  }
-};
+// Flat list for collapsed icon-only mode
+const flatItems = computed(() =>
+  menuItems.value.flatMap((item) =>
+    item.items ? item.items.filter((s: any) => s.route) : [item],
+  ),
+);
 </script>
 
 <template>
@@ -133,13 +150,19 @@ const toggleSubmenu = (label: string) => {
     class="flex flex-col bg-surface border-r border-border transition-all duration-200 z-20 select-none shadow-sm"
     :class="collapsed ? 'w-20' : 'w-64'"
   >
-    <!-- Brand / Header Section -->
-    <div class="h-16 flex items-center px-4 bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border justify-between text-white dark:text-text-main">
-      <router-link to="/" class="flex items-center gap-3 overflow-hidden">
-        <div class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-white/20 dark:border-slate-700">
+    <!-- Brand / Header -->
+    <!-- Collapsed: center just the toggle button. Expanded: logo + text + toggle. -->
+    <div
+      class="h-16 flex items-center bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border text-white dark:text-text-main flex-shrink-0"
+      :class="collapsed ? 'justify-center px-0' : 'justify-between px-4'"
+    >
+      <router-link v-if="!collapsed" to="/" class="flex items-center gap-3 overflow-hidden min-w-0">
+        <div
+          class="w-10 h-10 rounded-xl bg-white p-1 flex items-center justify-center flex-shrink-0 shadow-sm border border-white/20 dark:border-slate-700"
+        >
           <img :src="logoUrl" alt="Logo Kab. Banggai Laut" class="w-full h-full object-contain" />
         </div>
-        <div v-if="!collapsed" class="flex flex-col min-w-0 transition-opacity duration-200">
+        <div class="flex flex-col min-w-0">
           <span class="font-bold text-base text-white dark:text-text-main tracking-tight truncate">
             SI-SPD
           </span>
@@ -149,140 +172,210 @@ const toggleSubmenu = (label: string) => {
         </div>
       </router-link>
 
-      <div v-if="!collapsed">
-        <button
-          type="button"
-          class="w-7 h-7 rounded-lg flex items-center justify-center text-white dark:text-text-main bg-white/10 dark:bg-white/5 hover:bg-white/20 dark:hover:bg-white/10 active:bg-white/30 transition-colors border border-white/10 dark:border-white/5"
-          title="Tutup Sidebar"
-          @click="emit('toggle')"
-        >
-          <i class="pi pi-chevron-left text-xs"></i>
-        </button>
-      </div>
-    </div>
-
-    <!-- Toggle button when collapsed -->
-    <div v-if="collapsed" class="p-2 flex justify-center bg-[#0F4C81] dark:bg-surface border-b border-[#0d4373] dark:border-border">
       <button
         type="button"
-        class="w-7 h-7 rounded-lg flex items-center justify-center text-white dark:text-text-main bg-white/10 dark:bg-white/5 hover:bg-white/20 dark:hover:bg-white/10 active:bg-white/30 transition-colors border border-white/10 dark:border-white/5"
-        title="Buka Sidebar"
+        class="w-7 h-7 rounded-lg flex items-center justify-center text-white dark:text-text-main bg-white/10 dark:bg-white/5 hover:bg-white/20 dark:hover:bg-white/10 active:bg-white/30 transition-colors border border-white/10 dark:border-white/5 flex-shrink-0"
+        :title="collapsed ? 'Buka Sidebar' : 'Tutup Sidebar'"
         @click="emit('toggle')"
       >
-        <i class="pi pi-chevron-right text-xs"></i>
+        <i :class="collapsed ? 'pi pi-chevron-right' : 'pi pi-chevron-left'" class="text-xs" />
       </button>
     </div>
 
-    <!-- Navigation Menu Items -->
-    <nav class="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
-      <template v-for="item in menuItems" :key="item.label">
-        <!-- Item without sub-menu -->
-        <router-link
-          v-if="!item.children"
-          :to="item.to!"
-          class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
-          :class="[
-            isItemActive(item.to)
-              ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
-              : 'text-text-main hover:bg-canvas hover:text-primary dark:hover:text-primary',
-            collapsed ? 'justify-center' : ''
-          ]"
-          :title="collapsed ? item.label : undefined"
-        >
-          <i :class="[item.icon, 'text-lg flex-shrink-0', isItemActive(item.to) ? 'text-accent dark:text-[#0F172A]' : 'text-text-muted']"></i>
-          <span v-if="!collapsed" class="truncate font-medium">
-            {{ item.label }}
-          </span>
-        </router-link>
-
-        <!-- Item with sub-menu -->
-        <div v-else class="space-y-1">
-          <button
-            type="button"
-            class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer text-left"
-            :class="[
-              isParentActive(item.children)
-                ? 'text-primary font-semibold bg-primary/5 dark:bg-primary/10 border-l-2 border-primary'
-                : 'text-text-main hover:bg-canvas hover:text-primary dark:hover:text-primary',
-              collapsed ? 'justify-center' : 'justify-between'
-            ]"
-            :title="collapsed ? item.label : undefined"
-            @click="toggleSubmenu(item.label)"
+    <!-- Nav: expanded → PanelMenu | collapsed → icon list -->
+    <nav class="flex-1 overflow-y-auto py-3">
+      <!-- Expanded: PrimeVue PanelMenu with router-link slot -->
+      <PanelMenu
+        v-if="!collapsed"
+        v-model:expandedKeys="expandedKeys"
+        :model="menuItems"
+        multiple
+        class="gov-panelmenu px-2"
+      >
+        <template #item="{ item }">
+          <!-- Leaf item with route -->
+          <router-link
+            v-if="item.route"
+            v-slot="{ href, navigate }"
+            :to="item.route"
+            custom
           >
-            <div class="flex items-center gap-3 min-w-0">
-              <i :class="[item.icon, 'text-lg flex-shrink-0', isParentActive(item.children) ? 'text-primary' : 'text-text-muted']"></i>
-              <span v-if="!collapsed" class="truncate">
-                {{ item.label }}
-              </span>
-            </div>
-            <i
-              v-if="!collapsed"
-              class="pi text-xs text-text-muted"
-              :class="openSubmenus[item.label] ? 'pi-chevron-down' : 'pi-chevron-right'"
-            ></i>
-          </button>
-
-          <!-- Submenu items -->
-          <div
-            v-if="!collapsed && openSubmenus[item.label]"
-            class="pl-7 pr-1 space-y-1 pt-0.5"
-          >
-            <router-link
-              v-for="sub in item.children"
-              :key="sub.to"
-              :to="sub.to"
-              class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors"
-              :class="[
-                isItemActive(sub.to)
-                  ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
-                  : 'text-text-muted hover:bg-canvas hover:text-text-main'
-              ]"
+            <a
+              :href="href"
+              class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer w-full"
+              :class="
+                isActive(item.route)
+                  ? 'bg-primary text-white dark:text-[#0F172A] font-semibold shadow-sm'
+                  : 'text-text-main hover:bg-canvas hover:text-primary'
+              "
+              @click="navigate"
             >
-              <i :class="[sub.icon || 'pi pi-circle', 'text-xs flex-shrink-0', isItemActive(sub.to) ? 'text-accent dark:text-[#0F172A]' : 'text-text-muted']"></i>
-              <span class="truncate">{{ sub.label }}</span>
-            </router-link>
-          </div>
-        </div>
-      </template>
+              <i
+                :class="[
+                  item.icon,
+                  'text-base flex-shrink-0',
+                  isActive(item.route) ? 'text-white dark:text-[#0F172A]' : 'text-text-muted',
+                ]"
+              />
+              <span class="truncate">{{ item.label }}</span>
+            </a>
+          </router-link>
+
+          <!-- Group header (has sub-items, no route) -->
+          <a
+            v-else
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors cursor-pointer w-full"
+            :class="
+              item.items?.some((s: any) => isActive(s.route))
+                ? 'text-primary font-semibold'
+                : 'text-text-main hover:bg-canvas hover:text-primary'
+            "
+          >
+            <i
+              :class="[
+                item.icon,
+                'text-base flex-shrink-0',
+                item.items?.some((s: any) => isActive(s.route)) ? 'text-primary' : 'text-text-muted',
+              ]"
+            />
+            <span class="truncate flex-1">{{ item.label }}</span>
+          </a>
+        </template>
+      </PanelMenu>
+
+      <!-- Collapsed: icon-only shortcuts -->
+      <div v-else class="flex flex-col items-center gap-1 px-2">
+        <router-link
+          v-for="item in flatItems"
+          :key="item.key"
+          :to="item.route!"
+          class="w-12 h-12 rounded-xl flex items-center justify-center transition-colors"
+          :class="
+            isActive(item.route)
+              ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm'
+              : 'text-text-muted hover:bg-canvas hover:text-primary'
+          "
+          :title="item.label"
+        >
+          <i :class="[item.icon, 'text-lg']" />
+        </router-link>
+      </div>
     </nav>
 
-    <!-- User Profile & Footer Section -->
-    <div class="p-3 border-t border-border bg-canvas">
+    <!-- User Profile Footer -->
+    <div class="p-3 border-t border-border bg-canvas flex-shrink-0">
       <div v-if="!collapsed" class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2.5 min-w-0">
-          <div class="w-9 h-9 rounded-full bg-primary text-accent dark:text-[#0F172A] font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-sm border border-primary/20">
+          <div
+            class="w-9 h-9 rounded-full bg-primary text-white dark:text-[#0F172A] font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-sm border border-primary/20"
+          >
             {{ userInitial }}
           </div>
           <div class="min-w-0 flex flex-col">
             <span class="text-xs font-semibold text-text-main truncate">
               {{ userName || 'Tamu' }}
             </span>
-            <span class="text-xs text-text-muted truncate">
-              {{ userRole || 'USER' }}
-            </span>
+            <span class="text-xs text-text-muted truncate">{{ userRole || 'USER' }}</span>
           </div>
         </div>
-
-        <GovButton
-          icon="pi pi-sign-out"
-          severity="secondary"
-          @click="emit('logout')"
-        />
+        <GovButton icon="pi pi-sign-out" severity="secondary" @click="emit('logout')" />
       </div>
 
       <div v-else class="flex flex-col items-center gap-2">
         <div
-          class="w-9 h-9 rounded-full bg-primary text-accent dark:text-[#0F172A] font-bold text-sm flex items-center justify-center shadow-sm"
+          class="w-9 h-9 rounded-full bg-primary text-white dark:text-[#0F172A] font-bold text-sm flex items-center justify-center shadow-sm"
           :title="userName || 'Tamu'"
         >
           {{ userInitial }}
         </div>
-        <GovButton
-          icon="pi pi-sign-out"
-          severity="secondary"
-          @click="emit('logout')"
-        />
+        <GovButton icon="pi pi-sign-out" severity="secondary" @click="emit('logout')" />
       </div>
     </div>
   </aside>
 </template>
+
+<style scoped>
+/* Strip PanelMenu's built-in panel borders/backgrounds — we style via #item slot */
+.gov-panelmenu :deep(.p-panelmenu-panel) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin-bottom: 2px;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-header) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-header-content) {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0.5rem !important;
+  padding: 0 !important;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-header-link) {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Hide the default PanelMenu header icon/label — we render our own via #item */
+.gov-panelmenu :deep(.p-panelmenu-header-icon),
+.gov-panelmenu :deep(.p-panelmenu-header-label) {
+  display: none !important;
+}
+
+/* Keep the toggle chevron */
+.gov-panelmenu :deep(.p-panelmenu-submenu-icon) {
+  color: var(--color-text-muted) !important;
+  font-size: 0.65rem !important;
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.gov-panelmenu :deep(.p-panelmenu-header-content) {
+  position: relative;
+}
+
+/* Content / submenu area */
+.gov-panelmenu :deep(.p-panelmenu-content) {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-root-list) {
+  padding: 0 0 0 0.75rem !important;
+  gap: 2px !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-item-content) {
+  background: transparent !important;
+  border-radius: 0.5rem !important;
+}
+
+.gov-panelmenu :deep(.p-panelmenu-item-link) {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+/* Hide default item icon/label — rendered in #item slot */
+.gov-panelmenu :deep(.p-panelmenu-item-icon),
+.gov-panelmenu :deep(.p-panelmenu-item-label) {
+  display: none !important;
+}
+
+/* No gap between panels */
+.gov-panelmenu :deep(.p-panelmenu) {
+  gap: 0 !important;
+}
+</style>

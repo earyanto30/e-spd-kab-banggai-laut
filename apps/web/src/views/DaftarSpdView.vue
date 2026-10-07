@@ -8,10 +8,10 @@ import {
   GovButton,
   GovInputText,
   GovSelect,
-  GovMessage,
   GovTable,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
+import { useGovToast } from '../composables/useGovToast';
 
 export interface SpdItem {
   id: string;
@@ -50,8 +50,7 @@ const spdList = ref<SpdItem[]>([]);
 const loading = ref(false);
 const searchQuery = ref('');
 const statusFilter = ref('SEMUA');
-const alertMessage = ref<string | null>(null);
-const alertSeverity = ref<'success' | 'error' | 'info'>('success');
+const toast = useGovToast();
 
 // Status options for filtering & updating
 const statusOptions = [
@@ -139,8 +138,7 @@ const loadSpdList = async () => {
     }
   } catch (err: any) {
     console.error('Error fetching SPD:', err);
-    alertMessage.value = 'Gagal memuat data Surat Perjalanan Dinas';
-    alertSeverity.value = 'error';
+    toast.error('Gagal memuat data Surat Perjalanan Dinas');
   } finally {
     loading.value = false;
   }
@@ -172,18 +170,15 @@ const handleUpdateStatus = async () => {
     });
 
     if (res.ok) {
-      alertMessage.value = `Status SPD nomor ${activeSpd.value.nomorSpd} berhasil diperbarui menjadi ${newStatus.value}`;
-      alertSeverity.value = 'success';
+      toast.success(`Status SPD nomor ${activeSpd.value.nomorSpd} berhasil diperbarui menjadi ${newStatus.value}`);
       isStatusDialogOpen.value = false;
       await loadSpdList();
     } else {
       const err = await res.json().catch(() => ({}));
-      alertMessage.value = err.message || 'Gagal memperbarui status';
-      alertSeverity.value = 'error';
+      toast.error(err.message || 'Gagal memperbarui status');
     }
   } catch (err: any) {
-    alertMessage.value = err.message || 'Terjadi kesalahan sistem';
-    alertSeverity.value = 'error';
+    toast.error(err.message || 'Terjadi kesalahan sistem');
   } finally {
     isSubmitting.value = false;
   }
@@ -203,20 +198,41 @@ const handleDelete = async () => {
     });
 
     if (res.ok) {
-      alertMessage.value = `SPD nomor ${activeSpd.value.nomorSpd} berhasil dihapus`;
-      alertSeverity.value = 'success';
+      toast.success(`SPD nomor ${activeSpd.value.nomorSpd} berhasil dihapus`);
       isDeleteDialogOpen.value = false;
       await loadSpdList();
     } else {
       const err = await res.json().catch(() => ({}));
-      alertMessage.value = err.message || 'Gagal menghapus SPD';
-      alertSeverity.value = 'error';
+      toast.error(err.message || 'Gagal menghapus SPD');
     }
   } catch (err: any) {
-    alertMessage.value = err.message || 'Terjadi kesalahan sistem';
-    alertSeverity.value = 'error';
+    toast.error(err.message || 'Terjadi kesalahan sistem');
   } finally {
     isSubmitting.value = false;
+  }
+};
+
+const handleDownloadPdf = async (item: SpdItem) => {
+  try {
+    const res = await apiFetch(`/api/spd/${item.id}/pdf`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanNum = (item.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
+      a.download = `SPD_${cleanNum}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Dokumen PDF ${item.nomorSpd} berhasil diunduh`);
+    } else {
+      toast.error('Gagal mengunduh dokumen PDF resmi');
+    }
+  } catch (err) {
+    console.error('Gagal mengunduh PDF:', err);
+    toast.error('Terjadi kesalahan saat mengunduh PDF');
   }
 };
 
@@ -275,6 +291,7 @@ const exportToCsv = () => {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+  toast.success(`Rekap ${spdList.value.length} dokumen SPD berhasil diekspor ke CSV`);
 };
 
 onMounted(() => {
@@ -317,15 +334,6 @@ onMounted(() => {
         />
       </div>
     </div>
-
-    <!-- Alert Message -->
-    <GovMessage
-      v-if="alertMessage"
-      :severity="alertSeverity"
-      class="mb-4"
-    >
-      {{ alertMessage }}
-    </GovMessage>
 
     <!-- Summary Statistics Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -463,7 +471,7 @@ onMounted(() => {
         </Column>
 
         <!-- Kolom Aksi -->
-        <Column header="Aksi" style="width: 130px;" align-frozen="right">
+        <Column header="Aksi" style="width: 170px;" align-frozen="right">
           <template #body="{ data }">
             <div class="flex items-center gap-1">
               <!-- Cetak / Pratinjau -->
@@ -475,6 +483,28 @@ onMounted(() => {
                 rounded
                 @click="handleViewPrint(data.id)"
                 title="Lihat & Cetak Dokumen"
+              />
+
+              <!-- Edit Dokumen SPD -->
+              <GovButton
+                icon="pi pi-pencil"
+                size="small"
+                severity="info"
+                variant="text"
+                rounded
+                @click="router.push(`/spd/edit/${data.id}`)"
+                title="Edit / Ubah Data SPD"
+              />
+
+              <!-- Unduh PDF Resmi (Kop Surat Asli) -->
+              <GovButton
+                icon="pi pi-file-pdf"
+                size="small"
+                severity="danger"
+                variant="text"
+                rounded
+                @click="handleDownloadPdf(data)"
+                title="Unduh Berkas PDF Resmi (Kop Asli)"
               />
 
               <!-- Ubah Status -->

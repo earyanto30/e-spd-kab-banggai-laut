@@ -372,11 +372,108 @@
 
 .dark .p-multiselect-overlay,
 .dark .p-select-overlay,
-.dark .p-autocomplete-overlay,
+.dark .p-autocomplete-overlay {
+  background-color: #162238 !important;
+  border-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+/* DatePicker Panel Dark Mode */
 .dark .p-datepicker-panel {
   background-color: #162238 !important;
   border-color: #1E293B !important;
   color: #F8FAFC !important;
+}
+
+.dark .p-datepicker-calendar-container,
+.dark .p-datepicker-calendar {
+  background-color: #162238 !important;
+  color: #F8FAFC !important;
+}
+
+/* Header: month/year nav bar */
+.dark .p-datepicker-header {
+  background-color: #162238 !important;
+  border-bottom-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+/* Prev / Next nav buttons */
+.dark .p-datepicker-prev-button,
+.dark .p-datepicker-next-button {
+  background: transparent !important;
+  border-color: transparent !important;
+  color: #94A3B8 !important;
+}
+.dark .p-datepicker-prev-button:hover,
+.dark .p-datepicker-next-button:hover {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+/* Month / Year select dropdowns in header */
+.dark .p-datepicker-select-month,
+.dark .p-datepicker-select-year {
+  background: transparent !important;
+  color: #F8FAFC !important;
+  border-color: transparent !important;
+}
+.dark .p-datepicker-select-month:hover,
+.dark .p-datepicker-select-year:hover {
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+}
+
+/* Weekday header cells (Mo Tu We …) */
+.dark .p-datepicker-weekday-cell,
+.dark .p-datepicker-weekday {
+  background-color: #162238 !important;
+  color: #64748B !important;
+}
+
+/* Day cells */
+.dark .p-datepicker-day-cell {
+  background-color: transparent !important;
+}
+.dark .p-datepicker-day {
+  background-color: transparent !important;
+  color: #F8FAFC !important;
+  border-color: transparent !important;
+}
+.dark .p-datepicker-day:hover {
+  background-color: #1E293B !important;
+  color: #F8FAFC !important;
+}
+.dark .p-datepicker-day:focus-visible {
+  outline: 2px solid #38BDF8 !important;
+  outline-offset: -1px !important;
+}
+
+/* Other-month days (greyed out) */
+.dark .p-datepicker-other-month .p-datepicker-day {
+  color: #334870 !important;
+}
+
+/* Today highlight */
+.dark .p-datepicker-today .p-datepicker-day {
+  background-color: #1E293B !important;
+  color: #38BDF8 !important;
+  border-color: #334870 !important;
+}
+
+/* Selected day */
+.dark .p-datepicker-day.p-highlight,
+.dark .p-datepicker-day[data-p-highlight="true"] {
+  background-color: #0F4C81 !important;
+  color: #FFFFFF !important;
+  border-color: #38BDF8 !important;
+}
+
+/* Disabled days */
+.dark .p-datepicker-day.p-disabled,
+.dark .p-datepicker-day[data-p-disabled="true"] {
+  color: #334870 !important;
+  opacity: 0.5 !important;
 }
 
 /* Options in AutoComplete, MultiSelect, Select */
@@ -650,5 +747,82 @@
   }
 }
 
+/* Reusable PrimeVue Overlay Toast Styling */
+.p-toast,
+.gov-toast-container {
+  z-index: 99999 !important;
+  box-sizing: border-box !important;
+}
 
+/* Ensure the alert is ALWAYS below the 64px (4rem) navbar across all top positions */
+.p-toast.p-toast-top-right,
+.p-toast.p-toast-top-left,
+.p-toast.p-toast-top-center,
+.gov-toast-container.p-toast-top-right,
+.gov-toast-container.p-toast-top-left,
+.gov-toast-container.p-toast-top-center {
+  top: 5rem !important; /* 80px: 64px navbar + 16px (1rem) margin, always clearly below navbar */
+}
 
+/* Desktop and wide screens (>= 769px) */
+@media screen and (min-width: 769px) {
+  .p-toast,
+  .gov-toast-container {
+    width: 26rem !important;
+    max-width: calc(100vw - 3rem) !important;
+  }
+  .p-toast.p-toast-top-right,
+  .gov-toast-container.p-toast-top-right {
+    right: 1.5rem !important;
+  }
+}
+
+/* Tablet & Mobile devices (<= 768px): ensure alert is fully visible and not cut off on any screen size */
+@media screen and (max-width: 768px) {
+  .p-toast.p-toast-top-right,
+  .p-toast.p-toast-top-left,
+  .p-toast.p-toast-top-center,
+  .p-toast,
+  .gov-toast-container {
+    top: 4.75rem !important; /* 76px: comfortably below navbar on mobile */
+    left: 1rem !important;
+    right: 1rem !important;
+    width: auto !important;
+    max-width: calc(100vw - 2rem) !important;
+    margin: 0 auto !important;
+  }
+}
+
+/* Extra small mobile devices (<= 480px) */
+@media screen and (max-width: 480px) {
+  .p-toast.p-toast-top-right,
+  .p-toast.p-toast-top-left,
+  .p-toast.p-toast-top-center,
+  .p-toast,
+  .gov-toast-container {
+    top: 4.5rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    width: auto !important;
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+}
+
+.p-toast .p-toast-message {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  border-width: 1px !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.p-toast .p-toast-message-content {
+  padding: 0.875rem 1.125rem !important;
+  align-items: flex-start !important;
+}
+
+.p-toast .p-toast-close-button {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  border-radius: 0.375rem !important;
+  transition: all 0.15s ease !important;
+}
