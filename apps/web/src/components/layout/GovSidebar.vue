@@ -46,8 +46,14 @@ const menuItems = computed<MenuItem[]>(() => [
   {
     label: 'Surat Perjalanan Dinas',
     icon: 'pi pi-briefcase',
-    roles: [Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
     children: [
+      {
+        label: 'Daftar Riwayat SPD',
+        icon: 'pi pi-list',
+        to: '/spd',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
       {
         label: 'Buat SPD Baru',
         icon: 'pi pi-plus-circle',

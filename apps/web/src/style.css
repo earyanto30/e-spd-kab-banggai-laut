@@ -324,6 +324,7 @@
 .p-inputtext,
 .p-textarea,
 .p-multiselect,
+.p-select,
 .p-password-input {
   background-color: var(--color-surface);
   color: var(--color-text-primary);
@@ -333,6 +334,7 @@
 .p-inputtext:focus,
 .p-textarea:focus,
 .p-multiselect:not(.p-disabled).p-focus,
+.p-select:not(.p-disabled).p-focus,
 .p-password-input:focus {
   border-color: var(--color-primary) !important;
   box-shadow: 0 0 0 1px var(--color-primary) !important;
@@ -341,6 +343,7 @@
 .dark .p-inputtext,
 .dark .p-textarea,
 .dark .p-multiselect,
+.dark .p-select,
 .dark .p-password-input {
   background-color: #0B132B !important;
   border-color: #1E293B !important;
@@ -350,12 +353,14 @@
 .dark .p-inputtext:focus,
 .dark .p-textarea:focus,
 .dark .p-multiselect:not(.p-disabled).p-focus,
+.dark .p-select:not(.p-disabled).p-focus,
 .dark .p-password-input:focus {
   border-color: #38BDF8 !important;
   box-shadow: 0 0 0 1px #38BDF8 !important;
 }
 
-.dark .p-multiselect-label {
+.dark .p-multiselect-label,
+.dark .p-select-label {
   color: #F8FAFC !important;
 }
 
@@ -366,6 +371,7 @@
 }
 
 .dark .p-multiselect-overlay,
+.dark .p-select-overlay,
 .dark .p-autocomplete-overlay,
 .dark .p-datepicker-panel {
   background-color: #162238 !important;
@@ -588,6 +594,60 @@
 .dark .p-radiobutton:not(.p-disabled):has(.p-radiobutton-input:focus-visible) .p-radiobutton-box {
   border-color: #38BDF8 !important;
   box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25) !important;
+}
+
+/* ==========================================================================
+   GLOBAL PRINT MEDIA RULES (Official Document Layout)
+   ========================================================================== */
+@media print {
+  /* Hide application UI chrome: sidebar, topbar header, navigation buttons */
+  aside,
+  header:not(.kop-header),
+  nav,
+  .no-print,
+  button,
+  .p-button {
+    display: none !important;
+  }
+
+  /* Reset layout containers for edge-to-edge printing */
+  html,
+  body,
+  #app,
+  .min-h-screen,
+  .h-screen,
+  div:has(> .print-container),
+  main {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    display: block !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .print-container {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .document-preview-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    display: block !important;
+  }
+
+  .document-sheet-shadow {
+    box-shadow: none !important;
+    border: none !important;
+  }
 }
 
 

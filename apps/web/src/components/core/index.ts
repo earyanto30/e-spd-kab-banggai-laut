@@ -11,3 +11,4 @@ export { default as GovTextarea } from './GovTextarea.vue';
 export { default as GovMultiSelect } from './GovMultiSelect.vue';
 export { default as GovInputNumber } from './GovInputNumber.vue';
 export { default as GovDatePicker } from './GovDatePicker.vue';
+export { default as GovSelect } from './GovSelect.vue';

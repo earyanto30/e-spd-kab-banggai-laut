@@ -35,13 +35,32 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/spd',
+    alias: ['/spd/daftar', '/spd/riwayat'],
+    name: 'DaftarSpd',
+    component: () => import('../views/DaftarSpdView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
     path: '/spd/buat',
-    alias: '/spd',
     name: 'BuatSpd',
     component: () => import('../views/BuatSpdView.vue'),
     meta: {
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
+    path: '/spd/cetak/:id',
+    alias: ['/spd/preview/:id', '/spd/:id'],
+    name: 'SpdDetailPrint',
+    component: () => import('../views/SpdDetailPrintView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
     },
   },
   {

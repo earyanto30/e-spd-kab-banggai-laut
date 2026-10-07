@@ -73,3 +73,65 @@ export const UpdateUserSchema = z.object({
 
 export type UpdateUserDto = z.infer<typeof UpdateUserSchema>;
 
+export const SpdStatus = {
+  DRAFT: 'DRAFT',
+  DISETUJUI: 'DISETUJUI',
+  SELESAI: 'SELESAI',
+  BATAL: 'BATAL',
+} as const;
+
+export type SpdStatusType = (typeof SpdStatus)[keyof typeof SpdStatus];
+
+export const SpdSchema = z.object({
+  id: z.string(),
+  nomorSpd: z.string(),
+  pemberiPerintah: z.string(),
+  pegawaiId: z.string(),
+  pegawai: z.any().optional(),
+  dalamRangka: z.string(),
+  alatAngkut: z.string(),
+  tempatBerangkat: z.string(),
+  tempatTujuan: z.string(),
+  lamaHari: z.number().int().positive(),
+  tanggalBerangkat: z.date().or(z.string()),
+  tanggalKembali: z.date().or(z.string()),
+  skpd: z.string().default('Bagian Umum Sekretariat Daerah Kab. Banggai Laut'),
+  kodeRekening: z.string().nullable().optional(),
+  tingkatBiaya: z.string().nullable().optional(),
+  pengikut: z.string().nullable().optional(),
+  keterangan: z.string().nullable().optional(),
+  kopSuratId: z.string().nullable().optional(),
+  kopSurat: z.any().optional(),
+  status: z.string().default('DRAFT'),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type SpdDto = z.infer<typeof SpdSchema>;
+
+export const CreateSpdSchema = z.object({
+  nomorSpd: z.string().optional(),
+  pemberiPerintah: z.string().min(1, 'Pemberi perintah wajib dipilih'),
+  pegawaiId: z.string().min(1, 'Pegawai wajib dipilih'),
+  dalamRangka: z.string().min(1, 'Maksud perjalanan dinas wajib diisi').max(700, 'Maksud perjalanan dinas maksimal 700 karakter'),
+  alatAngkut: z.string().min(1, 'Alat angkut wajib diisi'),
+  tempatBerangkat: z.string().min(1, 'Tempat berangkat wajib diisi'),
+  tempatTujuan: z.string().min(1, 'Tempat tujuan wajib diisi'),
+  lamaHari: z.number().int().positive('Lama perjalanan minimal 1 hari'),
+  tanggalBerangkat: z.string().or(z.date()),
+  tanggalKembali: z.string().or(z.date()).optional(),
+  skpd: z.string().optional(),
+  kodeRekening: z.string().nullable().optional(),
+  tingkatBiaya: z.string().nullable().optional(),
+  pengikut: z.string().nullable().optional(),
+  keterangan: z.string().nullable().optional(),
+  kopSuratId: z.string().nullable().optional(),
+  status: z.string().optional(),
+});
+
+export type CreateSpdDto = z.infer<typeof CreateSpdSchema>;
+
+export const UpdateSpdSchema = CreateSpdSchema.partial();
+
+export type UpdateSpdDto = z.infer<typeof UpdateSpdSchema>;
+

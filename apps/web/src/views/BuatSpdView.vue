@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { AutoCompleteCompleteEvent } from 'primevue/autocomplete';
 import {
@@ -10,6 +10,7 @@ import {
   GovInputText,
   GovInputNumber,
   GovDatePicker,
+  GovSelect,
   GovButton,
   GovMessage,
 } from '../components/core';
@@ -24,23 +25,48 @@ interface AsnOption {
   jabatan: string;
 }
 
+interface KopSuratOption {
+  id: string;
+  nama: string;
+  fileName: string;
+  paperSize: string;
+  isDefault: boolean;
+}
+
 const router = useRouter();
 
 // 1. Form State
 const form = reactive({
   pemberiPerintah: 'Pengguna Anggaran (PA)',
   pegawai: null as AsnOption | null,
-  dalamRangka: '',
+  maksudList: [''] as string[],
   alatAngkut: [] as string[],
   tempatBerangkat: 'Banggai',
   tempatTujuan: '',
   lamaHari: 1,
   tanggalBerangkat: null as Date | null,
+  kopSuratId: null as string | null,
 });
+
+const totalMaksudChars = computed(() => {
+  return form.maksudList.reduce((acc, str) => acc + (str ? str.length : 0), 0);
+});
+
+const addMaksudItem = () => {
+  form.maksudList.push('');
+};
+
+const removeMaksudItem = (index: number) => {
+  if (form.maksudList.length > 1) {
+    form.maksudList.splice(index, 1);
+  }
+};
 
 const errors = reactive<Record<string, string>>({});
 const isSubmitting = ref(false);
 const submitSuccess = ref(false);
+const submitError = ref('');
+const createdSpd = ref<any>(null);
 
 const pemberiPerintahOptions = [
   'Kuasa Pengguna Anggaran (KPA)',
@@ -76,7 +102,37 @@ const handleSearchAsn = async (event: AutoCompleteCompleteEvent) => {
   }
 };
 
-// 3. Format Lama Perjalanan: [value] ([terbilang]) Hari
+// 3. Kop Surat Options (Input #9)
+const kopSuratList = ref<KopSuratOption[]>([]);
+const loadingKop = ref(false);
+
+const loadKopSurat = async () => {
+  loadingKop.value = true;
+  try {
+    const res = await apiFetch('/api/kop-surat');
+    if (res.ok) {
+      kopSuratList.value = await res.json();
+      const defaultKop = kopSuratList.value.find((k) => k.isDefault) || kopSuratList.value[0];
+      if (defaultKop && !form.kopSuratId) {
+        form.kopSuratId = defaultKop.id;
+      }
+    }
+  } catch {
+    kopSuratList.value = [];
+  } finally {
+    loadingKop.value = false;
+  }
+};
+
+const selectedKop = computed(() => {
+  return kopSuratList.value.find((k) => k.id === form.kopSuratId);
+});
+
+onMounted(() => {
+  loadKopSurat();
+});
+
+// 4. Format Lama Perjalanan: [value] ([terbilang]) Hari
 const angkaTerbilang = (n: number): string => {
   const kata = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
   if (n <= 0) return 'nol';
@@ -91,7 +147,7 @@ const lamaPerjalananDisplay = computed(() => {
   return `${days} (${angkaTerbilang(days)}) Hari`;
 });
 
-// 4. Format Output Alat Angkut
+// 5. Format Output Alat Angkut
 const alatAngkutDisplay = computed(() => {
   return form.alatAngkut.length > 0 ? form.alatAngkut.join(', ') : '-';
 });
@@ -102,16 +158,20 @@ const validate = (): boolean => {
 
   if (!form.pemberiPerintah) errors.pemberiPerintah = 'Pemberi perintah wajib dipilih.';
   if (!form.pegawai) errors.pegawai = 'Pegawai pelaksana perjalanan dinas wajib dipilih.';
-  if (!form.dalamRangka.trim()) {
-    errors.dalamRangka = 'Maksud perjalanan dinas wajib diisi.';
-  } else if (form.dalamRangka.length > 700) {
-    errors.dalamRangka = 'Maksud perjalanan dinas maksimal 700 karakter.';
+  
+  const validMaksud = form.maksudList.map((m) => m.trim()).filter(Boolean);
+  if (validMaksud.length === 0) {
+    errors.dalamRangka = 'Maksud perjalanan dinas wajib diisi minimal 1 agenda kegiatan.';
+  } else if (totalMaksudChars.value > 700) {
+    errors.dalamRangka = 'Total karakter maksud perjalanan dinas maksimal 700 karakter.';
   }
+
   if (form.alatAngkut.length === 0) errors.alatAngkut = 'Pilih minimal satu alat angkut.';
   if (!form.tempatBerangkat.trim()) errors.tempatBerangkat = 'Tempat berangkat wajib diisi.';
   if (!form.tempatTujuan.trim()) errors.tempatTujuan = 'Tempat tujuan wajib diisi.';
   if (!form.lamaHari || form.lamaHari < 1) errors.lamaHari = 'Lama perjalanan minimal 1 hari.';
   if (!form.tanggalBerangkat) errors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
+  if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
 
   return Object.keys(errors).length === 0;
 };
@@ -122,25 +182,52 @@ const handleSubmit = async () => {
 
   isSubmitting.value = true;
   submitSuccess.value = false;
+  submitError.value = '';
 
-  const payload = {
-    pemberiPerintah: form.pemberiPerintah,
-    pegawaiId: form.pegawai?.id,
-    pegawaiNama: form.pegawai?.nama,
-    pegawaiNip: form.pegawai?.nip,
-    dalamRangka: form.dalamRangka,
-    alatAngkut: alatAngkutDisplay.value,
-    tempatBerangkat: form.tempatBerangkat,
-    tempatTujuan: form.tempatTujuan,
-    lamaHari: form.lamaHari,
-    lamaHariFormatted: lamaPerjalananDisplay.value,
-    tanggalBerangkat: form.tanggalBerangkat?.toISOString(),
-  };
+  const validItems = form.maksudList
+    .map((item) => item.trim())
+    .filter(Boolean);
 
-  // ponytail: log payload, wire to POST /api/spd when database table exists
-  console.log('Buat SPD Payload:', payload);
-  submitSuccess.value = true;
-  isSubmitting.value = false;
+  const formattedDalamRangka = validItems
+    .map((item, idx) => {
+      const clean = item.replace(/^\d+[\.\)]\s*/, '');
+      return validItems.length > 1 ? `${idx + 1}. ${clean}` : clean;
+    })
+    .join('\n');
+
+  try {
+    const payload = {
+      pemberiPerintah: form.pemberiPerintah,
+      pegawaiId: form.pegawai!.id,
+      dalamRangka: formattedDalamRangka,
+      alatAngkut: alatAngkutDisplay.value,
+      tempatBerangkat: form.tempatBerangkat.trim(),
+      tempatTujuan: form.tempatTujuan.trim(),
+      lamaHari: Number(form.lamaHari),
+      tanggalBerangkat: form.tanggalBerangkat!.toISOString(),
+      kopSuratId: form.kopSuratId || undefined,
+    };
+
+    const res = await apiFetch('/api/spd', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      createdSpd.value = await res.json();
+      submitSuccess.value = true;
+    } else {
+      const err = await res.json().catch(() => ({}));
+      submitError.value = err.message || 'Gagal menyimpan data SPD';
+    }
+  } catch (err: any) {
+    submitError.value = err.message || 'Terjadi kesalahan sistem saat menyimpan SPD';
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 
 const handleCancel = () => {
@@ -169,7 +256,25 @@ const handleCancel = () => {
 
     <!-- Feedback -->
     <GovMessage v-if="submitSuccess" severity="success" class="mb-4">
-      Data SPD berhasil dibuat dan siap diproses lebih lanjut.
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <span class="font-semibold">Berhasil!</span> Surat Perjalanan Dinas telah tersimpan dengan Nomor: 
+          <span class="font-mono font-bold">{{ createdSpd?.nomorSpd }}</span>.
+        </div>
+        <div class="flex items-center gap-2">
+          <GovButton
+            label="Lihat & Cetak Dokumen SPD"
+            icon="pi pi-print"
+            size="small"
+            severity="primary"
+            @click="router.push('/spd/cetak/' + createdSpd?.id)"
+          />
+        </div>
+      </div>
+    </GovMessage>
+
+    <GovMessage v-if="submitError" severity="error" class="mb-4">
+      {{ submitError }}
     </GovMessage>
 
     <!-- Main Card Form -->
@@ -228,29 +333,71 @@ const handleCancel = () => {
           </small>
         </div>
 
-        <!-- 3. Maksud / Dalam Rangka -->
-        <div class="space-y-2">
+        <!-- 3. Maksud / Dalam Rangka (Dukungan Multi Agenda) -->
+        <div class="space-y-3">
           <div class="flex items-center justify-between">
-            <label class="block text-sm font-semibold text-text-main">
-              3. Dalam Rangka (Maksud Perjalanan Dinas) <span class="text-red-500">*</span>
-            </label>
+            <div>
+              <label class="block text-sm font-semibold text-text-main">
+                3. Dalam Rangka (Maksud Perjalanan Dinas) <span class="text-red-500">*</span>
+              </label>
+              <p class="text-xs text-text-muted mt-0.5">
+                Dapat menambahkan lebih dari satu agenda/tujuan kegiatan. Output dokumen akan bernomor secara otomatis.
+              </p>
+            </div>
             <span
-              class="text-xs transition-colors"
-              :class="form.dalamRangka.length >= 700 ? 'text-amber-500 font-semibold' : 'text-text-muted'"
+              class="text-xs transition-colors flex-shrink-0"
+              :class="totalMaksudChars >= 700 ? 'text-amber-500 font-semibold' : 'text-text-muted'"
             >
-              {{ form.dalamRangka.length }}/700
+              {{ totalMaksudChars }}/700
             </span>
           </div>
-          <GovTextarea
-            v-model="form.dalamRangka"
-            :rows="3"
-            :maxlength="700"
-            placeholder="Contoh: Menghadiri Rapat Koordinasi Teknis Perencanaan Pembangunan Daerah di Palu..."
-            :invalid="!!errors.dalamRangka"
-          />
-          <small v-if="errors.dalamRangka" class="text-red-500 text-xs block">
-            {{ errors.dalamRangka }}
-          </small>
+
+          <!-- List Input Agenda Dinamis -->
+          <div class="space-y-2.5">
+            <div
+              v-for="(_, index) in form.maksudList"
+              :key="index"
+              class="flex items-start gap-2.5 bg-slate-50 dark:bg-slate-900/40 p-2.5 border border-border rounded-lg"
+            >
+              <div class="mt-1 flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/50 text-primary font-bold text-xs flex items-center justify-center font-mono">
+                {{ index + 1 }}
+              </div>
+              <div class="flex-1">
+                <GovTextarea
+                  v-model="form.maksudList[index]"
+                  :rows="2"
+                  :placeholder="index === 0 ? 'Contoh: Mendampingi Bupati Banggai Laut dalam menghadiri Upacara...' : `Agenda kegiatan ke-${index + 1}...`"
+                  :invalid="!!errors.dalamRangka && !form.maksudList[index].trim()"
+                />
+              </div>
+              <GovButton
+                v-if="form.maksudList.length > 1"
+                type="button"
+                icon="pi pi-trash"
+                severity="danger"
+                variant="text"
+                rounded
+                class="mt-0.5 flex-shrink-0"
+                title="Hapus agenda ini"
+                @click="removeMaksudItem(index)"
+              />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-1">
+            <GovButton
+              type="button"
+              label="Tambah Agenda / Maksud Lain"
+              icon="pi pi-plus"
+              severity="secondary"
+              variant="outlined"
+              size="small"
+              @click="addMaksudItem"
+            />
+            <small v-if="errors.dalamRangka" class="text-red-500 text-xs">
+              {{ errors.dalamRangka }}
+            </small>
+          </div>
         </div>
 
         <hr class="border-border" />
@@ -344,6 +491,60 @@ const handleCancel = () => {
               {{ errors.tanggalBerangkat }}
             </small>
           </div>
+        </div>
+
+        <hr class="border-border" />
+
+        <!-- 9. Kop Surat Dinas -->
+        <div class="space-y-2">
+          <label class="block text-sm font-semibold text-text-main">
+            9. Template Kop Surat Dinas <span class="text-red-500">*</span>
+          </label>
+          <GovSelect
+            v-model="form.kopSuratId"
+            :options="kopSuratList"
+            option-label="nama"
+            option-value="id"
+            placeholder="Pilih template kop surat dinas..."
+            :invalid="!!errors.kopSuratId"
+            :loading="loadingKop"
+          >
+            <template #option="{ option }">
+              <div class="flex items-center justify-between w-full py-1">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-file-pdf text-red-500 text-sm"></i>
+                  <span class="font-medium text-sm text-text-main">{{ option.nama }}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <span class="text-xs px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-text-muted font-mono">
+                    {{ option.paperSize }}
+                  </span>
+                  <span
+                    v-if="option.isDefault"
+                    class="text-xs px-1.5 py-0.5 rounded bg-blue-50 dark:bg-primary/20 text-primary font-semibold"
+                  >
+                    Default
+                  </span>
+                </div>
+              </div>
+            </template>
+          </GovSelect>
+
+          <!-- Selected Kop Info Preview -->
+          <div
+            v-if="selectedKop"
+            class="p-3 bg-slate-50 dark:bg-slate-900/50 border border-border rounded-lg text-xs flex items-center justify-between"
+          >
+            <div class="flex items-center gap-2">
+              <i class="pi pi-check-circle text-primary text-xs"></i>
+              <span class="text-text-main font-medium">{{ selectedKop.nama }}</span>
+            </div>
+            <span class="text-text-muted">Ukuran: {{ selectedKop.paperSize }} &bull; {{ selectedKop.fileName }}</span>
+          </div>
+
+          <small v-if="errors.kopSuratId" class="text-red-500 text-xs block">
+            {{ errors.kopSuratId }}
+          </small>
         </div>
 
         <!-- Submission Footer -->

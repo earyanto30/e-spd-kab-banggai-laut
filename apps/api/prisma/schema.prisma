@@ -34,6 +34,8 @@ model KopSurat {
   isDefault      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  spdList        Spd[]
 }
 
 model Pegawai {
@@ -47,8 +49,34 @@ model Pegawai {
   isASN     Boolean  @default(true)
 
   user      User?
+  spdList   Spd[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Spd {
+  id               String    @id @default(cuid())
+  nomorSpd         String    @unique
+  pemberiPerintah  String
+  pegawaiId        String
+  pegawai          Pegawai   @relation(fields: [pegawaiId], references: [id])
+  dalamRangka      String
+  alatAngkut       String
+  tempatBerangkat  String
+  tempatTujuan     String
+  lamaHari         Int
+  tanggalBerangkat DateTime
+  tanggalKembali   DateTime
+  skpd             String    @default("Bagian Umum Sekretariat Daerah Kab. Banggai Laut")
+  kodeRekening     String?
+  tingkatBiaya     String?
+  pengikut         String?
+  keterangan       String?
+  kopSuratId       String?
+  kopSurat         KopSurat? @relation(fields: [kopSuratId], references: [id], onDelete: SetNull)
+  status           String    @default("DRAFT")
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
