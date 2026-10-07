@@ -49,11 +49,13 @@ const props = withDefaults(
     showKop?: boolean;
     signer?: OfficialSigner | null;
     paperSize?: 'Legal' | 'A4';
+    fontFamily?: 'times' | 'arial';
   }>(),
   {
     showKop: true,
     signer: null,
     paperSize: 'Legal',
+    fontFamily: 'arial',
   }
 );
 
@@ -131,6 +133,16 @@ const parsedMaksudList = computed<string[]>(() => {
   return [text.replace(/^\d+[\.\)]\s*/, '').trim()];
 });
 
+// Parsed list pengikut (jika ada)
+const parsedPengikutList = computed(() => {
+  const text = props.spd.pengikut || '';
+  if (!text.trim() || text.trim() === '-') return [];
+  return text
+    .split(/\r?\n|,/)
+    .map((l) => l.trim().replace(/^\d+[\.\)]\s*/, ''))
+    .filter(Boolean);
+});
+
 // Default signer fallback (Sekretaris Daerah Kab. Banggai Laut)
 const activeSigner = computed<OfficialSigner>(() => {
   if (props.signer) return props.signer;
@@ -143,13 +155,27 @@ const activeSigner = computed<OfficialSigner>(() => {
   };
 });
 
+// Check if signer is Kuasa Pengguna Anggaran (KPA)
+const isKpa = computed(() => {
+  const p = (props.spd.pemberiPerintah || '').toLowerCase();
+  const j = (activeSigner.value?.jabatan || '').toLowerCase();
+  const n = (activeSigner.value?.nama || '').toLowerCase();
+  return p.includes('kuasa') || j.includes('kpa') || j.includes('kuasa') || n.includes('dedy kurniawan');
+});
+
 // Determine signer title label
 const signerLabel = computed(() => {
-  const p = props.spd.pemberiPerintah || '';
-  if (p.toLowerCase().includes('kuasa')) {
-    return 'KUASA PENGGUNA ANGGARAN';
-  }
-  return 'PENGGUNA ANGGARAN';
+  return isKpa.value ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
+});
+
+const row1Desc = computed(() => {
+  return isKpa.value ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
+});
+
+const row1Val = computed(() => {
+  return isKpa.value
+    ? 'KEPALA BAGIAN UMUM SETDA KAB.  BANGGAI LAUT'
+    : 'SEKRETARIS DAERAH KAB.  BANGGAI LAUT';
 });
 </script>
 
@@ -159,6 +185,7 @@ const signerLabel = computed(() => {
     :class="[
       paperSize === 'Legal' ? 'sheet-legal' : 'sheet-a4',
       showKop ? 'with-kop' : 'without-kop',
+      fontFamily === 'arial' ? 'font-arial' : 'font-times',
     ]"
   >
     <!-- 1. HEADER KOP SURAT (Dapat dinonaktifkan untuk cetak di blanko fisik) -->
@@ -202,8 +229,8 @@ const signerLabel = computed(() => {
 
     <!-- 2. METADATA NOMOR SURAT (Kanan Atas) -->
     <section class="metadata-section flex justify-end mt-2">
-      <div class="w-[260px] text-[13px] leading-snug">
-        <div class="grid grid-cols-[72px_10px_1fr]">
+      <div class="w-[280px] text-[11pt] leading-snug">
+        <div class="grid grid-cols-[80px_10px_1fr]">
           <div>Lembar ke</div><div>:</div><div></div>
           <div>Kode No.</div><div>:</div><div></div>
           <div>Nomor</div><div>:</div><div class="font-bold">{{ spd.nomorSpd || '/SPD/2026' }}</div>
@@ -213,24 +240,24 @@ const signerLabel = computed(() => {
 
     <!-- 3. JUDUL DOKUMEN (SURAT PERJALANAN DINAS) -->
     <section class="title-section text-center my-3">
-      <h2 class="text-[15px] font-bold uppercase underline tracking-wide">
+      <h2 class="text-[12pt] font-bold uppercase underline tracking-wide">
         SURAT PERJALANAN DINAS
       </h2>
-      <p class="text-[14px] font-bold tracking-normal -mt-0.5">
+      <p class="text-[12pt] font-bold tracking-normal -mt-0.5">
         (SPD)
       </p>
     </section>
 
     <!-- 4. TABEL STANDAR 10 POIN (Permendagri / Perbup Banggai Laut) -->
     <main class="table-section">
-      <table class="spd-table w-full border-collapse border border-black text-[13px] leading-[1.3]">
+      <table class="spd-table w-full border-collapse border border-black text-[12pt] leading-[1.35]">
         <tbody>
-          <!-- Poin 1: Pengguna Anggaran -->
+          <!-- Poin 1: Pengguna Anggaran / Kuasa Pengguna Anggaran -->
           <tr>
             <td class="col-no">1.</td>
-            <td class="col-desc">Pengguna Anggaran</td>
-            <td class="col-val font-semibold uppercase">
-              SEKRETARIS DAERAH KAB. BANGGAI LAUT
+            <td class="col-desc">{{ row1Desc }}</td>
+            <td class="col-val font-normal uppercase">
+              {{ row1Val }}
             </td>
           </tr>
 
@@ -323,35 +350,50 @@ const signerLabel = computed(() => {
             </td>
           </tr>
 
-          <!-- Poin 8: Pengikut -->
+          <!-- Poin 8: Pengikut (Format Resmi) -->
           <tr>
-            <td class="col-no">8.</td>
-            <td class="col-desc">
-              Pengikut : Nama
+            <td colspan="2" class="border border-black px-2 py-0.5">
+              <span class="inline-block w-[32px] text-center font-normal">8.</span>
+              <span>Nama Pengikut</span>
             </td>
-            <td class="col-val p-0">
-              <table class="w-full border-collapse text-[12.5px]">
-                <thead>
-                  <tr class="border-b border-black text-center font-normal">
-                    <th class="w-1/2 py-0.5 border-r border-black font-normal">Tanggal Lahir</th>
-                    <th class="w-1/2 py-0.5 font-normal">Keterangan</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="border-b border-black text-center">
-                    <td class="border-r border-black py-0.5 text-black/50">1. -</td>
-                    <td class="py-0.5 text-black/50">-</td>
-                  </tr>
-                  <tr class="border-b border-black text-center">
-                    <td class="border-r border-black py-0.5 text-black/50">2. -</td>
-                    <td class="py-0.5 text-black/50">-</td>
-                  </tr>
-                  <tr class="text-center">
-                    <td class="border-r border-black py-0.5 text-black/50">3. -</td>
-                    <td class="py-0.5 text-black/50">-</td>
-                  </tr>
-                </tbody>
-              </table>
+            <td class="col-val border border-black p-0"></td>
+          </tr>
+          <tr>
+            <td colspan="2" class="p-0 border border-black align-top">
+              <div class="border-b border-black py-0.5 flex text-center font-normal">
+                <span class="w-[48px] text-center font-normal">No</span>
+                <span class="flex-1 text-center font-normal">Nama</span>
+              </div>
+              <div class="py-1 text-[12pt] leading-[1.4] min-h-[72px]">
+                <div class="flex items-center">
+                  <span class="w-[48px] text-center">1.</span>
+                  <span class="flex-1 pl-1">{{ parsedPengikutList[0] || '' }}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="w-[48px] text-center">2.</span>
+                  <span class="flex-1 pl-1">{{ parsedPengikutList[1] || '' }}</span>
+                </div>
+                <div class="flex items-center">
+                  <span class="w-[48px] text-center">3.</span>
+                  <span class="flex-1 pl-1">{{ parsedPengikutList[2] || '' }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="col-val border border-black p-0 align-top">
+              <div class="grid grid-cols-2 h-full min-h-[96px]">
+                <div class="border-r border-black flex flex-col">
+                  <div class="border-b border-black text-center font-normal py-0.5">
+                    Umur
+                  </div>
+                  <div class="flex-1"></div>
+                </div>
+                <div class="flex flex-col">
+                  <div class="border-b border-black text-center font-normal py-0.5">
+                    Keterangan
+                  </div>
+                  <div class="flex-1"></div>
+                </div>
+              </div>
             </td>
           </tr>
 
@@ -384,21 +426,23 @@ const signerLabel = computed(() => {
 
     <!-- 5. BLOK TANDA TANGAN (Bawah Kanan) -->
     <footer class="signature-section mt-5 flex justify-end">
-      <div class="w-[300px] text-[13px] leading-snug">
-        <div class="grid grid-cols-[100px_10px_1fr]">
+      <div class="w-[320px] text-[11pt] leading-snug">
+        <div class="grid grid-cols-[105px_10px_1fr]">
           <div>Dikeluarkan di</div><div>:</div><div>{{ spd.tempatBerangkat || 'Banggai' }}</div>
-          <div>Pada Tanggal</div><div>:</div><div>{{ formatIndonesianDate(spd.createdAt || spd.tanggalBerangkat) }}</div>
+          <div class="border-b border-black pb-0.5">Pada Tanggal</div>
+          <div class="border-b border-black pb-0.5">:</div>
+          <div class="border-b border-black pb-0.5">{{ formatIndonesianDate(spd.createdAt || spd.tanggalBerangkat) }}</div>
         </div>
 
-        <div class="mt-4 font-bold uppercase tracking-wider">
+        <div class="mt-3 font-bold uppercase tracking-wider">
           {{ signerLabel }}
         </div>
 
         <!-- Signature wet space -->
-        <div class="h-[75px]"></div>
+        <div class="h-[60px]"></div>
 
         <div>
-          <div class="font-bold underline text-[13.5px]">
+          <div class="font-bold underline text-[11pt]">
             {{ activeSigner.nama }}
           </div>
           <div>
@@ -435,7 +479,32 @@ const signerLabel = computed(() => {
 .spd-document-sheet span,
 .spd-document-sheet div {
   color: #000000 !important;
+}
+
+.font-times,
+.font-times *,
+.font-times h1,
+.font-times h2,
+.font-times h3,
+.font-times p,
+.font-times td,
+.font-times th,
+.font-times span,
+.font-times div {
   font-family: 'Times New Roman', Times, Georgia, serif !important;
+}
+
+.font-arial,
+.font-arial *,
+.font-arial h1,
+.font-arial h2,
+.font-arial h3,
+.font-arial p,
+.font-arial td,
+.font-arial th,
+.font-arial span,
+.font-arial div {
+  font-family: Arial, Helvetica, sans-serif !important;
 }
 
 /* Legal Format: 215.9mm x 355.6mm (8.5 x 14 in) */
@@ -488,14 +557,18 @@ const signerLabel = computed(() => {
   width: 36px;
   text-align: center;
   font-weight: 500;
+  border-right: none !important;
 }
 
 .col-desc {
   width: 287px;
+  border-left: none !important;
 }
 
 .col-val {
   width: 367px;
+  text-align: justify;
+  text-justify: inter-word;
 }
 
 /* PRINT MEDIA QUERIES */

@@ -270,3 +270,23 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
    - Memindahkan submenu Kop Surat dari grup *"Surat Perjalanan Dinas"* ke menu *"Pengaturan"* dengan rute utama `/pengaturan/kop-surat` (tetap menyediakan alias `/spd/kop-surat` untuk backward compatibility).
    - Memperbarui tautan aksi cepat pada `HomeView.vue`.
 
+---
+
+### 📊 Mockup Dashboard Analitik & Visualisasi Grafis (Selesai)
+- **Instalasi Pustaka Grafik (`chart.js`):** Mengintegrasikan `chart.js` untuk mendukung komponen resmi `primevue/chart`.
+- **4 Kartu Indikator Kinerja Utama (KPI Metrics):**
+  - *Total SPD Diterbitkan* (148 Dokumen, +14% bulan ini)
+  - *SPD Sedang Aktif* (18 Pegawai minggu berjalan)
+  - *ASN Pelaksana Tugas* (64 Orang ASN)
+  - *Realisasi Anggaran SPD* (Rp 284,5 Jt, 78.2% pagu)
+- **Berbagai Varian Grafik Analitik:**
+  1. **Bar Chart (Grouped):** Statistik Penerbitan SPD per Bulan (komparasi Luar Daerah Sulteng vs Dalam Wilayah Banggai Laut).
+  2. **Doughnut Chart:** Distribusi Moda Transportasi Dinas (Pesawat Udara, Kapal Feri, Speedboat Pemda, Kendaraan Darat).
+  3. **Line Area Chart (Curved):** Tren Akumulasi Hari Dinas (Durasi Penugasan).
+  4. **Horizontal Bar Chart:** 5 Destinasi Perjalanan Terbanyak (Palu, Luwuk, Jakarta, Makassar, Gorontalo).
+- **Tabel Rekap & Akses Cepat:**
+  - Tabel mockup penerbitan SPD terbaru dengan badge status (`DISETUJUI`, `SELESAI`, `DRAFT`).
+  - Kartu pintasan akses cepat ke seluruh modul sistem dan info status operasional Pemda.
+- **Dukungan Tema Dinamis:** Grafik otomatis menyesuaikan warna font, grid scale, dan tooltip secara reaktif saat berganti antara mode gelap dan mode terang.
+
+

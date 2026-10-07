@@ -47,6 +47,7 @@ export class SpdController {
     @Query('signerPangkat') signerPangkat?: string,
     @Query('signerGolongan') signerGolongan?: string,
     @Query('signerJabatan') signerJabatan?: string,
+    @Query('fontFamily') fontFamily?: string,
   ) {
     const signer = signerNama
       ? {
@@ -58,7 +59,7 @@ export class SpdController {
         }
       : undefined;
 
-    const { buffer, fileName } = await this.spdPdfService.generatePdf(id, signer);
+    const { buffer, fileName } = await this.spdPdfService.generatePdf(id, signer, fontFamily);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
     res.send(buffer);

@@ -1,23 +1,60 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import SpdDocument, { SpdData, OfficialSigner } from '../components/spd/SpdDocument.vue';
-import { GovButton, GovSelect, GovCheckbox, GovMessage } from '../components/core';
+import { GovButton, GovSelect, GovMessage } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+
+export interface OfficialSigner {
+  nama: string;
+  nip: string;
+  pangkat: string;
+  golongan: string;
+  jabatan: string;
+}
+
+export interface SpdDetailData {
+  id?: string;
+  nomorSpd?: string;
+  pemberiPerintah?: string;
+  pegawai?: {
+    nama: string;
+    nip: string;
+    pangkat: string;
+    golongan: string;
+    jabatan: string;
+    unitKerja?: string;
+  } | null;
+  dalamRangka: string;
+  alatAngkut: string;
+  tempatBerangkat: string;
+  tempatTujuan: string;
+  lamaHari: number;
+  tanggalBerangkat: string | Date | null;
+  tanggalKembali?: string | Date | null;
+  skpd?: string;
+  kodeRekening?: string | null;
+  tingkatBiaya?: string | null;
+  pengikut?: string | null;
+  keterangan?: string | null;
+  kopSuratId?: string | null;
+  kopSurat?: {
+    id: string;
+    nama: string;
+    fileName: string;
+    paperSize?: string;
+  } | null;
+  createdAt?: string | Date;
+}
 
 const route = useRoute();
 const router = useRouter();
 const toast = useGovToast();
 
 const spdId = route.params.id as string;
-const spd = ref<SpdData | null>(null);
+const spd = ref<SpdDetailData | null>(null);
 const loading = ref(true);
 const errorMessage = ref('');
-
-// Print & Display options
-const showKop = ref(true);
-const paperSize = ref<'Legal' | 'A4'>('Legal');
 
 // Signer choices
 const signersList: OfficialSigner[] = [
@@ -46,37 +83,16 @@ const signersList: OfficialSigner[] = [
 
 const selectedSigner = ref<OfficialSigner>(signersList[0]);
 
-const fetchSpd = async () => {
-  loading.value = true;
-  errorMessage.value = '';
-  try {
-    const res = await apiFetch(`/api/spd/${spdId}`);
-    if (res.ok) {
-      spd.value = await res.json();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      errorMessage.value = err.message || 'Gagal memuat dokumen SPD';
-    }
-  } catch (err: any) {
-    errorMessage.value = err.message || 'Terjadi kesalahan sistem saat memuat SPD';
-  } finally {
-    loading.value = false;
-  }
-};
+const fontFamily = ref<'arial' | 'times'>('arial');
+const fontOptions = [
+  { label: 'Arial', value: 'arial' },
+  { label: 'Times New Roman', value: 'times' },
+];
 
-const handlePrint = () => {
-  window.print();
-};
-
-const handleBack = () => {
-  router.push('/spd/buat');
-};
-
-// PDF Generation with uploaded Kop Surat
+// PDF Generation & Preview
 const isDownloadingPdf = ref(false);
 const activePdfUrl = ref<string | null>(null);
 const isLoadingPdfPreview = ref(false);
-const viewMode = ref<'html' | 'pdf'>('html');
 
 const buildPdfQuery = () => {
   const params = new URLSearchParams();
@@ -87,7 +103,32 @@ const buildPdfQuery = () => {
     params.set('signerGolongan', selectedSigner.value.golongan);
     params.set('signerJabatan', selectedSigner.value.jabatan);
   }
+  params.set('fontFamily', fontFamily.value);
   return params.toString();
+};
+
+const loadPdfPreview = async () => {
+  if (activePdfUrl.value) {
+    URL.revokeObjectURL(activePdfUrl.value);
+    activePdfUrl.value = null;
+  }
+  isLoadingPdfPreview.value = true;
+  try {
+    const q = buildPdfQuery();
+    const res = await apiFetch(`/api/spd/${spdId}/pdf?${q}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      activePdfUrl.value = URL.createObjectURL(blob);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      errorMessage.value = err.message || 'Gagal memuat dokumen PDF resmi';
+    }
+  } catch (err: any) {
+    console.error('Gagal memuat PDF:', err);
+    errorMessage.value = err.message || 'Terjadi kesalahan sistem saat memuat PDF';
+  } finally {
+    isLoadingPdfPreview.value = false;
+  }
 };
 
 const handleDownloadPdf = async () => {
@@ -119,30 +160,51 @@ const handleDownloadPdf = async () => {
   }
 };
 
-const loadPdfPreview = async () => {
-  if (activePdfUrl.value) {
-    URL.revokeObjectURL(activePdfUrl.value);
-    activePdfUrl.value = null;
+const handlePrint = () => {
+  if (!activePdfUrl.value) {
+    loadPdfPreview().then(() => handlePrint());
+    return;
   }
-  isLoadingPdfPreview.value = true;
-  try {
-    const q = buildPdfQuery();
-    const res = await apiFetch(`/api/spd/${spdId}/pdf?${q}`);
-    if (res.ok) {
-      const blob = await res.blob();
-      activePdfUrl.value = URL.createObjectURL(blob);
-    }
-  } catch (err) {
-    console.error('Gagal memuat PDF:', err);
-  } finally {
-    isLoadingPdfPreview.value = false;
-  }
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = '0';
+  iframe.src = activePdfUrl.value;
+  document.body.appendChild(iframe);
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow?.focus();
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 3000);
+    }, 200);
+  };
 };
 
-const toggleViewMode = (mode: 'html' | 'pdf') => {
-  viewMode.value = mode;
-  if (mode === 'pdf' && !activePdfUrl.value) {
-    loadPdfPreview();
+const handleBack = () => {
+  router.push('/spd/buat');
+};
+
+const fetchSpd = async () => {
+  loading.value = true;
+  errorMessage.value = '';
+  try {
+    const res = await apiFetch(`/api/spd/${spdId}`);
+    if (res.ok) {
+      spd.value = await res.json();
+      await loadPdfPreview();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      errorMessage.value = err.message || 'Gagal memuat dokumen SPD';
+    }
+  } catch (err: any) {
+    errorMessage.value = err.message || 'Terjadi kesalahan sistem saat memuat SPD';
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -153,7 +215,7 @@ onMounted(() => {
 
 <template>
   <div class="print-container">
-    <!-- TOOLBAR CONTROLS (Hidden when printing) -->
+    <!-- TOOLBAR CONTROLS -->
     <div class="no-print max-w-5xl mx-auto mb-6 space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3 bg-surface border border-border rounded-xl p-4 shadow-sm">
         <div class="flex items-center gap-3">
@@ -167,14 +229,14 @@ onMounted(() => {
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-lg font-bold text-text-main">
-                Pratinjau Dokumen SPD
+                Dokumen PDF Resmi SPD
               </h1>
               <span class="text-xs px-2 py-0.5 rounded font-mono bg-blue-100 dark:bg-blue-900/40 text-primary font-semibold">
                 {{ spd?.nomorSpd || 'DRAFT' }}
               </span>
             </div>
             <p class="text-xs text-text-muted mt-0.5">
-              Format Standar Permendagri / Perbup &bull; Font Times New Roman &bull; Margin Presisi
+              Format Standar Permendagri / Perbup &bull; Terpadu Kop Surat Resmi &bull; Ukuran Legal
             </p>
           </div>
         </div>
@@ -204,7 +266,7 @@ onMounted(() => {
             size="small"
             :loading="isDownloadingPdf"
             @click="handleDownloadPdf"
-            title="Unduh berkas PDF asli yang digabungkan langsung dengan kop surat yang diunggah"
+            title="Unduh berkas PDF resmi terpadu dengan kop surat"
           />
           <GovButton
             label="Cetak SPD"
@@ -212,44 +274,14 @@ onMounted(() => {
             severity="primary"
             size="small"
             @click="handlePrint"
+            title="Cetak langsung dokumen PDF resmi"
           />
         </div>
       </div>
 
-      <!-- Quick Document Settings & View Mode Toggle -->
+      <!-- Quick Document Settings -->
       <div class="flex flex-wrap items-center justify-between gap-4 bg-surface border border-border rounded-xl p-4 text-xs">
         <div class="flex flex-wrap items-center gap-6">
-          <!-- View Mode Selector -->
-          <div class="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-border">
-            <button
-              type="button"
-              class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
-              :class="viewMode === 'html' ? 'bg-white dark:bg-slate-700 text-primary font-semibold shadow-xs' : 'text-text-muted hover:text-text-main'"
-              @click="toggleViewMode('html')"
-            >
-              <i class="pi pi-align-left mr-1"></i>
-              Lembar Dokumen
-            </button>
-            <button
-              type="button"
-              class="px-2.5 py-1 rounded text-xs font-medium transition-colors"
-              :class="viewMode === 'pdf' ? 'bg-white dark:bg-slate-700 text-primary font-semibold shadow-xs' : 'text-text-muted hover:text-text-main'"
-              @click="toggleViewMode('pdf')"
-            >
-              <i class="pi pi-file-pdf mr-1 text-red-500"></i>
-              Pratinjau PDF Asli
-            </button>
-          </div>
-
-          <!-- Kop Surat Toggle (for HTML print) -->
-          <label v-if="viewMode === 'html'" class="flex items-center gap-2 cursor-pointer font-medium text-text-main">
-            <GovCheckbox v-model="showKop" :binary="true" />
-            <span>Tampilkan Kop Surat Resmi</span>
-            <span class="text-text-muted font-normal">
-              (Hapus centang jika mencetak di atas kertas blangko fisik)
-            </span>
-          </label>
-
           <!-- Penandatangan Selector -->
           <div class="flex items-center gap-2">
             <span class="text-text-muted">Pejabat Penandatangan:</span>
@@ -258,7 +290,20 @@ onMounted(() => {
               :options="signersList"
               option-label="nama"
               class="w-64 text-xs"
-              @change="viewMode === 'pdf' && loadPdfPreview()"
+              @change="loadPdfPreview()"
+            />
+          </div>
+
+          <!-- Font Selector -->
+          <div class="flex items-center gap-2">
+            <span class="text-text-muted">Font:</span>
+            <GovSelect
+              v-model="fontFamily"
+              :options="fontOptions"
+              option-label="label"
+              option-value="value"
+              class="w-44 text-xs"
+              @change="loadPdfPreview()"
             />
           </div>
         </div>
@@ -288,35 +333,26 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- DOCUMENT SHEET PREVIEW (HTML Mode) -->
-    <div v-else-if="spd && viewMode === 'html'" class="document-preview-wrapper flex justify-center pb-16">
-      <div class="document-sheet-shadow rounded-sm border border-slate-300 dark:border-slate-700">
-        <SpdDocument
-          :spd="spd"
-          :show-kop="showKop"
-          :signer="selectedSigner"
-          :paper-size="paperSize"
-        />
-      </div>
-    </div>
-
-    <!-- NATIVE PDF PREVIEW (PDF Mode with Uploaded Kop) -->
-    <div v-else-if="spd && viewMode === 'pdf'" class="document-preview-wrapper flex flex-col items-center pb-16 px-4">
+    <!-- NATIVE PDF PREVIEW -->
+    <div v-else-if="spd" class="document-preview-wrapper flex flex-col items-center pb-16 px-4">
       <div v-if="isLoadingPdfPreview" class="py-20 text-center space-y-3">
         <i class="pi pi-spin pi-spinner text-3xl text-primary"></i>
         <p class="text-xs text-text-muted">Sedang merender PDF resmi dengan kop surat...</p>
       </div>
-      <div v-else-if="activePdfUrl" class="w-full max-w-4xl space-y-3">
+      <div v-else-if="activePdfUrl" class="w-full max-w-5xl space-y-3">
         <div class="w-full bg-surface rounded-xl shadow-lg border border-border overflow-hidden">
           <object
             :data="activePdfUrl"
             type="application/pdf"
             class="w-full h-[980px] block"
           >
-            <div class="p-8 text-center space-y-3">
-              <i class="pi pi-file-pdf text-4xl text-text-muted"></i>
-              <p class="text-sm text-text-main">
-                Pratinjau berkas PDF resmi terpadu dengan kop surat.
+            <div class="p-12 text-center space-y-4">
+              <i class="pi pi-file-pdf text-5xl text-primary"></i>
+              <p class="text-base text-text-main font-semibold">
+                Pratinjau Dokumen PDF Resmi
+              </p>
+              <p class="text-xs text-text-muted">
+                Peramban Anda tidak mendukung penampil PDF langsung. Silakan klik tombol di bawah untuk mengunduh dokumen.
               </p>
               <GovButton
                 label="Unduh Berkas PDF Sekarang"
@@ -334,27 +370,10 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.document-sheet-shadow {
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.15), 0 0 3px rgba(0, 0, 0, 0.1);
-}
-
 @media print {
-  /* Hide all outside chrome */
   :deep(.no-print),
   .no-print {
     display: none !important;
-  }
-
-  /* Reset wrappers */
-  .print-container,
-  .document-preview-wrapper,
-  .document-sheet-shadow {
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
-    background: transparent !important;
-    display: block !important;
   }
 }
 </style>
