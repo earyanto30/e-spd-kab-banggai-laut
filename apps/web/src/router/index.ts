@@ -35,6 +35,44 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/surat-tugas',
+    alias: ['/surat-tugas/daftar'],
+    name: 'DaftarSuratTugas',
+    component: () => import('../views/DaftarSuratTugasView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
+    path: '/surat-tugas/buat',
+    name: 'BuatSuratTugas',
+    component: () => import('../views/BuatSuratTugasView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
+    path: '/surat-tugas/edit/:id',
+    name: 'EditSuratTugas',
+    component: () => import('../views/BuatSuratTugasView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
+    path: '/surat-tugas/cetak/:id',
+    alias: ['/surat-tugas/preview/:id', '/surat-tugas/:id'],
+    name: 'SuratTugasDetailPrint',
+    component: () => import('../views/SuratTugasDetailPrintView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
     path: '/spd',
     alias: ['/spd/daftar', '/spd/riwayat'],
     name: 'DaftarSpd',

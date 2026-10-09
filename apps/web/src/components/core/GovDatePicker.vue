@@ -7,6 +7,8 @@ withDefaults(
   defineProps<{
     dateFormat?: string;
     showIcon?: boolean;
+    selectionMode?: 'single' | 'multiple' | 'range';
+    showButtonBar?: boolean;
     placeholder?: string;
     invalid?: boolean;
     disabled?: boolean;
@@ -17,6 +19,7 @@ withDefaults(
   {
     dateFormat: 'dd/mm/yy',
     showIcon: true,
+    selectionMode: 'single',
     fluid: true,
   }
 );
@@ -27,6 +30,8 @@ withDefaults(
     v-model="model"
     :date-format="dateFormat"
     :show-icon="showIcon"
+    :selection-mode="selectionMode"
+    :show-button-bar="showButtonBar"
     icon-display="input"
     :placeholder="placeholder"
     :invalid="invalid"

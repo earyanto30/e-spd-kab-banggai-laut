@@ -27,3 +27,9 @@ You are strictly forbidden from making creative design decisions. You must adher
 2. **No Inline Styles:** NEVER use the `style` attribute on HTML or Vue components.
 3. **Component Consumption Only:** Do not inject Tailwind utility classes into PrimeVue components to alter their core appearance. Rely on the global PrimeVue preset.
 4. **Wrapper Precedence:** If a custom wrapper component exists in `apps/web/src/components/core/` (e.g., `GovButton`, `GovTable`), you MUST use it instead of the base PrimeVue equivalent.
+
+## Data Model & Relational Architecture Directive
+* **Surat Tugas (Parent Entity) -> Surat Perjalanan Dinas (Child / Pivot Entity):**
+  - Architecture represents a **one-to-many (1:N)** relationship where `SuratTugas` acts as the primary parent entity that issues multiple `Spd` (Surat Perjalanan Dinas).
+  - The travel document (`Spd`) functions as a child entity in the database schema, holding foreign keys that link the overarching assignment (`suratTugasId`) to exactly one specific ASN (`pegawaiId`).
+

@@ -135,3 +135,88 @@ export const UpdateSpdSchema = CreateSpdSchema.partial();
 
 export type UpdateSpdDto = z.infer<typeof UpdateSpdSchema>;
 
+export const DASAR_HUKUM_DEFAULT =
+  'Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)';
+
+export const SuratTugasPegawaiItemSchema = z.object({
+  pegawaiId: z.string(),
+  nama: z.string(),
+  nip: z.string(),
+  pangkat: z.string().optional(),
+  golongan: z.string().optional(),
+  jabatan: z.string().optional(),
+});
+
+export type SuratTugasPegawaiItemDto = z.infer<typeof SuratTugasPegawaiItemSchema>;
+
+export const SuratTugasSchema = z.object({
+  id: z.string(),
+  nomorSurat: z.string(),
+  dasarHukum: z.string().default(DASAR_HUKUM_DEFAULT),
+  dalamRangka: z.string(),
+  tempatDikeluarkan: z.string().default('Banggai'),
+  tanggalSurat: z.date().or(z.string()),
+  penandatanganNama: z.string().default('ARSID HAMIDI, SH'),
+  penandatanganJabatan: z.string().default('KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT'),
+  penandatanganPangkat: z.string().default('Pembina, IV/a'),
+  penandatanganNip: z.string().default('19700830 200312 1 003'),
+  kopSuratId: z.string().nullable().optional(),
+  pegawaiIds: z.string().nullable().optional(),
+  alatAngkut: z.string().nullable().optional(),
+  tempatTujuan: z.string().nullable().optional(),
+  lamaHari: z.number().int().positive().nullable().optional(),
+  tanggalBerangkat: z.date().or(z.string()).nullable().optional(),
+  status: z.string().default('DRAFT'),
+  spdList: z.array(z.any()).optional(),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type SuratTugasDto = z.infer<typeof SuratTugasSchema>;
+
+export const MODA_TRANSPORTASI_OPTIONS = [
+  'Mobil Dinas',
+  'Pesawat',
+  'Speedboat / Kapal Laut',
+  'Kendaraan Roda Dua',
+  'Angkutan Umum Darat',
+] as const;
+
+export const CreateSuratTugasSchema = z.object({
+  nomorSurat: z.string().optional(),
+  dasarHukum: z.string().optional(),
+  dalamRangka: z.string().min(1, 'Dalam rangka / maksud penugasan wajib diisi'),
+  pegawaiIds: z.array(z.string()).min(1, 'Minimal satu pegawai pelaksana wajib dipilih'),
+  tempatDikeluarkan: z.string().optional(),
+  tanggalSurat: z.string().or(z.date()).optional(),
+  penandatanganNama: z.string().optional(),
+  penandatanganJabatan: z.string().optional(),
+  penandatanganPangkat: z.string().optional(),
+  penandatanganNip: z.string().optional(),
+  kopSuratId: z.string().nullable().optional(),
+  alatAngkut: z.string().optional(),
+  tempatTujuan: z.string().optional(),
+  lamaHari: z.number().int().positive().optional(),
+  tanggalBerangkat: z.string().or(z.date()).optional(),
+  status: z.string().optional(),
+});
+
+export type CreateSuratTugasDto = z.infer<typeof CreateSuratTugasSchema>;
+
+export const UpdateSuratTugasSchema = CreateSuratTugasSchema.partial();
+
+export type UpdateSuratTugasDto = z.infer<typeof UpdateSuratTugasSchema>;
+
+export const GenerateSpdFromSuratTugasSchema = z.object({
+  pemberiPerintah: z.string().optional(),
+  alatAngkut: z.array(z.string()).or(z.string()).optional(),
+  tempatBerangkat: z.string().optional(),
+  tempatTujuan: z.string().optional(),
+  lamaHari: z.number().int().positive().optional(),
+  tanggalBerangkat: z.string().or(z.date()).optional(),
+});
+
+export type GenerateSpdFromSuratTugasDto = z.infer<typeof GenerateSpdFromSuratTugasSchema>;
+
+
+

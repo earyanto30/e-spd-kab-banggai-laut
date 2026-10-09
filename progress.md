@@ -268,7 +268,18 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
    - Memperbaiki layout header sidebar saat posisi *collapsed* (`w-20`): menyembunyikan logo agar tombol collapse tetap terpusat (*centered*) dan tidak tumpang-tindih (*overlap*).
 3. **Restrukturisasi Menu Kop Surat:**
    - Memindahkan submenu Kop Surat dari grup *"Surat Perjalanan Dinas"* ke menu *"Pengaturan"* dengan rute utama `/pengaturan/kop-surat` (tetap menyediakan alias `/spd/kop-surat` untuk backward compatibility).
-   - Memperbarui tautan aksi cepat pada `HomeView.vue`.
+4. **Perbaikan Tampilan Menu saat Sidebar Collapsed (`apps/web/src/components/layout/GovSidebar.vue`):**
+   - **Masalah:** Saat sidebar dalam mode ciut (*collapsed*), daftar submenu anak (*flatItems*) sebelumnya ditampilkan langsung sebagai deretan ikon jalan pintas, sehingga submenu tampak terbuka/muncul saat collapsed.
+   - **Perbaikan:** Menghapus perataan submenu (*flatItems*). Saat collapsed, hanya ikon kategori menu level teratas yang ditampilkan (`Beranda`, `Surat Tugas`, `Surat Perjalanan Dinas`, `Kepegawaian`, `Pengaturan`). Mengklik kategori beranak secara otomatis memicu pembukaan sidebar (*expand*) dengan submenu terkait dalam posisi terbuka.
+5. **Standardisasi Tombol Aksi Halaman Cetak Dokumen (`SpdDetailPrintView.vue` & `SuratTugasDetailPrintView.vue`):**
+   - **Perbaikan Komponen Primitif (`GovButton.vue`):** Menambahkan dukungan langsung untuk prop `variant` (`outlined` / `text`), `size` (`small` / `large`), `iconPos`, `rounded`, dan meneruskan `v-bind="$attrs"` secara transparan ke PrimeVue `Button`.
+   - **Hirarki Visual & Severity yang Konsisten:**
+     - `Kembali`: `severity="secondary" variant="outlined" size="small"` (ikon `pi pi-arrow-left`) — menghapus tombol kembali ganda di sisi kiri.
+     - `Edit Surat`: `severity="secondary" variant="outlined" size="small"` (ikon `pi pi-pencil`) — meniadakan warna info acak.
+     - `Unduh PDF`: `severity="secondary" variant="outlined" size="small"` (ikon `pi pi-file-pdf`) — menggantikan warna merah (*danger*) yang sebelumnya salah kaprah untuk aksi unduh.
+     - `Cetak Dokumen`: `severity="primary" size="small"` (ikon `pi pi-print`, solid fill) — sebagai aksi utama halaman cetak.
+     - `Terbitkan SPD` (Surat Tugas): `severity="success" variant="outlined" size="small"` (ikon `pi pi-file-import`).
+   - **Penyelarasan Layout Panel Header:** Menyelaraskan kartu toolbar header Surat Tugas dan SPD agar memiliki kontainer, tipografi, dan tata letak tombol yang seragam di seluruh resolusi layar.
 
 ---
 
@@ -289,4 +300,63 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
   - Kartu pintasan akses cepat ke seluruh modul sistem dan info status operasional Pemda.
 - **Dukungan Tema Dinamis:** Grafik otomatis menyesuaikan warna font, grid scale, dan tooltip secara reaktif saat berganti antara mode gelap dan mode terang.
 
+---
 
+### 📑 Ringkasan Arsitektur: Alur Pembuatan SPD & PDF Generation
+- **Pembuatan SPD (`BuatSpdView.vue` -> `SpdService.create`)**:
+  - Validasi pegawai (`pegawaiId`).
+  - Auto-generate penomoran berurutan tahunan `{seq:03d}/SPD/SETDA/{year}` dengan deteksi benturan duplikasi.
+  - Perhitungan otomatis `tanggalKembali` berdasarkan `lamaHari`.
+  - Persistensi entitas ke database via Prisma dengan status awal `DRAFT`.
+- **PDF Generation (`SpdPdfService.generatePdf`)**:
+  - Menggunakan library `pdf-lib` langsung pada layer backend NestJS (canvas drawing stream).
+  - Melapisi dokumen dengan template PDF kop dinas resmi (`kopSuratId` / default).
+  - Menggambar metadata kanan atas, judul resmi SPD bergaris bawah.
+  - Menghasilkan tabel standar 10 poin dengan dukungan text-justified multi-agenda, sub-tabel pengikut dinamis, dan kalkulasi angka terbilang.
+  - Menempatkan blok titi mangsa serta nama/NIP penandatangan resmi (PA/KPA).
+  - Output binary stream dikirim via endpoint `GET /spd/:id/pdf` dengan header `Content-Disposition: inline`.
+
+---
+
+### 🏛️ Modul Surat Tugas & Integrasi Penerbitan SPD On-Demand
+- **Entitas & Skema `SuratTugas`**:
+  - Menyimpan `nomorSurat`, `dasarHukum`, `dalamRangka`, `tempatDikeluarkan`, `tanggalSurat`, info penandatangan, `kopSuratId`, `status`, dan `pegawaiIds` (daftar ID ASN yang ditugaskan).
+  - Relasi 1-to-many ke model `Spd` via `suratTugasId`.
+- **Aturan Penerbitan Dokumen**:
+  - **Tidak Autocreate SPD saat Buat Surat Tugas:** Saat membuat Surat Tugas baru, sistem menyimpan Surat Tugas beserta daftar personil (`pegawaiIds`) tanpa membuat record SPD di awal.
+  - **Penerbitan SPD On-Demand:** Tombol **"Terbitkan SPD"** pada halaman pratinjau (`/surat-tugas/cetak/:id`) menerbitkan dokumen SPD resmi untuk masing-masing ASN penugasan secara manual sesuai permintaan.
+  - **Sinkronisasi Otomatis:** Apabila dokumen Surat Tugas diedit (`PUT /surat-tugas/:id`), data agenda (`dalamRangka`), tempat, dan tanggal pada child SPD yang sudah terbit disinkronkan secara otomatis. Jika ada personil baru ditambahkan pada edit Surat Tugas yang sudah memiliki SPD, SPD baru diterbitkan untuk personil tersebut; dan jika ada personil dihapus, child SPD personil tersebut dihapus.
+- **Penghapusan & Penerbitan Ulang Dokumen SPD Terhubung**:
+  - **Penghapusan Individu:** Setiap kartu dokumen SPD pada daftar di bawah pratinjau Surat Tugas dilengkapi tombol hapus dengan modal konfirmasi dialog. Menghapus dokumen SPD individu membebaskan personil bersangkutan untuk dapat diterbitkan kembali kapan saja.
+---
+
+### 📅 Penyempurnaan 5: Filter Rentang Tanggal di Daftar SPD & Surat Tugas (Selesai)
+- **Komponen Inti (`GovDatePicker.vue`)**:
+  - Ditambahkan dukungan prop `selectionMode?: 'single' | 'multiple' | 'range'` dan `showButtonBar?: boolean`.
+  - Terintegrasi penuh dengan PrimeVue DatePicker range mode.
+- **Backend Filter Query (`apps/api`)**:
+  - `SpdService`: Filter rentang tanggal berdasarkan `tanggalBerangkat` (`startDate`, `endDate`), otomatis mencakup seluruh hari (`23:59:59.999`).
+  - `SuratTugasController` & `SuratTugasService`: Menambahkan parameter `@Query('startDate')` dan `@Query('endDate')` dengan filter rentang pada `tanggalSurat`.
+- **Frontend Toolbar (`DaftarSpdView.vue` & `DaftarSuratTugasView.vue`)**:
+  - Penambahan input date range picker di toolbar pencarian.
+  - Penyesuaian layout responsive grid/flexbox agar rapi di seluruh ukuran viewport.
+  - Tombol reset otomatis membersihkan filter tanggal dan memuat ulang data.
+
+---
+
+### 🧳 Penyempurnaan 6: Konfigurasi Parameter Perjalanan Dinas saat Menerbitkan SPD dari Surat Tugas (Selesai)
+- **Dialog Modal Parameter Penerbitan SPD (`SuratTugasDetailPrintView.vue`)**:
+  - Menggantikan penerbitan instan hardcoded dengan modal interaktif yang mengacu pada parameter `BuatSpdView.vue`:
+    1. **Pejabat Pemberi Perintah:** `GovSelectButton` (*Pengguna Anggaran (PA)* / *Kuasa Pengguna Anggaran (KPA)*).
+    2. **Alat Angkut / Moda Transportasi:** `GovMultiSelect` dengan chip display dan preview format dokumen (*Mobil Dinas*, *Pesawat*, *Speedboat / Kapal Laut*, *Kendaraan Roda Dua*, *Angkutan Umum Darat*).
+    3. **Tempat Berangkat & Tempat Tujuan:** `GovInputText` (*Default: Banggai* dan tujuan spesifik, misalnya *Luwuk*, *Palu*, *Jakarta*).
+    4. **Lama Perjalanan Dinas:** `GovInputNumber` dengan kalkulasi otomatis teks terbilang: `[X] ([terbilang]) Hari`.
+    5. **Tanggal Berangkat:** `GovDatePicker` dengan preview kalkulasi otomatis *Estimasi Kembali* (`tanggalBerangkat + (lamaHari - 1)`).
+- **Integrasi Backend (`apps/api` & `packages/shared-types`)**:
+  - Penambahan kolom `alatAngkut`, `tempatTujuan`, `lamaHari`, dan `tanggalBerangkat` pada model `SuratTugas` di Prisma database.
+  - Endpoint `POST /api/surat-tugas/:id/generate-spd` menerima DTO `GenerateSpdFromSuratTugasDto` untuk membuat dan menyinkronkan data SPD seluruh personil dengan rincian perjalanan yang dipilih.
+  - Sinkronisasi instan: Jika parameter diubah dan disimpan ulang melalui modal "Terbitkan / Ubah SPD", seluruh child SPD diperbarui nilainya secara real-time.
+- **Form Pembuatan & Pengeditan Surat Tugas (`BuatSuratTugasView.vue`)**:
+  - Menambahkan bagian opsional "5. Rincian Perjalanan Dinas" pada form Surat Tugas sehingga user dapat menentukan moda transportasi, tujuan, dan durasi sejak awal saat menyusun draft Surat Tugas.
+- **Validasi E2E Playwright MCP**:
+  - Seluruh alur form, autocomplete, dialog modal, penerbitan SPD, sinkronisasi nilai, hingga pembukaan halaman cetak SPD telah diverifikasi berjalan sukses tanpa kendala.

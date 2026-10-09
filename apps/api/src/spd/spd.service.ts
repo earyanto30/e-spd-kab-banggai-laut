@@ -19,7 +19,11 @@ export class SpdService {
         where.tanggalBerangkat.gte = new Date(startDate);
       }
       if (endDate) {
-        where.tanggalBerangkat.lte = new Date(endDate);
+        const end = new Date(endDate);
+        if (endDate.length <= 10) {
+          end.setHours(23, 59, 59, 999);
+        }
+        where.tanggalBerangkat.lte = end;
       }
     }
 

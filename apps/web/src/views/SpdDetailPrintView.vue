@@ -219,13 +219,6 @@ onMounted(() => {
     <div class="no-print max-w-5xl mx-auto mb-6 space-y-4">
       <div class="flex flex-wrap items-center justify-between gap-3 bg-surface border border-border rounded-xl p-4 shadow-sm">
         <div class="flex items-center gap-3">
-          <GovButton
-            icon="pi pi-arrow-left"
-            variant="text"
-            severity="secondary"
-            @click="handleBack"
-            title="Kembali ke formulir"
-          />
           <div>
             <div class="flex items-center gap-2">
               <h1 class="text-lg font-bold text-text-main">
@@ -241,7 +234,7 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <GovButton
             label="Kembali"
             icon="pi pi-arrow-left"
@@ -249,27 +242,29 @@ onMounted(() => {
             variant="outlined"
             size="small"
             @click="handleBack"
+            title="Kembali ke halaman sebelumnya"
           />
           <GovButton
-            label="Edit SPD"
+            label="Edit Surat"
             icon="pi pi-pencil"
-            severity="info"
+            severity="secondary"
             variant="outlined"
             size="small"
             @click="router.push(`/spd/edit/${spdId}`)"
             title="Edit data dan rincian dokumen SPD ini"
           />
           <GovButton
-            label="Unduh PDF Resmi"
+            label="Unduh PDF"
             icon="pi pi-file-pdf"
-            severity="danger"
+            severity="secondary"
+            variant="outlined"
             size="small"
             :loading="isDownloadingPdf"
             @click="handleDownloadPdf"
             title="Unduh berkas PDF resmi terpadu dengan kop surat"
           />
           <GovButton
-            label="Cetak SPD"
+            label="Cetak Dokumen"
             icon="pi pi-print"
             severity="primary"
             size="small"

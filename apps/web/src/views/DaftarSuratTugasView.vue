@@ -14,45 +14,49 @@ import {
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 
-export interface SpdItem {
+export interface SuratTugasItem {
   id: string;
-  nomorSpd: string;
-  pemberiPerintah: string;
-  pegawaiId: string;
-  pegawai?: {
+  nomorSurat: string;
+  dasarHukum: string;
+  dalamRangka: string;
+  tempatDikeluarkan: string;
+  tanggalSurat: string;
+  penandatanganNama: string;
+  penandatanganJabatan: string;
+  penandatanganPangkat: string;
+  penandatanganNip: string;
+  status: 'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL';
+  pegawaiList?: Array<{
     id: string;
     nama: string;
     nip: string;
+    jabatan: string;
     pangkat: string;
     golongan: string;
-    jabatan: string;
-  } | null;
-  dalamRangka: string;
-  alatAngkut: string;
-  tempatBerangkat: string;
-  tempatTujuan: string;
-  lamaHari: number;
-  tanggalBerangkat: string;
-  tanggalKembali: string;
-  skpd: string;
-  kodeRekening?: string | null;
-  tingkatBiaya?: string | null;
-  pengikut?: string | null;
-  keterangan?: string | null;
-  kopSuratId?: string | null;
-  status: 'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL';
+  }>;
+  spdList?: Array<{
+    id: string;
+    nomorSpd: string;
+    pegawai?: {
+      id: string;
+      nama: string;
+      nip: string;
+      jabatan: string;
+      pangkat: string;
+      golongan: string;
+    };
+  }>;
   createdAt: string;
-  updatedAt: string;
 }
 
 const router = useRouter();
+const toast = useGovToast();
 
-const spdList = ref<SpdItem[]>([]);
+const list = ref<SuratTugasItem[]>([]);
 const loading = ref(false);
 const searchQuery = ref('');
 const statusFilter = ref('SEMUA');
 const dateRange = ref<(Date | null)[] | null>(null);
-const toast = useGovToast();
 
 const formatDateParam = (d: Date | null | undefined): string => {
   if (!d) return '';
@@ -62,7 +66,6 @@ const formatDateParam = (d: Date | null | undefined): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Status options for filtering & updating
 const statusOptions = [
   { label: 'Semua Status', value: 'SEMUA' },
   { label: 'Draf (DRAFT)', value: 'DRAFT' },
@@ -73,15 +76,15 @@ const statusOptions = [
 
 const updateStatusOptions = [
   { label: 'DRAFT (Draf Pengajuan)', value: 'DRAFT' },
-  { label: 'DISETUJUI (Disetujui PA/KPA)', value: 'DISETUJUI' },
-  { label: 'SELESAI (Perjalanan Selesai)', value: 'SELESAI' },
+  { label: 'DISETUJUI (Disetujui Pejabat)', value: 'DISETUJUI' },
+  { label: 'SELESAI (Penugasan Selesai)', value: 'SELESAI' },
   { label: 'BATAL (Dibatalkan)', value: 'BATAL' },
 ];
 
 // Dialog States
 const isStatusDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
-const activeSpd = ref<SpdItem | null>(null);
+const activeItem = ref<SuratTugasItem | null>(null);
 const newStatus = ref<'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL'>('DRAFT');
 const isSubmitting = ref(false);
 
@@ -97,7 +100,6 @@ const formatDate = (dateStr: string | null | undefined): string => {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
-// Status Tag styling
 const getStatusSeverity = (status: string) => {
   switch (status) {
     case 'DISETUJUI':
@@ -112,23 +114,22 @@ const getStatusSeverity = (status: string) => {
   }
 };
 
-// Summary metrics
-const totalCount = computed(() => spdList.value.length);
-const disetujuiCount = computed(
-  () => spdList.value.filter((s) => s.status === 'DISETUJUI').length
-);
-const draftCount = computed(
-  () => spdList.value.filter((s) => s.status === 'DRAFT').length
-);
-const selesaiCount = computed(
-  () => spdList.value.filter((s) => s.status === 'SELESAI').length
-);
+const getPersonilList = (item: SuratTugasItem) => {
+  if (item.pegawaiList && item.pegawaiList.length > 0) {
+    return item.pegawaiList;
+  }
+  return (item.spdList || []).map((s) => s.pegawai).filter(Boolean);
+};
 
-// Fetch SPD data from API
-const loadSpdList = async () => {
+// Summary metrics
+const totalCount = computed(() => list.value.length);
+const disetujuiCount = computed(() => list.value.filter((s) => s.status === 'DISETUJUI').length);
+const draftCount = computed(() => list.value.filter((s) => s.status === 'DRAFT').length);
+const selesaiCount = computed(() => list.value.filter((s) => s.status === 'SELESAI').length);
+
+const loadData = async () => {
   loading.value = true;
   try {
-    let url = '/api/spd';
     const params: string[] = [];
     if (searchQuery.value.trim()) {
       params.push(`q=${encodeURIComponent(searchQuery.value.trim())}`);
@@ -142,32 +143,32 @@ const loadSpdList = async () => {
         params.push(`endDate=${formatDateParam(dateRange.value[1])}`);
       }
     }
-    if (params.length > 0) {
-      url += `?${params.join('&')}`;
-    }
+    const q = params.length > 0 ? `?${params.join('&')}` : '';
 
-    const res = await apiFetch(url);
+    const res = await apiFetch(`/api/surat-tugas${q}`);
     if (res.ok) {
-      spdList.value = await res.json();
+      list.value = await res.json();
     } else {
-      spdList.value = [];
+      list.value = [];
     }
   } catch (err: any) {
-    console.error('Error fetching SPD:', err);
-    toast.error('Gagal memuat data Surat Perjalanan Dinas');
+    toast.error(err.message || 'Gagal memuat data Surat Tugas');
   } finally {
     loading.value = false;
   }
 };
 
-// Actions
+onMounted(() => {
+  loadData();
+});
+
 const handleSearch = () => {
-  loadSpdList();
+  loadData();
 };
 
 const handleDateChange = () => {
   if (!dateRange.value || (dateRange.value[0] && dateRange.value[1])) {
-    loadSpdList();
+    loadData();
   }
 };
 
@@ -175,33 +176,33 @@ const handleResetFilters = () => {
   searchQuery.value = '';
   statusFilter.value = 'SEMUA';
   dateRange.value = null;
-  loadSpdList();
+  loadData();
 };
 
 const handleViewPrint = (id: string) => {
-  router.push(`/spd/cetak/${id}`);
+  router.push(`/surat-tugas/cetak/${id}`);
 };
 
-const openStatusDialog = (spd: SpdItem) => {
-  activeSpd.value = spd;
-  newStatus.value = spd.status;
+const openStatusDialog = (item: SuratTugasItem) => {
+  activeItem.value = item;
+  newStatus.value = item.status;
   isStatusDialogOpen.value = true;
 };
 
 const handleUpdateStatus = async () => {
-  if (!activeSpd.value) return;
+  if (!activeItem.value) return;
   isSubmitting.value = true;
   try {
-    const res = await apiFetch(`/api/spd/${activeSpd.value.id}/status`, {
+    const res = await apiFetch(`/api/surat-tugas/${activeItem.value.id}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus.value }),
     });
 
     if (res.ok) {
-      toast.success(`Status SPD nomor ${activeSpd.value.nomorSpd} berhasil diperbarui menjadi ${newStatus.value}`);
+      toast.success(`Status Surat Tugas nomor ${activeItem.value.nomorSurat} berhasil diubah ke ${newStatus.value}`);
       isStatusDialogOpen.value = false;
-      await loadSpdList();
+      await loadData();
     } else {
       const err = await res.json().catch(() => ({}));
       toast.error(err.message || 'Gagal memperbarui status');
@@ -213,26 +214,26 @@ const handleUpdateStatus = async () => {
   }
 };
 
-const openDeleteDialog = (spd: SpdItem) => {
-  activeSpd.value = spd;
+const openDeleteDialog = (item: SuratTugasItem) => {
+  activeItem.value = item;
   isDeleteDialogOpen.value = true;
 };
 
 const handleDelete = async () => {
-  if (!activeSpd.value) return;
+  if (!activeItem.value) return;
   isSubmitting.value = true;
   try {
-    const res = await apiFetch(`/api/spd/${activeSpd.value.id}`, {
+    const res = await apiFetch(`/api/surat-tugas/${activeItem.value.id}`, {
       method: 'DELETE',
     });
 
     if (res.ok) {
-      toast.success(`SPD nomor ${activeSpd.value.nomorSpd} berhasil dihapus`);
+      toast.success(`Surat Tugas nomor ${activeItem.value.nomorSurat} berhasil dihapus`);
       isDeleteDialogOpen.value = false;
-      await loadSpdList();
+      await loadData();
     } else {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal menghapus SPD');
+      toast.error(err.message || 'Gagal menghapus Surat Tugas');
     }
   } catch (err: any) {
     toast.error(err.message || 'Terjadi kesalahan sistem');
@@ -241,91 +242,71 @@ const handleDelete = async () => {
   }
 };
 
-const handleDownloadPdf = async (item: SpdItem) => {
+const handleDownloadPdf = async (item: SuratTugasItem) => {
   try {
-    const res = await apiFetch(`/api/spd/${item.id}/pdf`);
+    const res = await apiFetch(`/api/surat-tugas/${item.id}/pdf`);
     if (res.ok) {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const cleanNum = (item.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
-      a.download = `SPD_${cleanNum}.pdf`;
+      const cleanNum = (item.nomorSurat || 'Surat_Tugas').replace(/[\/\\]/g, '_');
+      a.download = `Surat_Tugas_${cleanNum}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(`Dokumen PDF ${item.nomorSpd} berhasil diunduh`);
+      toast.success(`Dokumen PDF ${item.nomorSurat} berhasil diunduh`);
     } else {
-      toast.error('Gagal mengunduh dokumen PDF resmi');
+      toast.error('Gagal mengunduh dokumen PDF');
     }
   } catch (err) {
-    console.error('Gagal mengunduh PDF:', err);
     toast.error('Terjadi kesalahan saat mengunduh PDF');
   }
 };
 
-// CSV Export Utility
+// CSV Export
 const exportToCsv = () => {
-  if (spdList.value.length === 0) return;
+  if (list.value.length === 0) return;
 
   const headers = [
     'No',
-    'Nomor SPD',
-    'Pemberi Perintah',
-    'Nama Pegawai',
-    'NIP Pegawai',
-    'Pangkat / Golongan',
-    'Jabatan',
-    'Maksud Perjalanan Dinas',
-    'Alat Angkut',
-    'Tempat Berangkat',
-    'Tempat Tujuan',
-    'Lama Hari',
-    'Tanggal Berangkat',
-    'Tanggal Kembali',
-    'SKPD',
-    'Kode Rekening',
+    'Nomor Surat Tugas',
+    'Tanggal Surat',
+    'Personil Ditugaskan',
+    'Maksud Penugasan',
+    'Penandatangan',
+    'Jabatan Penandatangan',
     'Status',
   ];
 
-  const rows = spdList.value.map((s, index) => [
-    index + 1,
-    `"${s.nomorSpd}"`,
-    `"${s.pemberiPerintah || ''}"`,
-    `"${s.pegawai?.nama || ''}"`,
-    `'${s.pegawai?.nip || ''}'`,
-    `"${s.pegawai?.pangkat || ''} ${s.pegawai?.golongan || ''}"`,
-    `"${s.pegawai?.jabatan || ''}"`,
-    `"${(s.dalamRangka || '').replace(/"/g, '""')}"`,
-    `"${s.alatAngkut || ''}"`,
-    `"${s.tempatBerangkat || ''}"`,
-    `"${s.tempatTujuan || ''}"`,
-    s.lamaHari,
-    `"${formatDate(s.tanggalBerangkat)}"`,
-    `"${formatDate(s.tanggalKembali)}"`,
-    `"${s.skpd || ''}"`,
-    `"${s.kodeRekening || ''}"`,
-    `"${s.status}"`,
-  ]);
+  const rows = list.value.map((s, index) => {
+    const personils = s.pegawaiList?.length ? s.pegawaiList : (s.spdList || []).map((x) => x.pegawai).filter(Boolean);
+    const names = personils.map((x) => x?.nama).filter(Boolean).join('; ');
+    return [
+      index + 1,
+      `"${s.nomorSurat}"`,
+      `"${formatDate(s.tanggalSurat)}"`,
+      `"${names}"`,
+      `"${(s.dalamRangka || '').replace(/"/g, '""')}"`,
+      `"${s.penandatanganNama}"`,
+      `"${s.penandatanganJabatan}"`,
+      `"${s.status}"`,
+    ];
+  });
 
   const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
   const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const now = new Date().toISOString().slice(0, 10);
-  a.download = `Rekap_SPD_Banggai_Laut_${now}.csv`;
+  a.download = `Rekap_Surat_Tugas_${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  toast.success(`Rekap ${spdList.value.length} dokumen SPD berhasil diekspor ke CSV`);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast.success('Rekapitulasi data Surat Tugas berhasil diekspor ke format CSV');
 };
-
-onMounted(() => {
-  loadSpdList();
-});
 </script>
 
 <template>
@@ -336,13 +317,13 @@ onMounted(() => {
         <div class="flex items-center gap-2 text-xs font-medium text-text-muted mb-1">
           <router-link to="/" class="hover:underline">Beranda</router-link>
           <span>/</span>
-          <span class="text-text-main font-semibold">Surat Perjalanan Dinas</span>
+          <span class="text-text-main font-semibold">Surat Tugas</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text-main">
-          Daftar Surat Perjalanan Dinas (SPD)
+          Daftar Surat Tugas
         </h1>
         <p class="text-sm text-text-muted mt-0.5">
-          Manajemen penerbitan, riwayat, status verifikasi, dan pencetakan dokumen resmi SPD.
+          Manajemen penerbitan, riwayat, status verifikasi, dan pencetakan dokumen resmi Surat Tugas.
         </p>
       </div>
 
@@ -353,13 +334,13 @@ onMounted(() => {
           severity="secondary"
           variant="outlined"
           @click="exportToCsv"
-          :disabled="spdList.length === 0"
+          :disabled="list.length === 0"
         />
         <GovButton
-          label="Buat SPD Baru"
+          label="Buat Surat Tugas"
           icon="pi pi-plus"
           severity="primary"
-          @click="router.push('/spd/buat')"
+          @click="router.push('/surat-tugas/buat')"
         />
       </div>
     </div>
@@ -391,7 +372,7 @@ onMounted(() => {
         <div class="w-full sm:w-64 md:w-56 lg:w-72">
           <GovInputText
             v-model="searchQuery"
-            placeholder="Cari Nomor SPD, Pegawai..."
+            placeholder="Cari Nomor Surat, Personil, Maksud..."
             block
             @keydown.enter="handleSearch"
           />
@@ -437,15 +418,15 @@ onMounted(() => {
         />
       </div>
 
-      <div class="text-xs text-text-muted flex-shrink-0 self-end md:self-center">
-        Menampilkan <strong class="text-text-main font-semibold">{{ spdList.length }}</strong> data
+      <div class="text-xs text-text-muted flex-shrink-0">
+        Menampilkan <strong class="text-text-main font-semibold">{{ list.length }}</strong> data
       </div>
     </div>
 
     <!-- Data Table -->
     <div class="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
       <GovTable
-        :value="spdList"
+        :value="list"
         :loading="loading"
         :paginator="true"
         :rows="10"
@@ -454,74 +435,65 @@ onMounted(() => {
         <template #empty>
           <div class="text-center py-12 text-text-muted">
             <i class="pi pi-folder-open text-4xl mb-3 block text-slate-400"></i>
-            <p class="font-medium">Tidak ada data Surat Perjalanan Dinas yang ditemukan</p>
-            <p class="text-xs text-text-muted mt-1">Coba gunakan kata kunci pencarian lain atau buat SPD baru.</p>
+            <p class="font-medium">Tidak ada data Surat Tugas yang ditemukan</p>
+            <p class="text-xs text-text-muted mt-1">Coba gunakan kata kunci lain atau terbitkan surat tugas baru.</p>
           </div>
         </template>
 
-        <!-- Kolom Nomor SPD -->
-        <Column field="nomorSpd" header="Nomor SPD" style="width: 180px;">
-          <template #body="{ data }">
+        <!-- Nomor Surat -->
+        <Column field="nomorSurat" header="Nomor Surat Tugas" style="width: 200px;">
+          <template #body="{ data: item }">
             <button
-              class="font-mono font-bold text-primary hover:underline text-left"
-              @click="handleViewPrint(data.id)"
+              class="font-mono font-bold text-primary hover:underline text-left text-xs"
+              @click="handleViewPrint(item.id)"
               title="Klik untuk pratinjau & cetak"
             >
-              {{ data.nomorSpd }}
+              {{ item.nomorSurat }}
             </button>
             <div class="text-[11px] text-text-muted mt-0.5">
-              {{ formatDate(data.createdAt) }}
+              {{ formatDate(item.tanggalSurat) }}
             </div>
           </template>
         </Column>
 
-        <!-- Kolom Pegawai Pelaksana -->
-        <Column header="Pegawai Pelaksana" style="min-width: 220px;">
-          <template #body="{ data }">
-            <div class="font-semibold text-text-main text-sm">
-              {{ data.pegawai?.nama || '-' }}
-            </div>
-            <div class="text-xs text-text-muted">
-              NIP: {{ data.pegawai?.nip || '-' }}
-            </div>
-            <div class="text-[11px] text-text-muted">
-              {{ data.pegawai?.jabatan || '-' }} ({{ data.pegawai?.golongan || '' }})
+        <!-- Pegawai Ditugaskan -->
+        <Column header="Personil Ditugaskan" style="min-width: 240px;">
+          <template #body="{ data: item }">
+            <div class="space-y-1">
+              <div
+                v-for="(peg, idx) in getPersonilList(item)"
+                :key="peg?.id || idx"
+                class="text-xs"
+              >
+                <span class="font-semibold text-text-main">{{ idx + 1 }}. {{ peg?.nama }}</span>
+                <span class="text-text-muted font-mono ml-1 text-[11px]">({{ peg?.nip }})</span>
+              </div>
+              <div v-if="getPersonilList(item).length === 0" class="text-xs text-text-muted italic">
+                -
+              </div>
             </div>
           </template>
         </Column>
 
-        <!-- Kolom Maksud Perjalanan Dinas -->
-        <Column field="dalamRangka" header="Maksud Perjalanan Dinas" style="min-width: 240px;">
-          <template #body="{ data }">
-            <p class="text-xs text-text-main line-clamp-2 leading-relaxed" :title="data.dalamRangka">
-              {{ data.dalamRangka }}
+        <!-- Maksud Tugas -->
+        <Column field="dalamRangka" header="Maksud Penugasan" style="min-width: 260px;">
+          <template #body="{ data: item }">
+            <p class="text-xs text-text-main line-clamp-2 leading-relaxed" :title="item.dalamRangka">
+              {{ item.dalamRangka }}
             </p>
           </template>
         </Column>
 
-        <!-- Kolom Tujuan & Jadwal -->
-        <Column header="Tujuan & Waktu" style="width: 170px;">
-          <template #body="{ data }">
-            <div class="font-medium text-text-main text-xs flex items-center gap-1.5">
-              <i class="pi pi-map-marker text-red-500 text-[10px]"></i>
-              <span>{{ data.tempatTujuan }}</span>
-            </div>
-            <div class="text-[11px] text-text-muted mt-0.5">
-              {{ data.lamaHari }} Hari &bull; {{ formatDate(data.tanggalBerangkat) }}
-            </div>
-          </template>
-        </Column>
-
-        <!-- Kolom Status -->
+        <!-- Status -->
         <Column field="status" header="Status" style="width: 120px;">
-          <template #body="{ data }">
-            <Tag :value="data.status" :severity="getStatusSeverity(data.status)" />
+          <template #body="{ data: item }">
+            <Tag :value="item.status" :severity="getStatusSeverity(item.status)" />
           </template>
         </Column>
 
-        <!-- Kolom Aksi -->
+        <!-- Aksi -->
         <Column header="Aksi" style="width: 170px;" align-frozen="right">
-          <template #body="{ data }">
+          <template #body="{ data: item }">
             <div class="flex items-center gap-1">
               <!-- Cetak / Pratinjau -->
               <GovButton
@@ -530,29 +502,29 @@ onMounted(() => {
                 severity="primary"
                 variant="text"
                 rounded
-                @click="handleViewPrint(data.id)"
+                @click="handleViewPrint(item.id)"
                 title="Lihat & Cetak Dokumen"
               />
 
-              <!-- Edit Dokumen SPD -->
+              <!-- Edit Dokumen Surat Tugas -->
               <GovButton
                 icon="pi pi-pencil"
                 size="small"
                 severity="info"
                 variant="text"
                 rounded
-                @click="router.push(`/spd/edit/${data.id}`)"
-                title="Edit / Ubah Data SPD"
+                @click="router.push(`/surat-tugas/edit/${item.id}`)"
+                title="Edit / Ubah Data Surat Tugas"
               />
 
-              <!-- Unduh PDF Resmi (Kop Surat Asli) -->
+              <!-- Unduh PDF Resmi -->
               <GovButton
                 icon="pi pi-file-pdf"
                 size="small"
                 severity="danger"
                 variant="text"
                 rounded
-                @click="handleDownloadPdf(data)"
+                @click="handleDownloadPdf(item)"
                 title="Unduh Berkas PDF Resmi (Kop Asli)"
               />
 
@@ -563,7 +535,7 @@ onMounted(() => {
                 severity="secondary"
                 variant="text"
                 rounded
-                @click="openStatusDialog(data)"
+                @click="openStatusDialog(item)"
                 title="Perbarui Status"
               />
 
@@ -574,7 +546,7 @@ onMounted(() => {
                 severity="danger"
                 variant="text"
                 rounded
-                @click="openDeleteDialog(data)"
+                @click="openDeleteDialog(item)"
                 title="Hapus Dokumen"
               />
             </div>
@@ -586,14 +558,14 @@ onMounted(() => {
     <!-- DIALOG UBAH STATUS -->
     <Dialog
       v-model:visible="isStatusDialogOpen"
-      header="Perbarui Status Surat Perjalanan Dinas"
+      header="Perbarui Status Surat Tugas"
       :modal="true"
       class="max-w-md w-full"
     >
-      <div v-if="activeSpd" class="space-y-4 pt-2">
+      <div v-if="activeItem" class="space-y-4 pt-2">
         <div class="p-3 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg text-xs space-y-1">
-          <div class="font-bold text-text-main font-mono">{{ activeSpd.nomorSpd }}</div>
-          <div class="text-text-muted">{{ activeSpd.pegawai?.nama }} &bull; {{ activeSpd.tempatTujuan }}</div>
+          <div class="font-bold text-text-main font-mono">{{ activeItem.nomorSurat }}</div>
+          <div class="text-text-muted">Personil: {{ activeItem.spdList?.length || 0 }} Orang</div>
         </div>
 
         <div class="space-y-2">
@@ -626,29 +598,22 @@ onMounted(() => {
       </div>
     </Dialog>
 
-    <!-- DIALOG HAPUS SPD -->
+    <!-- DIALOG HAPUS SURAT TUGAS -->
     <Dialog
       v-model:visible="isDeleteDialogOpen"
-      header="Konfirmasi Hapus Surat Perjalanan Dinas"
+      header="Konfirmasi Hapus Surat Tugas"
       :modal="true"
       class="max-w-md w-full"
     >
-      <div v-if="activeSpd" class="space-y-4 pt-2">
-        <div class="flex items-start gap-3">
-          <i class="pi pi-exclamation-triangle text-amber-500 text-2xl mt-0.5"></i>
+      <div v-if="activeItem" class="space-y-4 pt-2">
+        <div class="flex items-start gap-3 text-amber-600 dark:text-amber-400">
+          <i class="pi pi-exclamation-triangle text-2xl mt-0.5"></i>
           <div>
-            <p class="text-sm font-semibold text-text-main">
-              Apakah Anda yakin ingin menghapus data SPD ini?
-            </p>
-            <p class="text-xs text-text-muted mt-1">
-              Nomor: <strong class="font-mono text-text-main">{{ activeSpd.nomorSpd }}</strong>
-            </p>
-            <p class="text-xs text-text-muted">
-              Pelaksana: {{ activeSpd.pegawai?.nama }}
-            </p>
-            <p class="text-xs text-red-500 font-medium mt-2">
-              Tindakan ini tidak dapat dibatalkan.
-            </p>
+            <div class="font-semibold text-sm">Apakah Anda yakin ingin menghapus dokumen ini?</div>
+            <div class="text-xs text-text-muted mt-1">
+              Dokumen nomor <strong class="font-mono text-text-main">{{ activeItem.nomorSurat }}</strong> beserta
+              <strong class="text-text-main">{{ activeItem.spdList?.length || 0 }} data SPD terkait</strong> akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+            </div>
           </div>
         </div>
 
@@ -660,7 +625,7 @@ onMounted(() => {
             @click="isDeleteDialogOpen = false"
           />
           <GovButton
-            label="Ya, Hapus"
+            label="Ya, Hapus Dokumen"
             severity="danger"
             :loading="isSubmitting"
             @click="handleDelete"

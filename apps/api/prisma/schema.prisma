@@ -31,6 +31,7 @@ model KopSurat {
   storedFileName String
   fileSize       String
   paperSize      String   @default("A4")
+  tipeSurat      String?  @default("SPD")
   isDefault      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -56,11 +57,11 @@ model Pegawai {
 }
 
 model Spd {
-  id               String    @id @default(cuid())
-  nomorSpd         String    @unique
+  id               String      @id @default(cuid())
+  nomorSpd         String      @unique
   pemberiPerintah  String
   pegawaiId        String
-  pegawai          Pegawai   @relation(fields: [pegawaiId], references: [id])
+  pegawai          Pegawai     @relation(fields: [pegawaiId], references: [id])
   dalamRangka      String
   alatAngkut       String
   tempatBerangkat  String
@@ -68,15 +69,41 @@ model Spd {
   lamaHari         Int
   tanggalBerangkat DateTime
   tanggalKembali   DateTime
-  skpd             String    @default("Bagian Umum Sekretariat Daerah Kab. Banggai Laut")
+  skpd             String      @default("Bagian Umum Sekretariat Daerah Kab. Banggai Laut")
   kodeRekening     String?
   tingkatBiaya     String?
   pengikut         String?
   keterangan       String?
   kopSuratId       String?
-  kopSurat         KopSurat? @relation(fields: [kopSuratId], references: [id], onDelete: SetNull)
-  status           String    @default("DRAFT")
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  kopSurat         KopSurat?   @relation(fields: [kopSuratId], references: [id], onDelete: SetNull)
+  suratTugasId     String?
+  suratTugas       SuratTugas? @relation(fields: [suratTugasId], references: [id], onDelete: SetNull)
+  status           String      @default("DRAFT")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model SuratTugas {
+  id              String   @id @default(cuid())
+  nomorSurat      String   @unique
+  dasarHukum      String   @default("Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)")
+  dalamRangka     String
+  tempatDikeluarkan String @default("Banggai")
+  tanggalSurat    DateTime @default(now())
+  penandatanganNama     String @default("ARSID HAMIDI, SH")
+  penandatanganJabatan  String @default("KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT")
+  penandatanganPangkat  String @default("Pembina, IV/a")
+  penandatanganNip      String @default("19700830 200312 1 003")
+  kopSuratId      String?
+  pegawaiIds      String?
+  alatAngkut      String?
+  tempatTujuan    String?
+  lamaHari        Int?     @default(1)
+  tanggalBerangkat DateTime?
+  status          String   @default("DRAFT")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  spdList         Spd[]
 }
 

@@ -35,6 +35,28 @@ const allMenuItems = [
     roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
   },
   {
+    key: 'surat-tugas',
+    label: 'Surat Tugas',
+    icon: 'pi pi-file-edit',
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    items: [
+      {
+        key: 'surat-tugas-daftar',
+        label: 'Daftar Surat Tugas',
+        icon: 'pi pi-list',
+        route: '/surat-tugas',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
+      {
+        key: 'surat-tugas-buat',
+        label: 'Buat Surat Tugas',
+        icon: 'pi pi-plus-circle',
+        route: '/surat-tugas/buat',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+      },
+    ],
+  },
+  {
     key: 'spd',
     label: 'Surat Perjalanan Dinas',
     icon: 'pi pi-briefcase',
@@ -137,12 +159,15 @@ const isActive = (route?: string) => {
   return router.currentRoute.value.path === route;
 };
 
-// Flat list for collapsed icon-only mode
-const flatItems = computed(() =>
-  menuItems.value.flatMap((item) =>
-    item.items ? item.items.filter((s: any) => s.route) : [item],
-  ),
-);
+const isParentActive = (children?: any[]) => {
+  if (!children) return false;
+  return children.some((sub) => router.currentRoute.value.path.startsWith(sub.route));
+};
+
+const handleCollapsedParentClick = (item: any) => {
+  expandedKeys.value[item.key] = true;
+  emit('toggle');
+};
 </script>
 
 <template>
@@ -243,22 +268,40 @@ const flatItems = computed(() =>
         </template>
       </PanelMenu>
 
-      <!-- Collapsed: icon-only shortcuts -->
-      <div v-else class="flex flex-col items-center gap-1 px-2">
-        <router-link
-          v-for="item in flatItems"
-          :key="item.key"
-          :to="item.route!"
-          class="w-12 h-12 rounded-xl flex items-center justify-center transition-colors"
-          :class="
-            isActive(item.route)
-              ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm'
-              : 'text-text-muted hover:bg-canvas hover:text-primary'
-          "
-          :title="item.label"
-        >
-          <i :class="[item.icon, 'text-lg']" />
-        </router-link>
+      <!-- Collapsed: top-level icon-only list (submenus hidden until expanded) -->
+      <div v-else class="flex flex-col items-center gap-1.5 px-2">
+        <template v-for="item in menuItems" :key="item.key">
+          <!-- Top-level item with direct route -->
+          <router-link
+            v-if="item.route"
+            :to="item.route"
+            class="w-11 h-11 rounded-xl flex items-center justify-center transition-colors"
+            :class="
+              isActive(item.route)
+                ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
+                : 'text-text-muted hover:bg-canvas hover:text-primary'
+            "
+            :title="item.label"
+          >
+            <i :class="[item.icon, 'text-lg']" />
+          </router-link>
+
+          <!-- Top-level item with submenus: show parent category icon, click to expand -->
+          <button
+            v-else
+            type="button"
+            class="w-11 h-11 rounded-xl flex items-center justify-center transition-colors cursor-pointer"
+            :class="
+              isParentActive(item.items)
+                ? 'bg-primary text-white dark:text-[#0F172A] shadow-sm font-semibold'
+                : 'text-text-muted hover:bg-canvas hover:text-primary'
+            "
+            :title="item.label"
+            @click="handleCollapsedParentClick(item)"
+          >
+            <i :class="[item.icon, 'text-lg']" />
+          </button>
+        </template>
       </div>
     </nav>
 
