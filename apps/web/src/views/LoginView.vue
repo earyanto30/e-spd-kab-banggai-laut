@@ -61,6 +61,21 @@ const handleLogin = async () => {
     localStorage.setItem('user_role', data.user.role);
     localStorage.setItem('user_name', data.user.name);
     localStorage.setItem('username', data.user.username);
+    if (data.user.nip) {
+      localStorage.setItem('user_nip', data.user.nip);
+    } else {
+      localStorage.removeItem('user_nip');
+    }
+    if (data.user.jabatan) {
+      localStorage.setItem('user_jabatan', data.user.jabatan);
+    } else {
+      localStorage.removeItem('user_jabatan');
+    }
+    if (data.user.isPenandatangan !== undefined) {
+      localStorage.setItem('user_is_penandatangan', String(data.user.isPenandatangan));
+    } else {
+      localStorage.removeItem('user_is_penandatangan');
+    }
     isLoading.value = false;
 
     const redirectTarget = (route.query.redirect as string) || '/';

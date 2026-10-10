@@ -41,7 +41,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/DaftarSuratTugasView.vue'),
     meta: {
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -69,7 +69,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/SuratTugasDetailPrintView.vue'),
     meta: {
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -79,7 +79,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/DaftarSpdView.vue'),
     meta: {
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -107,8 +107,20 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/SpdDetailPrintView.vue'),
     meta: {
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
+  },
+  {
+    path: '/tanda-tangan/surat-tugas',
+    redirect: '/surat-tugas',
+  },
+  {
+    path: '/tanda-tangan/spd',
+    redirect: '/spd',
+  },
+  {
+    path: '/tanda-tangan',
+    redirect: '/surat-tugas',
   },
   {
     path: '/pengaturan/kop-surat',
@@ -127,7 +139,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/KepegawaianAsnView.vue'),
     meta: {
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN],
     },
   },
   {
@@ -152,6 +164,12 @@ const routes: RouteRecordRaw[] = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
+  scrollBehavior(_to, _from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition;
+    }
+    return { top: 0, left: 0 };
+  },
 });
 
 // Global authentication & RBAC navigation guard

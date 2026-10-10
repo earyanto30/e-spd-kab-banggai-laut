@@ -43,6 +43,27 @@ async function main() {
       jabatan: 'Sekretaris Daerah / Super Admin',
       unitKerja: 'Sekretariat Daerah Kab. Banggai Laut',
       isASN: true,
+      isPenandatangan: true,
+    },
+    {
+      nip: '19700830 200312 1 003',
+      nama: 'ARSID HAMIDI, SH',
+      pangkat: 'Pembina',
+      golongan: 'IV/a',
+      jabatan: 'Kepala Bagian Umum (KPA)',
+      unitKerja: 'Bagian Umum Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: true,
+    },
+    {
+      nip: '19750510 200012 1 004',
+      nama: 'Saiful U. Usuria, SE., M.Si',
+      pangkat: 'Pembina Utama Muda',
+      golongan: 'IV/c',
+      jabatan: 'Sekretaris Daerah (PA)',
+      unitKerja: 'Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: true,
     },
     {
       nip: '19680512 199403 1 004',
@@ -52,6 +73,7 @@ async function main() {
       jabatan: 'Staf Ahli Sekretariat Daerah',
       unitKerja: 'Sekretariat Daerah',
       isASN: true,
+      isPenandatangan: true,
     },
     {
       nip: '19740821 199903 2 002',
@@ -61,6 +83,7 @@ async function main() {
       jabatan: 'Asisten Pemerintahan dan Kesra',
       unitKerja: 'Sekretariat Daerah - Asisten I',
       isASN: true,
+      isPenandatangan: false,
     },
     {
       nip: '19850214 200412 1 001',
@@ -70,6 +93,7 @@ async function main() {
       jabatan: 'Kepala Bagian Umum dan Protokol',
       unitKerja: 'Sekretariat Daerah - Bagian Umum',
       isASN: true,
+      isPenandatangan: true,
     },
     {
       nip: '19890610 201101 2 008',
@@ -79,6 +103,7 @@ async function main() {
       jabatan: 'Kepala Bagian Hukum',
       unitKerja: 'Sekretariat Daerah - Bagian Hukum',
       isASN: true,
+      isPenandatangan: false,
     },
     {
       nip: '19920315 201802 1 003',
@@ -88,6 +113,7 @@ async function main() {
       jabatan: 'Pranata Komputer Ahli Muda',
       unitKerja: 'Sekretariat Daerah - Bagian Organisasi',
       isASN: true,
+      isPenandatangan: false,
     },
     {
       nip: '19951104 202012 2 011',
@@ -97,6 +123,7 @@ async function main() {
       jabatan: 'Pengelola Administrasi Perjalanan Dinas',
       unitKerja: 'Sekretariat Daerah - Bagian Umum',
       isASN: true,
+      isPenandatangan: false,
     },
     {
       nip: '19900720 202321 1 005',
@@ -106,6 +133,7 @@ async function main() {
       jabatan: 'Analis Kebijakan',
       unitKerja: 'Sekretariat Daerah - Bagian Perekonomian',
       isASN: true,
+      isPenandatangan: false,
     },
   ];
 
@@ -119,6 +147,7 @@ async function main() {
         jabatan: pegawaiData.jabatan,
         unitKerja: pegawaiData.unitKerja,
         isASN: pegawaiData.isASN,
+        isPenandatangan: pegawaiData.isPenandatangan,
       },
       create: pegawaiData,
     });

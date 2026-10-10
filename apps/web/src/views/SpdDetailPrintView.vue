@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import Tag from 'primevue/tag';
 import { GovButton, GovSelect, GovMessage } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 
 export interface OfficialSigner {
+  id?: string;
   nama: string;
   nip: string;
   pangkat: string;
@@ -16,7 +18,17 @@ export interface OfficialSigner {
 export interface SpdDetailData {
   id?: string;
   nomorSpd?: string;
+  status?: string;
   pemberiPerintah?: string;
+  penandatanganId?: string | null;
+  penandatangan?: {
+    id: string;
+    nama: string;
+    nip: string;
+    jabatan: string;
+    pangkat: string;
+    golongan: string;
+  } | null;
   pegawai?: {
     nama: string;
     nip: string;
@@ -44,6 +56,26 @@ export interface SpdDetailData {
     fileName: string;
     paperSize?: string;
   } | null;
+  penandatanganNama?: string | null;
+  penandatanganJabatan?: string | null;
+  penandatanganPangkat?: string | null;
+  penandatanganNip?: string | null;
+  suratTugasId?: string | null;
+  suratTugas?: {
+    id: string;
+    nomorSurat?: string;
+    penandatanganId?: string | null;
+    penandatangan?: {
+      id: string;
+      nama: string;
+      nip: string;
+      jabatan: string;
+    } | null;
+    penandatanganNama?: string | null;
+    penandatanganJabatan?: string | null;
+    penandatanganPangkat?: string | null;
+    penandatanganNip?: string | null;
+  } | null;
   createdAt?: string | Date;
 }
 
@@ -57,7 +89,7 @@ const loading = ref(true);
 const errorMessage = ref('');
 
 // Signer choices
-const signersList: OfficialSigner[] = [
+const signersList = ref<OfficialSigner[]>([
   {
     nama: 'Saiful U. Usuria, SE., M.Si',
     nip: '19750510 200012 1 004',
@@ -79,9 +111,9 @@ const signersList: OfficialSigner[] = [
     golongan: 'IV/a',
     jabatan: 'Kepala Bagian Umum (KPA)',
   },
-];
+]);
 
-const selectedSigner = ref<OfficialSigner>(signersList[0]);
+const selectedSigner = ref<OfficialSigner>(signersList.value[0]);
 
 const fontFamily = ref<'arial' | 'times'>('arial');
 const fontOptions = [
@@ -96,13 +128,6 @@ const isLoadingPdfPreview = ref(false);
 
 const buildPdfQuery = () => {
   const params = new URLSearchParams();
-  if (selectedSigner.value) {
-    params.set('signerNama', selectedSigner.value.nama);
-    params.set('signerNip', selectedSigner.value.nip);
-    params.set('signerPangkat', selectedSigner.value.pangkat);
-    params.set('signerGolongan', selectedSigner.value.golongan);
-    params.set('signerJabatan', selectedSigner.value.jabatan);
-  }
   params.set('fontFamily', fontFamily.value);
   return params.toString();
 };
@@ -186,21 +211,141 @@ const handlePrint = () => {
 };
 
 const handleBack = () => {
-  router.push('/spd/buat');
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/spd');
+  }
+};
+
+const isPenandatanganUser = computed(() => {
+  return localStorage.getItem('user_is_penandatangan') === 'true' ||
+         localStorage.getItem('user_role') === 'PENANDATANGAN' ||
+         localStorage.getItem('user_role') === 'ADMIN' ||
+         localStorage.getItem('user_role') === 'SUPER_ADMIN';
+});
+
+const isSigningDoc = ref(false);
+
+const handleSignSpd = async () => {
+  isSigningDoc.value = true;
+  try {
+    const res = await apiFetch(`/api/spd/${spdId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DISETUJUI' }),
+    });
+    if (res.ok) {
+      toast.success(
+        `Surat Perjalanan Dinas ${spd.value?.nomorSpd || ''} berhasil ditandatangani!`,
+        'Tanda Tangan Berhasil'
+      );
+      if (spd.value) {
+        spd.value.status = 'DISETUJUI';
+      }
+      await loadPdfPreview();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menandatangani SPD');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigningDoc.value = false;
+  }
+};
+
+const handleRevertSpd = async () => {
+  isSigningDoc.value = true;
+  try {
+    const res = await apiFetch(`/api/spd/${spdId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DRAFT' }),
+    });
+    if (res.ok) {
+      toast.warn(
+        `Tanda tangan pada SPD ${spd.value?.nomorSpd || ''} telah dibatalkan.`,
+        'Status Dikembalikan ke Draf'
+      );
+      if (spd.value) {
+        spd.value.status = 'DRAFT';
+      }
+      await loadPdfPreview();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal membatalkan tanda tangan');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigningDoc.value = false;
+  }
 };
 
 const fetchSpd = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const res = await apiFetch(`/api/spd/${spdId}`);
-    if (res.ok) {
-      spd.value = await res.json();
-      await loadPdfPreview();
+    const [spdRes, signersRes] = await Promise.all([
+      apiFetch(`/api/spd/${spdId}`),
+      apiFetch('/api/pegawai?isPenandatangan=true'),
+    ]);
+
+    if (spdRes.ok) {
+      spd.value = await spdRes.json();
     } else {
-      const err = await res.json().catch(() => ({}));
+      const err = await spdRes.json().catch(() => ({}));
       errorMessage.value = err.message || 'Gagal memuat dokumen SPD';
+      return;
     }
+
+    if (signersRes.ok) {
+      const data = await signersRes.json();
+      if (Array.isArray(data) && data.length > 0) {
+        signersList.value = data.map((p: any) => ({
+          id: p.id,
+          nama: p.nama,
+          nip: p.nip,
+          pangkat: p.pangkat,
+          golongan: p.golongan,
+          jabatan: p.jabatan,
+        }));
+
+        const targetSignerId = spd.value?.penandatanganId ||
+          spd.value?.penandatangan?.id ||
+          spd.value?.suratTugas?.penandatanganId ||
+          spd.value?.suratTugas?.penandatangan?.id;
+
+        const docNip = (spd.value?.penandatanganNip || spd.value?.suratTugas?.penandatanganNip || '').replace(/[^0-9]/g, '');
+        const docName = (spd.value?.penandatanganNama || spd.value?.suratTugas?.penandatanganNama || '').toLowerCase().trim();
+        const userNip = (localStorage.getItem('user_nip') || '').replace(/[^0-9]/g, '');
+        const userName = (localStorage.getItem('user_name') || '').toLowerCase().trim();
+
+        let matched = signersList.value.find((s) => {
+          if (targetSignerId && s.id === targetSignerId) return true;
+          const sNip = (s.nip || '').replace(/[^0-9]/g, '');
+          const sName = (s.nama || '').toLowerCase().trim();
+          if (docNip && sNip && docNip.includes(sNip)) return true;
+          if (docName && (sName.includes(docName) || docName.includes(sName))) return true;
+          return false;
+        });
+
+        if (!matched && (localStorage.getItem('user_role') === 'PENANDATANGAN' || localStorage.getItem('user_is_penandatangan') === 'true')) {
+          matched = signersList.value.find((s) => {
+            const sNip = (s.nip || '').replace(/[^0-9]/g, '');
+            const sName = (s.nama || '').toLowerCase().trim();
+            if (userNip && sNip && userNip.includes(sNip)) return true;
+            if (userName && (sName.includes(userName) || userName.includes(sName))) return true;
+            return false;
+          });
+        }
+
+        selectedSigner.value = matched || signersList.value[0];
+      }
+    }
+
+    await loadPdfPreview();
   } catch (err: any) {
     errorMessage.value = err.message || 'Terjadi kesalahan sistem saat memuat SPD';
   } finally {
@@ -227,6 +372,11 @@ onMounted(() => {
               <span class="text-xs px-2 py-0.5 rounded font-mono bg-blue-100 dark:bg-blue-900/40 text-primary font-semibold">
                 {{ spd?.nomorSpd || 'DRAFT' }}
               </span>
+              <Tag
+                :value="spd?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT'"
+                :severity="spd?.status === 'DISETUJUI' ? 'success' : 'warn'"
+                class="text-[10px] font-bold"
+              />
             </div>
             <p class="text-xs text-text-muted mt-0.5">
               Format Standar Permendagri / Perbup &bull; Terpadu Kop Surat Resmi &bull; Ukuran Legal
@@ -243,6 +393,27 @@ onMounted(() => {
             size="small"
             @click="handleBack"
             title="Kembali ke halaman sebelumnya"
+          />
+          <GovButton
+            v-if="spd?.status === 'DRAFT' && isPenandatanganUser"
+            label="Tandatangani SPD"
+            icon="pi pi-check-circle"
+            severity="success"
+            size="small"
+            :loading="isSigningDoc"
+            @click="handleSignSpd"
+            title="Tandatangani resmi dokumen Surat Perjalanan Dinas ini"
+          />
+          <GovButton
+            v-else-if="spd?.status === 'DISETUJUI' && isPenandatanganUser"
+            label="Batal Tanda Tangan"
+            icon="pi pi-undo"
+            severity="warn"
+            variant="outlined"
+            size="small"
+            :loading="isSigningDoc"
+            @click="handleRevertSpd"
+            title="Batalkan persetujuan / kembalikan status ke Draf"
           />
           <GovButton
             label="Edit Surat"
@@ -277,16 +448,13 @@ onMounted(() => {
       <!-- Quick Document Settings -->
       <div class="flex flex-wrap items-center justify-between gap-4 bg-surface border border-border rounded-xl p-4 text-xs">
         <div class="flex flex-wrap items-center gap-6">
-          <!-- Penandatangan Selector -->
+          <!-- Penandatangan Info (Ditetapkan saat pembuatan SPD / mengikuti Surat Tugas) -->
           <div class="flex items-center gap-2">
             <span class="text-text-muted">Pejabat Penandatangan:</span>
-            <GovSelect
-              v-model="selectedSigner"
-              :options="signersList"
-              option-label="nama"
-              class="w-64 text-xs"
-              @change="loadPdfPreview()"
-            />
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium">
+              <i class="pi pi-user-check text-xs text-primary"></i>
+              <span>{{ spd?.penandatangan?.nama || spd?.penandatanganNama || spd?.suratTugas?.penandatangan?.nama || spd?.suratTugas?.penandatanganNama || '-' }}</span>
+            </span>
           </div>
 
           <!-- Font Selector -->
@@ -337,6 +505,7 @@ onMounted(() => {
       <div v-else-if="activePdfUrl" class="w-full max-w-5xl space-y-3">
         <div class="w-full bg-surface rounded-xl shadow-lg border border-border overflow-hidden">
           <object
+            :key="activePdfUrl"
             :data="activePdfUrl"
             type="application/pdf"
             class="w-full h-[980px] block"

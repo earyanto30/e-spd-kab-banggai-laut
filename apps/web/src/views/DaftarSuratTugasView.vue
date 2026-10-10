@@ -58,6 +58,15 @@ const searchQuery = ref('');
 const statusFilter = ref('SEMUA');
 const dateRange = ref<(Date | null)[] | null>(null);
 
+const userRole = localStorage.getItem('user_role') || '';
+const isPenandatanganUser = computed(() => {
+  return (
+    userRole === 'PENANDATANGAN' ||
+    localStorage.getItem('user_is_penandatangan') === 'true'
+  ) && userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN';
+});
+const loggedInUserName = localStorage.getItem('user_name') || 'Pejabat Penandatangan';
+
 const formatDateParam = (d: Date | null | undefined): string => {
   if (!d) return '';
   const year = d.getFullYear();
@@ -242,6 +251,78 @@ const handleDelete = async () => {
   }
 };
 
+// Sign & Revert for Pejabat Penandatangan
+const isSignDialogOpen = ref(false);
+const isRevertDialogOpen = ref(false);
+const itemToSign = ref<SuratTugasItem | null>(null);
+const isSigning = ref(false);
+
+const openSignDialog = (item: SuratTugasItem) => {
+  itemToSign.value = item;
+  isSignDialogOpen.value = true;
+};
+
+const handleSign = async () => {
+  if (!itemToSign.value) return;
+  isSigning.value = true;
+  try {
+    const res = await apiFetch(`/api/surat-tugas/${itemToSign.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DISETUJUI' }),
+    });
+    if (res.ok) {
+      toast.success(
+        `Surat Tugas nomor ${itemToSign.value.nomorSurat} berhasil ditandatangani dan disetujui!`,
+        'Tanda Tangan Berhasil'
+      );
+      isSignDialogOpen.value = false;
+      itemToSign.value = null;
+      await loadData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menandatangani Surat Tugas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigning.value = false;
+  }
+};
+
+const openRevertDialog = (item: SuratTugasItem) => {
+  itemToSign.value = item;
+  isRevertDialogOpen.value = true;
+};
+
+const handleRevert = async () => {
+  if (!itemToSign.value) return;
+  isSigning.value = true;
+  try {
+    const res = await apiFetch(`/api/surat-tugas/${itemToSign.value.id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DRAFT' }),
+    });
+    if (res.ok) {
+      toast.warn(
+        `Tanda tangan pada Surat Tugas nomor ${itemToSign.value.nomorSurat} telah dibatalkan. Status kembali ke Draf.`,
+        'Status Dikembalikan'
+      );
+      isRevertDialogOpen.value = false;
+      itemToSign.value = null;
+      await loadData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal membatalkan tanda tangan');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigning.value = false;
+  }
+};
+
 const handleDownloadPdf = async (item: SuratTugasItem) => {
   try {
     const res = await apiFetch(`/api/surat-tugas/${item.id}/pdf`);
@@ -337,11 +418,26 @@ const exportToCsv = () => {
           :disabled="list.length === 0"
         />
         <GovButton
+          v-if="!isPenandatanganUser"
           label="Buat Surat Tugas"
           icon="pi pi-plus"
           severity="primary"
           @click="router.push('/surat-tugas/buat')"
         />
+      </div>
+    </div>
+
+    <!-- Banner Scoped Signer -->
+    <div
+      v-if="isPenandatanganUser"
+      class="flex items-center gap-3 p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 rounded-xl text-sky-900 dark:text-sky-200 shadow-sm"
+    >
+      <i class="pi pi-shield text-xl text-sky-600 dark:text-sky-400"></i>
+      <div>
+        <p class="font-semibold text-sm">Mode Akses Pejabat Penandatangan</p>
+        <p class="text-xs text-sky-700 dark:text-sky-300">
+          Menampilkan daftar Surat Tugas yang ditugaskan khusus untuk ditandatangani oleh: <strong>{{ loggedInUserName }}</strong>.
+        </p>
       </div>
     </div>
 
@@ -492,9 +588,30 @@ const exportToCsv = () => {
         </Column>
 
         <!-- Aksi -->
-        <Column header="Aksi" style="width: 170px;" align-frozen="right">
+        <Column header="Aksi" style="min-width: 190px;" align-frozen="right">
           <template #body="{ data: item }">
             <div class="flex items-center gap-1">
+              <!-- AKSI TANDATANGANI (Khusus Pejabat Penandatangan) -->
+              <GovButton
+                v-if="isPenandatanganUser && item.status === 'DRAFT'"
+                label="Tandatangani"
+                icon="pi pi-check-circle"
+                size="small"
+                severity="success"
+                @click="openSignDialog(item)"
+                title="Tandatangani Surat Tugas Resmi ini"
+              />
+              <GovButton
+                v-else-if="isPenandatanganUser && item.status === 'DISETUJUI'"
+                label="Batal TTD"
+                icon="pi pi-undo"
+                size="small"
+                severity="warn"
+                variant="outlined"
+                @click="openRevertDialog(item)"
+                title="Batalkan Tanda Tangan (Kembalikan ke Draf)"
+              />
+
               <!-- Cetak / Pratinjau -->
               <GovButton
                 icon="pi pi-print"
@@ -504,17 +621,6 @@ const exportToCsv = () => {
                 rounded
                 @click="handleViewPrint(item.id)"
                 title="Lihat & Cetak Dokumen"
-              />
-
-              <!-- Edit Dokumen Surat Tugas -->
-              <GovButton
-                icon="pi pi-pencil"
-                size="small"
-                severity="info"
-                variant="text"
-                rounded
-                @click="router.push(`/surat-tugas/edit/${item.id}`)"
-                title="Edit / Ubah Data Surat Tugas"
               />
 
               <!-- Unduh PDF Resmi -->
@@ -528,8 +634,21 @@ const exportToCsv = () => {
                 title="Unduh Berkas PDF Resmi (Kop Asli)"
               />
 
-              <!-- Ubah Status -->
+              <!-- Edit Dokumen Surat Tugas (Non-penandatangan) -->
               <GovButton
+                v-if="!isPenandatanganUser"
+                icon="pi pi-pencil"
+                size="small"
+                severity="info"
+                variant="text"
+                rounded
+                @click="router.push(`/surat-tugas/edit/${item.id}`)"
+                title="Edit / Ubah Data Surat Tugas"
+              />
+
+              <!-- Ubah Status (Non-penandatangan) -->
+              <GovButton
+                v-if="!isPenandatanganUser"
                 icon="pi pi-sync"
                 size="small"
                 severity="secondary"
@@ -539,8 +658,9 @@ const exportToCsv = () => {
                 title="Perbarui Status"
               />
 
-              <!-- Hapus -->
+              <!-- Hapus (Non-penandatangan) -->
               <GovButton
+                v-if="!isPenandatanganUser"
                 icon="pi pi-trash"
                 size="small"
                 severity="danger"
@@ -632,6 +752,83 @@ const exportToCsv = () => {
           />
         </div>
       </div>
+    </Dialog>
+
+    <!-- DIALOG KONFIRMASI TANDA TANGAN (PEJABAT PENANDATANGAN) -->
+    <Dialog
+      v-model:visible="isSignDialogOpen"
+      header="Konfirmasi Tanda Tangan Surat Tugas"
+      :modal="true"
+      class="max-w-md w-full"
+    >
+      <div v-if="itemToSign" class="space-y-4 pt-2">
+        <div class="p-3 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg text-xs space-y-1">
+          <div class="font-bold text-text-main font-mono">{{ itemToSign.nomorSurat }}</div>
+          <div class="text-text-muted">{{ itemToSign.dalamRangka }}</div>
+          <div class="text-text-muted mt-1 font-semibold text-primary">Penandatangan: {{ loggedInUserName }}</div>
+        </div>
+        <p class="text-xs text-text-muted">
+          Apakah Anda yakin ingin menandatangani dan mengesahkan Surat Tugas ini secara resmi? Dokumen yang disetujui akan mengikat dan dapat diunduh/dicetak dengan sah.
+        </p>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <GovButton
+            label="Batal"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            @click="isSignDialogOpen = false"
+            :disabled="isSigning"
+          />
+          <GovButton
+            label="Tandatangani & Sahkan"
+            icon="pi pi-check-circle"
+            severity="success"
+            size="small"
+            :loading="isSigning"
+            @click="handleSign"
+          />
+        </div>
+      </template>
+    </Dialog>
+
+    <!-- DIALOG BATAL TANDA TANGAN (PEJABAT PENANDATANGAN) -->
+    <Dialog
+      v-model:visible="isRevertDialogOpen"
+      header="Batalkan Tanda Tangan Surat Tugas"
+      :modal="true"
+      class="max-w-md w-full"
+    >
+      <div v-if="itemToSign" class="space-y-3 pt-2">
+        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-xs space-y-1">
+          <div class="font-bold text-amber-900 dark:text-amber-200 font-mono">{{ itemToSign.nomorSurat }}</div>
+          <div class="text-amber-800 dark:text-amber-300">{{ itemToSign.dalamRangka }}</div>
+        </div>
+        <p class="text-xs text-text-muted">
+          Tanda tangan pada Surat Tugas ini akan dibatalkan dan statusnya dikembalikan ke <strong>Draf</strong> untuk dilakukan revisi atau penyesuaian.
+        </p>
+      </div>
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <GovButton
+            label="Tutup"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            @click="isRevertDialogOpen = false"
+            :disabled="isSigning"
+          />
+          <GovButton
+            label="Ya, Batalkan Tanda Tangan"
+            icon="pi pi-undo"
+            severity="warn"
+            size="small"
+            :loading="isSigning"
+            @click="handleRevert"
+          />
+        </div>
+      </template>
     </Dialog>
   </div>
 </template>

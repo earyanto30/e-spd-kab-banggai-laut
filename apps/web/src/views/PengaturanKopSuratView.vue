@@ -396,24 +396,33 @@ onMounted(() => {
           <!-- Column: Aksi -->
           <Column header="Aksi" body-class="text-right">
             <template #body="{ data }">
-              <div class="flex items-center justify-end gap-1.5">
+              <div class="flex items-center justify-end gap-1">
                 <GovButton
                   icon="pi pi-eye"
+                  size="small"
                   severity="secondary"
+                  variant="text"
+                  rounded
                   title="Pratinjau PDF"
                   @click="handlePreview(data)"
                 />
                 <GovButton
                   v-if="!data.isDefault"
                   icon="pi pi-check"
-                  severity="secondary"
+                  size="small"
+                  severity="success"
+                  variant="text"
+                  rounded
                   title="Jadikan Default"
                   @click="handleSetDefault(data)"
                 />
                 <GovButton
                   v-if="list.length > 1"
                   icon="pi pi-trash"
+                  size="small"
                   severity="danger"
+                  variant="text"
+                  rounded
                   title="Hapus dari Folder"
                   @click="handleDelete(data)"
                 />
@@ -581,6 +590,7 @@ onMounted(() => {
           <GovButton
             label="Batal"
             severity="secondary"
+            variant="outlined"
             type="button"
             @click="isDialogOpen = false"
           />

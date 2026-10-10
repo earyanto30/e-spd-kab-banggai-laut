@@ -43,9 +43,19 @@ const isEditMode = computed(() => !!spdId.value);
 const existingSpd = ref<any>(null);
 const loadingExisting = ref(false);
 
+interface PenandatanganOption {
+  id: string;
+  nip: string;
+  nama: string;
+  pangkat: string;
+  golongan: string;
+  jabatan: string;
+}
+
 const getInitialForm = () => ({
   pemberiPerintah: 'Pengguna Anggaran (PA)',
   pegawai: null as AsnOption | null,
+  penandatanganId: null as string | null,
   maksudList: [''] as string[],
   alatAngkut: [] as string[],
   tempatBerangkat: 'Banggai',
@@ -57,6 +67,8 @@ const getInitialForm = () => ({
 
 // 1. Form State
 const form = reactive(getInitialForm());
+const penandatanganOptions = ref<PenandatanganOption[]>([]);
+const loadingPenandatangan = ref(false);
 
 const resetForm = () => {
   Object.assign(form, getInitialForm());
@@ -147,6 +159,23 @@ const loadKopSurat = async () => {
   }
 };
 
+const loadPenandatangan = async () => {
+  loadingPenandatangan.value = true;
+  try {
+    const res = await apiFetch('/api/pegawai?isPenandatangan=true');
+    if (res.ok) {
+      penandatanganOptions.value = await res.json();
+      if (!form.penandatanganId && !isEditMode.value && penandatanganOptions.value.length > 0) {
+        form.penandatanganId = penandatanganOptions.value[0].id;
+      }
+    }
+  } catch {
+    penandatanganOptions.value = [];
+  } finally {
+    loadingPenandatangan.value = false;
+  }
+};
+
 const selectedKop = computed(() => {
   return kopSuratList.value.find((k) => k.id === form.kopSuratId);
 });
@@ -184,6 +213,15 @@ const loadExistingSpd = async (id: string) => {
       if (data.kopSuratId) {
         form.kopSuratId = data.kopSuratId;
       }
+      if (data.penandatanganId) {
+        form.penandatanganId = data.penandatanganId;
+      } else if (data.penandatangan?.id) {
+        form.penandatanganId = data.penandatangan.id;
+      } else if (data.suratTugas?.penandatanganId) {
+        form.penandatanganId = data.suratTugas.penandatanganId;
+      } else if (data.suratTugas?.penandatangan?.id) {
+        form.penandatanganId = data.suratTugas.penandatangan.id;
+      }
     } else {
       submitError.value = 'Gagal memuat data Surat Perjalanan Dinas yang akan diedit.';
     }
@@ -194,8 +232,12 @@ const loadExistingSpd = async (id: string) => {
   }
 };
 
+const hasParentSuratTugas = computed(() => {
+  return !!(existingSpd.value?.suratTugasId || existingSpd.value?.suratTugas);
+});
+
 onMounted(async () => {
-  await loadKopSurat();
+  await Promise.all([loadKopSurat(), loadPenandatangan()]);
   if (isEditMode.value && spdId.value) {
     await loadExistingSpd(spdId.value);
   } else {
@@ -254,6 +296,7 @@ const validate = (): boolean => {
   if (!form.lamaHari || form.lamaHari < 1) errors.lamaHari = 'Lama perjalanan minimal 1 hari.';
   if (!form.tanggalBerangkat) errors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
   if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
+  if (!form.penandatanganId) errors.penandatanganId = 'Pejabat Penandatangan SPD wajib dipilih.';
 
   return Object.keys(errors).length === 0;
 };
@@ -284,6 +327,7 @@ const handleSubmit = async () => {
     const payload = {
       pemberiPerintah: form.pemberiPerintah,
       pegawaiId: form.pegawai!.id,
+      penandatanganId: form.penandatanganId || undefined,
       dalamRangka: formattedDalamRangka,
       alatAngkut: alatAngkutDisplay.value,
       tempatBerangkat: form.tempatBerangkat.trim(),
@@ -307,6 +351,9 @@ const handleSubmit = async () => {
     if (res.ok) {
       createdSpd.value = await res.json();
       submitSuccess.value = true;
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       const num = createdSpd.value?.nomorSpd ? ` (Nomor: ${createdSpd.value.nomorSpd})` : '';
       toast.success(
         isEditMode.value
@@ -328,7 +375,11 @@ const handleSubmit = async () => {
 };
 
 const handleCancel = () => {
-  router.back();
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/spd');
+  }
 };
 </script>
 
@@ -648,6 +699,54 @@ const handleCancel = () => {
           <small v-if="errors.kopSuratId" class="text-red-500 text-xs block">
             {{ errors.kopSuratId }}
           </small>
+        </div>
+
+        <hr class="border-border" />
+
+        <!-- 10. Pejabat Penandatangan SPD -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-sm font-semibold text-text-main">
+              10. Pejabat Penandatangan SPD <span class="text-red-500">*</span>
+            </label>
+            <span
+              v-if="hasParentSuratTugas"
+              class="text-xs text-primary font-medium flex items-center gap-1"
+            >
+              <i class="pi pi-link text-xs"></i>
+              Mengikuti Surat Tugas Induk ({{ existingSpd?.suratTugas?.nomorSurat || 'Surat Tugas' }})
+            </span>
+          </div>
+          <GovSelect
+            v-model="form.penandatanganId"
+            :options="penandatanganOptions"
+            option-label="nama"
+            option-value="id"
+            placeholder="Pilih Pejabat Penandatangan..."
+            :invalid="!!errors.penandatanganId"
+            :loading="loadingPenandatangan"
+            :disabled="hasParentSuratTugas"
+          >
+            <template #option="{ option }">
+              <div class="py-1">
+                <div class="font-medium text-sm text-text-main">{{ option.nama }}</div>
+                <div class="text-xs text-text-muted">
+                  NIP: {{ option.nip }} &bull; {{ option.jabatan }}
+                </div>
+              </div>
+            </template>
+          </GovSelect>
+          <small v-if="errors.penandatanganId" class="text-red-500 text-xs block">
+            {{ errors.penandatanganId }}
+          </small>
+          <p v-else class="text-xs text-text-muted">
+            <span v-if="hasParentSuratTugas">
+              Pejabat penandatangan SPD ini terkunci otomatis mengikuti pejabat penandatangan pada Surat Tugas induk.
+            </span>
+            <span v-else>
+              Pejabat yang berwenang menandatangani lembar Surat Perjalanan Dinas (KPA / Pengguna Anggaran / Sekda).
+            </span>
+          </p>
         </div>
 
         <!-- Submission Footer -->

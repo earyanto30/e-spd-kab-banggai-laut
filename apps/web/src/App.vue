@@ -38,10 +38,16 @@ const showAdminLayout = computed(() => {
   return isAuthenticated.value && !route.meta.hideNavbar && route.name !== 'Login';
 });
 
+const mainContentRef = ref<HTMLElement | null>(null);
+
 watch(
   () => route.path,
   () => {
     syncAuthState();
+    if (mainContentRef.value) {
+      mainContentRef.value.scrollTop = 0;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   },
   { immediate: true }
 );
@@ -80,7 +86,7 @@ onMounted(() => {
           />
 
           <!-- View Outlet -->
-          <main class="flex-1 overflow-y-auto p-6 bg-canvas transition-colors">
+          <main ref="mainContentRef" class="flex-1 overflow-y-auto p-6 bg-canvas transition-colors">
             <router-view :key="$route.fullPath" />
           </main>
         </div>

@@ -32,20 +32,20 @@ const allMenuItems = [
     label: 'Beranda',
     icon: 'pi pi-home',
     route: '/',
-    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
   },
   {
     key: 'surat-tugas',
     label: 'Surat Tugas',
     icon: 'pi pi-file-edit',
-    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
     items: [
       {
         key: 'surat-tugas-daftar',
         label: 'Daftar Surat Tugas',
         icon: 'pi pi-list',
         route: '/surat-tugas',
-        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
       },
       {
         key: 'surat-tugas-buat',
@@ -60,14 +60,14 @@ const allMenuItems = [
     key: 'spd',
     label: 'Surat Perjalanan Dinas',
     icon: 'pi pi-briefcase',
-    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
     items: [
       {
         key: 'spd-daftar',
         label: 'Daftar SPD',
         icon: 'pi pi-list',
         route: '/spd',
-        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
       },
       {
         key: 'spd-buat',
@@ -82,14 +82,14 @@ const allMenuItems = [
     key: 'kepegawaian',
     label: 'Kepegawaian',
     icon: 'pi pi-users',
-    roles: [Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PENANDATANGAN],
     items: [
       {
         key: 'kepegawaian-asn',
         label: 'Data ASN',
         icon: 'pi pi-id-card',
         route: '/kepegawaian/asn',
-        roles: [Role.ADMIN, Role.SUPER_ADMIN],
+        roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PENANDATANGAN],
       },
     ],
   },
@@ -119,12 +119,24 @@ const allMenuItems = [
 
 // Filter menu items by role recursively
 function filterByRole(items: typeof allMenuItems, role: string): any[] {
+  const isPenandatangan = role === Role.PENANDATANGAN || localStorage.getItem('user_is_penandatangan') === 'true';
+
   return items
-    .filter((item) => !item.roles || item.roles.includes(role as RoleType))
+    .filter((item) => {
+      if (!item.roles) return true;
+      if (item.roles.includes(role as RoleType)) return true;
+      if (isPenandatangan && item.roles.includes(Role.PENANDATANGAN)) return true;
+      return false;
+    })
     .map((item) => ({
       ...item,
       items: item.items
-        ? item.items.filter((sub) => !sub.roles || sub.roles.includes(role as RoleType))
+        ? item.items.filter((sub) => {
+            if (!sub.roles) return true;
+            if (sub.roles.includes(role as RoleType)) return true;
+            if (isPenandatangan && sub.roles.includes(Role.PENANDATANGAN)) return true;
+            return false;
+          })
         : undefined,
     }))
     .filter((item) => !item.items || item.items.length > 0 || item.route);
@@ -321,7 +333,13 @@ const handleCollapsedParentClick = (item: any) => {
             <span class="text-xs text-text-muted truncate">{{ userRole || 'USER' }}</span>
           </div>
         </div>
-        <GovButton icon="pi pi-sign-out" severity="secondary" @click="emit('logout')" />
+        <GovButton
+          icon="pi pi-sign-out"
+          severity="secondary"
+          variant="text"
+          title="Keluar dari Sistem"
+          @click="emit('logout')"
+        />
       </div>
 
       <div v-else class="flex flex-col items-center gap-2">
@@ -331,7 +349,13 @@ const handleCollapsedParentClick = (item: any) => {
         >
           {{ userInitial }}
         </div>
-        <GovButton icon="pi pi-sign-out" severity="secondary" @click="emit('logout')" />
+        <GovButton
+          icon="pi pi-sign-out"
+          severity="secondary"
+          variant="text"
+          title="Keluar dari Sistem"
+          @click="emit('logout')"
+        />
       </div>
     </div>
   </aside>

@@ -47,10 +47,14 @@ model Pegawai {
   golongan  String
   jabatan   String
   unitKerja String   @default("Sekretariat Daerah")
-  isASN     Boolean  @default(true)
+  isASN           Boolean  @default(true)
+  isPenandatangan Boolean  @default(false)
+  tandaTangan     String?
 
-  user      User?
-  spdList   Spd[]
+  user                         User?
+  spdList                      Spd[]        @relation("SpdPelaksana")
+  spdDitandatanganiList        Spd[]        @relation("SpdPenandatangan")
+  suratTugasDitandatanganiList SuratTugas[] @relation("SuratTugasPenandatangan")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,7 +65,7 @@ model Spd {
   nomorSpd         String      @unique
   pemberiPerintah  String
   pegawaiId        String
-  pegawai          Pegawai     @relation(fields: [pegawaiId], references: [id])
+  pegawai          Pegawai     @relation("SpdPelaksana", fields: [pegawaiId], references: [id])
   dalamRangka      String
   alatAngkut       String
   tempatBerangkat  String
@@ -78,6 +82,12 @@ model Spd {
   kopSurat         KopSurat?   @relation(fields: [kopSuratId], references: [id], onDelete: SetNull)
   suratTugasId     String?
   suratTugas       SuratTugas? @relation(fields: [suratTugasId], references: [id], onDelete: SetNull)
+  penandatanganId  String?
+  penandatangan    Pegawai?    @relation("SpdPenandatangan", fields: [penandatanganId], references: [id], onDelete: SetNull)
+  penandatanganNama     String?
+  penandatanganJabatan  String?
+  penandatanganPangkat  String?
+  penandatanganNip      String?
   status           String      @default("DRAFT")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
@@ -90,6 +100,8 @@ model SuratTugas {
   dalamRangka     String
   tempatDikeluarkan String @default("Banggai")
   tanggalSurat    DateTime @default(now())
+  penandatanganId String?
+  penandatangan   Pegawai? @relation("SuratTugasPenandatangan", fields: [penandatanganId], references: [id], onDelete: SetNull)
   penandatanganNama     String @default("ARSID HAMIDI, SH")
   penandatanganJabatan  String @default("KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT")
   penandatanganPangkat  String @default("Pembina, IV/a")

@@ -9,6 +9,7 @@ import {
   Body,
   Query,
   Res,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
@@ -27,20 +28,22 @@ export class SpdController {
   ) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
   findAll(
+    @Req() req: any,
     @Query('q') query?: string,
     @Query('status') status?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.spdService.findAll(query, status, startDate, endDate);
+    return this.spdService.findAll(query, status, startDate, endDate, req.user);
   }
 
   @Get(':id/pdf')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
   async downloadPdf(
     @Param('id') id: string,
+    @Req() req: any,
     @Res() res: Response,
     @Query('signerNama') signerNama?: string,
     @Query('signerNip') signerNip?: string,
@@ -49,6 +52,9 @@ export class SpdController {
     @Query('signerJabatan') signerJabatan?: string,
     @Query('fontFamily') fontFamily?: string,
   ) {
+    // Verify signer access if user is penandatangan
+    await this.spdService.findById(id, req.user);
+
     const signer = signerNama
       ? {
           nama: signerNama,
@@ -66,13 +72,13 @@ export class SpdController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
-  findById(@Param('id') id: string) {
-    return this.spdService.findById(id);
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  findById(@Param('id') id: string, @Req() req: any) {
+    return this.spdService.findById(id, req.user);
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
   create(@Body() dto: CreateSpdDto) {
     return this.spdService.create(dto);
   }
@@ -84,7 +90,7 @@ export class SpdController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF)
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: string,

@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { KopSuratService } from '../kop-surat/kop-surat.service';
 import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
 import * as fs from 'fs';
+import * as path from 'path';
 
 export interface OfficialSignerDto {
   nama?: string;
@@ -96,6 +97,26 @@ export class SuratTugasPdfService {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
 
+  private resolveSignaturePath(fileName: string): string | null {
+    if (!fileName) return null;
+    const candidates = [
+      process.env.SIGNATURE_UPLOAD_DIR ? path.resolve(process.env.SIGNATURE_UPLOAD_DIR, fileName) : null,
+      path.resolve(process.cwd(), 'apps/api/uploads/signatures', fileName),
+      path.resolve(process.cwd(), 'uploads/signatures', fileName),
+      path.resolve(__dirname, '../../uploads/signatures', fileName),
+      path.resolve(__dirname, '../../../uploads/signatures', fileName),
+      path.resolve(__dirname, '../../../../uploads/signatures', fileName),
+      path.resolve('/home/evan/projects/e-spd/apps/api/uploads/signatures', fileName),
+    ].filter(Boolean) as string[];
+
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        return cand;
+      }
+    }
+    return null;
+  }
+
   async generatePdf(
     id: string,
     customSigner?: OfficialSignerDto,
@@ -104,6 +125,7 @@ export class SuratTugasPdfService {
     const st = await this.prisma.suratTugas.findUnique({
       where: { id },
       include: {
+        penandatangan: true,
         spdList: {
           include: {
             pegawai: true,
@@ -114,6 +136,33 @@ export class SuratTugasPdfService {
 
     if (!st) {
       throw new NotFoundException(`Surat Tugas dengan ID '${id}' tidak ditemukan`);
+    }
+
+    // Penandatangan resolution with fallback
+    let p = st.penandatangan;
+    if (!p && st.penandatanganId) {
+      p = await this.prisma.pegawai.findUnique({ where: { id: st.penandatanganId } });
+    }
+    const signerNama = customSigner?.nama || p?.nama || st.penandatanganNama || '';
+    const signerJabatan = customSigner?.jabatan || p?.jabatan || st.penandatanganJabatan || '';
+    const signerPangkat = customSigner?.pangkat
+      ? `${customSigner.pangkat}${customSigner.golongan ? ', ' + customSigner.golongan : ''}`
+      : (p ? (p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat) : st.penandatanganPangkat || '');
+    const signerNip = customSigner?.nip || p?.nip || st.penandatanganNip || '';
+
+    if ((!p || !p.tandaTangan) && (signerNip || signerNama)) {
+      const matched = await this.prisma.pegawai.findFirst({
+        where: {
+          OR: [
+            signerNip ? { nip: signerNip } : undefined,
+            signerNama ? { nama: signerNama } : undefined,
+          ].filter(Boolean) as any,
+          tandaTangan: { not: null },
+        },
+      });
+      if (matched) {
+        p = matched;
+      }
     }
 
     // Resolve Kop Surat PDF
@@ -377,13 +426,6 @@ export class SuratTugasPdfService {
 
     currentY -= signLineSpacing + 8;
 
-    const signerJabatan = customSigner?.jabatan || st.penandatanganJabatan;
-    const signerNama = customSigner?.nama || st.penandatanganNama;
-    const signerPangkat = customSigner?.pangkat
-      ? `${customSigner.pangkat}${customSigner.golongan ? ', ' + customSigner.golongan : ''}`
-      : st.penandatanganPangkat;
-    const signerNip = customSigner?.nip || st.penandatanganNip;
-
     // Jabatan Pejabat (Multi lines split if needed)
     const titleLines = this.splitTextToLines(signerJabatan, fontBold, fontSize, rightMargin - signX);
     for (const tLine of titleLines) {
@@ -391,8 +433,35 @@ export class SuratTugasPdfService {
       currentY -= lineHeight;
     }
 
-    // Space for physical signature / stempel
-    currentY -= 48;
+    // Space for physical signature / stempel (extra spacious room for official signature and stamp)
+    const signSpaceTopY = currentY;
+    currentY -= 95;
+
+    // Jika dokumen sudah ditandatangani (DISETUJUI) dan pejabat memiliki file tanda tangan PNG
+    if (st.status === 'DISETUJUI' && p?.tandaTangan) {
+      try {
+        const targetPath = this.resolveSignaturePath(p.tandaTangan);
+        if (targetPath) {
+          const sigBytes = fs.readFileSync(targetPath);
+          const sigImage = await pdfDoc.embedPng(sigBytes);
+          // Standarisasi ukuran: batas maksimal lebar 140 pt, tinggi 70 pt.
+          // scaleToFit menjaga rasio asli gambar tetap proporsional tanpa memotong/mentrim gambar
+          const sigDims = sigImage.scaleToFit(140, 70);
+          // Posisikan tanda tangan tepat di atas nama penandatangan (jarak 12 pt dari baseline nama)
+          page.drawImage(sigImage, {
+            x: signX + 5,
+            y: currentY + 12,
+            width: sigDims.width,
+            height: sigDims.height,
+          });
+        } else {
+          console.warn(`[SuratTugasPdfService] File tanda tangan "${p.tandaTangan}" tidak ditemukan di disk.`);
+        }
+      } catch (err) {
+        // Fallback gracefully jika gagal embed gambar
+        console.warn('Gagal memuat tanda tangan digital penandatangan:', err);
+      }
+    }
 
     // Nama Pejabat
     page.drawText(signerNama, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });

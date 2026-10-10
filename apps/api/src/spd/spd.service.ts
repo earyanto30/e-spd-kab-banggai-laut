@@ -1,12 +1,146 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSpdDto, UpdateSpdDto } from '@si-setda/shared-types';
+import { CreateSpdDto, UpdateSpdDto, Role } from '@si-setda/shared-types';
 
 @Injectable()
 export class SpdService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query?: string, status?: string, startDate?: string, endDate?: string) {
+  private isPenandatanganOnly(currentUser?: any): boolean {
+    if (!currentUser) return false;
+    if (currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.ADMIN) {
+      return false;
+    }
+    return currentUser.role === Role.PENANDATANGAN || currentUser.isPenandatangan === true;
+  }
+
+  private buildSpdSignerOrConditions(currentUser: any): any[] {
+    const conditions: any[] = [];
+    if (!currentUser) return conditions;
+
+    if (currentUser.pegawaiId) {
+      conditions.push({ penandatanganId: currentUser.pegawaiId });
+      conditions.push({ suratTugas: { penandatanganId: currentUser.pegawaiId } });
+    }
+
+    const rawNip = (currentUser.nip || '').trim();
+    const cleanNip = rawNip.replace(/[^0-9]/g, '');
+    if (cleanNip.length >= 8) {
+      conditions.push({ penandatanganNip: { contains: cleanNip } });
+      conditions.push({ suratTugas: { penandatanganNip: { contains: cleanNip } } });
+    }
+    if (rawNip.length > 0) {
+      conditions.push({ penandatanganNip: { contains: rawNip } });
+      conditions.push({ suratTugas: { penandatanganNip: { contains: rawNip } } });
+    }
+
+    const username = (currentUser.username || '').trim();
+    if (username && /^\d{8,}$/.test(username)) {
+      conditions.push({ penandatanganNip: { contains: username } });
+      conditions.push({ suratTugas: { penandatanganNip: { contains: username } } });
+    }
+
+    const name = (currentUser.name || '').trim();
+    if (name.length > 0) {
+      conditions.push({ penandatanganNama: { contains: name } });
+      conditions.push({ suratTugas: { penandatanganNama: { contains: name } } });
+      const cleanName = name
+        .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
+        .split(',')[0]
+        .trim();
+      if (cleanName.length >= 4 && cleanName !== name) {
+        conditions.push({ penandatanganNama: { contains: cleanName } });
+        conditions.push({ suratTugas: { penandatanganNama: { contains: cleanName } } });
+      }
+    }
+
+    if (currentUser.jabatan && currentUser.jabatan.trim()) {
+      conditions.push({ penandatanganJabatan: { contains: currentUser.jabatan.trim() } });
+      conditions.push({ suratTugas: { penandatanganJabatan: { contains: currentUser.jabatan.trim() } } });
+
+      const userJab = currentUser.jabatan.toLowerCase();
+      if (userJab.includes('sekretaris daerah') || userJab.includes('sekda')) {
+        conditions.push({ pemberiPerintah: { contains: 'Pengguna Anggaran' } });
+      } else if (userJab.includes('bagian umum') || userJab.includes('kpa')) {
+        conditions.push({ pemberiPerintah: { contains: 'Kuasa Pengguna Anggaran' } });
+      }
+    }
+
+    return conditions;
+  }
+
+  private verifySignerAccess(currentUser: any, item: any) {
+    if (!this.isPenandatanganOnly(currentUser)) return;
+
+    if (currentUser.pegawaiId && item.penandatanganId && item.penandatanganId === currentUser.pegawaiId) {
+      return;
+    }
+    if (currentUser.pegawaiId && item.suratTugas?.penandatanganId && item.suratTugas.penandatanganId === currentUser.pegawaiId) {
+      return;
+    }
+
+    const rawNip = (currentUser.nip || '').trim();
+    const cleanNip = rawNip.replace(/[^0-9]/g, '');
+    const username = (currentUser.username || '').trim();
+    const isUsernameNip = /^\d{8,}$/.test(username);
+    const name = (currentUser.name || '').toLowerCase().trim();
+    const cleanName = name
+      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
+      .split(',')[0]
+      .trim();
+
+    // Direct SPD signer check
+    const docNip = (item.penandatanganNip || '').replace(/[^0-9]/g, '');
+    const docRawNip = (item.penandatanganNip || '').trim();
+    const docNama = (item.penandatanganNama || '').toLowerCase().trim();
+    const docJabatan = (item.penandatanganJabatan || '').toLowerCase().trim();
+
+    if (cleanNip.length >= 8 && docNip.includes(cleanNip)) return;
+    if (rawNip.length > 0 && docRawNip.includes(rawNip)) return;
+    if (isUsernameNip && docNip.includes(username)) return;
+    if (name.length > 0 && (docNama.includes(name) || name.includes(docNama))) return;
+    if (cleanName.length >= 4 && (docNama.includes(cleanName) || cleanName.includes(docNama))) return;
+    if (currentUser.jabatan && docJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
+
+    // Check connected Surat Tugas
+    if (item.suratTugas) {
+      const stNip = (item.suratTugas.penandatanganNip || '').replace(/[^0-9]/g, '');
+      const stRawNip = (item.suratTugas.penandatanganNip || '').trim();
+      const stNama = (item.suratTugas.penandatanganNama || '').toLowerCase().trim();
+      const stJabatan = (item.suratTugas.penandatanganJabatan || '').toLowerCase().trim();
+
+      if (cleanNip.length >= 8 && stNip.includes(cleanNip)) return;
+      if (rawNip.length > 0 && stRawNip.includes(rawNip)) return;
+      if (isUsernameNip && stNip.includes(username)) return;
+      if (name.length > 0 && (stNama.includes(name) || name.includes(stNama))) return;
+      if (cleanName.length >= 4 && (stNama.includes(cleanName) || cleanName.includes(stNama))) return;
+      if (currentUser.jabatan && stJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
+    }
+
+    // Check pemberiPerintah authority
+    if (item.pemberiPerintah && currentUser.jabatan) {
+      const userJab = currentUser.jabatan.toLowerCase();
+      const pemberi = item.pemberiPerintah.toLowerCase();
+      if ((userJab.includes('sekretaris daerah') || userJab.includes('sekda')) && pemberi.includes('pengguna anggaran')) {
+        return;
+      }
+      if ((userJab.includes('bagian umum') || userJab.includes('kpa')) && pemberi.includes('kuasa pengguna anggaran')) {
+        return;
+      }
+    }
+
+    throw new ForbiddenException(
+      'Anda tidak memiliki hak akses untuk melihat dokumen SPD ini karena dokumen ini ditugaskan untuk pejabat penandatangan lain.'
+    );
+  }
+
+  async findAll(
+    query?: string,
+    status?: string,
+    startDate?: string,
+    endDate?: string,
+    currentUser?: any,
+  ) {
     const where: any = {};
 
     if (status && status.trim() && status.trim() !== 'SEMUA') {
@@ -46,11 +180,27 @@ export class SpdService {
       ];
     }
 
+    if (this.isPenandatanganOnly(currentUser)) {
+      const signerOr = this.buildSpdSignerOrConditions(currentUser);
+      const finalSignerCondition = signerOr.length > 0 ? signerOr : [{ id: '__NO_ACCESS__' }];
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: finalSignerCondition },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = finalSignerCondition;
+      }
+    }
+
     return this.prisma.spd.findMany({
       where,
       include: {
         pegawai: true,
         kopSurat: true,
+        suratTugas: true,
+        penandatangan: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -64,22 +214,28 @@ export class SpdService {
       include: {
         pegawai: true,
         kopSurat: true,
+        suratTugas: true,
+        penandatangan: true,
       },
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, currentUser?: any) {
     const item = await this.prisma.spd.findUnique({
       where: { id },
       include: {
         pegawai: true,
         kopSurat: true,
+        suratTugas: true,
+        penandatangan: true,
       },
     });
 
     if (!item) {
       throw new NotFoundException(`Surat Perjalanan Dinas dengan ID '${id}' tidak ditemukan`);
     }
+
+    this.verifySignerAccess(currentUser, item);
 
     return item;
   }
@@ -125,11 +281,37 @@ export class SpdService {
       tglKembali.setDate(tglKembali.getDate() + Math.max(0, dto.lamaHari - 1));
     }
 
+    let penandatanganId = dto.penandatanganId || null;
+    let penandatanganNama = dto.penandatanganNama?.trim() || null;
+    let penandatanganJabatan = dto.penandatanganJabatan?.trim() || null;
+    let penandatanganPangkat = dto.penandatanganPangkat?.trim() || null;
+    let penandatanganNip = dto.penandatanganNip?.trim() || null;
+
+    if (penandatanganId) {
+      const p = await this.prisma.pegawai.findUnique({ where: { id: penandatanganId } });
+      if (p) {
+        penandatanganNama = p.nama;
+        penandatanganJabatan = p.jabatan;
+        penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
+        penandatanganNip = p.nip;
+      }
+    } else if (dto.suratTugasId) {
+      const st = await this.prisma.suratTugas.findUnique({ where: { id: dto.suratTugasId } });
+      if (st) {
+        penandatanganId = st.penandatanganId || null;
+        if (!penandatanganNama) penandatanganNama = st.penandatanganNama;
+        if (!penandatanganJabatan) penandatanganJabatan = st.penandatanganJabatan;
+        if (!penandatanganPangkat) penandatanganPangkat = st.penandatanganPangkat;
+        if (!penandatanganNip) penandatanganNip = st.penandatanganNip;
+      }
+    }
+
     return this.prisma.spd.create({
       data: {
         nomorSpd,
         pemberiPerintah: dto.pemberiPerintah.trim(),
         pegawaiId: dto.pegawaiId,
+        suratTugasId: dto.suratTugasId || null,
         dalamRangka: dto.dalamRangka.trim(),
         alatAngkut: dto.alatAngkut.trim(),
         tempatBerangkat: dto.tempatBerangkat.trim(),
@@ -143,11 +325,18 @@ export class SpdService {
         pengikut: dto.pengikut?.trim() || null,
         keterangan: dto.keterangan?.trim() || null,
         kopSuratId: dto.kopSuratId || null,
+        penandatanganId,
+        penandatanganNama,
+        penandatanganJabatan,
+        penandatanganPangkat,
+        penandatanganNip,
         status: dto.status?.trim() || 'DRAFT',
       },
       include: {
         pegawai: true,
         kopSurat: true,
+        suratTugas: true,
+        penandatangan: true,
       },
     });
   }
@@ -180,6 +369,7 @@ export class SpdService {
       ...(dto.nomorSpd && { nomorSpd: dto.nomorSpd.trim() }),
       ...(dto.pemberiPerintah && { pemberiPerintah: dto.pemberiPerintah.trim() }),
       ...(dto.pegawaiId && { pegawaiId: dto.pegawaiId }),
+      ...(dto.suratTugasId !== undefined && { suratTugasId: dto.suratTugasId || null }),
       ...(dto.dalamRangka && { dalamRangka: dto.dalamRangka.trim() }),
       ...(dto.alatAngkut && { alatAngkut: dto.alatAngkut.trim() }),
       ...(dto.tempatBerangkat && { tempatBerangkat: dto.tempatBerangkat.trim() }),
@@ -193,6 +383,23 @@ export class SpdService {
       ...(dto.kopSuratId !== undefined && { kopSuratId: dto.kopSuratId || null }),
       ...(dto.status && { status: dto.status.trim() }),
     };
+
+    if (dto.penandatanganId !== undefined) {
+      data.penandatanganId = dto.penandatanganId || null;
+      if (dto.penandatanganId) {
+        const p = await this.prisma.pegawai.findUnique({ where: { id: dto.penandatanganId } });
+        if (p) {
+          data.penandatanganNama = p.nama;
+          data.penandatanganJabatan = p.jabatan;
+          data.penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
+          data.penandatanganNip = p.nip;
+        }
+      }
+    }
+    if (dto.penandatanganNama !== undefined && !data.penandatanganNama) data.penandatanganNama = dto.penandatanganNama?.trim() || null;
+    if (dto.penandatanganJabatan !== undefined && !data.penandatanganJabatan) data.penandatanganJabatan = dto.penandatanganJabatan?.trim() || null;
+    if (dto.penandatanganPangkat !== undefined && !data.penandatanganPangkat) data.penandatanganPangkat = dto.penandatanganPangkat?.trim() || null;
+    if (dto.penandatanganNip !== undefined && !data.penandatanganNip) data.penandatanganNip = dto.penandatanganNip?.trim() || null;
 
     if (dto.tanggalBerangkat) {
       data.tanggalBerangkat = new Date(dto.tanggalBerangkat);
@@ -214,6 +421,8 @@ export class SpdService {
       include: {
         pegawai: true,
         kopSurat: true,
+        suratTugas: true,
+        penandatangan: true,
       },
     });
   }

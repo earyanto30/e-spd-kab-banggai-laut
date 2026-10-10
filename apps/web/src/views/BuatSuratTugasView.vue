@@ -42,10 +42,20 @@ const isEditMode = computed(() => !!suratTugasId.value);
 const loadingExisting = ref(false);
 const existingData = ref<any>(null);
 
+interface PenandatanganOption {
+  id: string;
+  nip: string;
+  nama: string;
+  pangkat: string;
+  golongan: string;
+  jabatan: string;
+}
+
 const getInitialForm = () => ({
   pegawaiList: [] as AsnOption[],
   maksudList: [''] as string[],
   kopSuratId: null as string | null,
+  penandatanganId: null as string | null,
   tanggalSurat: new Date(),
   alatAngkut: [] as string[],
   tempatBerangkat: 'Banggai',
@@ -55,6 +65,8 @@ const getInitialForm = () => ({
 });
 
 const form = reactive(getInitialForm());
+const penandatanganOptions = ref<PenandatanganOption[]>([]);
+const loadingPenandatangan = ref(false);
 
 const resetForm = () => {
   Object.assign(form, getInitialForm());
@@ -87,6 +99,24 @@ const loadKopSurat = async () => {
     kopSuratList.value = [];
   } finally {
     loadingKop.value = false;
+  }
+};
+
+const loadPenandatangan = async () => {
+  loadingPenandatangan.value = true;
+  try {
+    const res = await apiFetch('/api/pegawai?isPenandatangan=true');
+    if (res.ok) {
+      penandatanganOptions.value = await res.json();
+      if (!form.penandatanganId && !isEditMode.value && penandatanganOptions.value.length > 0) {
+        // Default to the first official signer (e.g., Kabag Umum / Sekda)
+        form.penandatanganId = penandatanganOptions.value[0].id;
+      }
+    }
+  } catch {
+    penandatanganOptions.value = [];
+  } finally {
+    loadingPenandatangan.value = false;
   }
 };
 
@@ -170,6 +200,11 @@ const loadExistingData = async (id: string) => {
       form.maksudList = lines.length > 0 ? lines : [''];
 
       if (data.kopSuratId) form.kopSuratId = data.kopSuratId;
+      if (data.penandatanganId) {
+        form.penandatanganId = data.penandatanganId;
+      } else if (data.penandatangan?.id) {
+        form.penandatanganId = data.penandatangan.id;
+      }
       if (data.tanggalSurat) form.tanggalSurat = new Date(data.tanggalSurat);
 
       if (data.alatAngkut) {
@@ -233,7 +268,7 @@ const formatDate = (date: Date | null): string => {
 };
 
 onMounted(async () => {
-  await loadKopSurat();
+  await Promise.all([loadKopSurat(), loadPenandatangan()]);
   if (isEditMode.value && suratTugasId.value) {
     await loadExistingData(suratTugasId.value);
   } else {
@@ -265,6 +300,10 @@ const validate = (): boolean => {
     errors.pegawai = 'Minimal satu Pegawai Pelaksana (ASN) wajib dipilih.';
   }
 
+  if (!form.penandatanganId) {
+    errors.penandatanganId = 'Pejabat Penandatangan Surat Tugas wajib dipilih.';
+  }
+
   const validMaksud = form.maksudList.map((m) => m.trim()).filter(Boolean);
   if (validMaksud.length === 0) {
     errors.dalamRangka = 'Maksud penugasan / dalam rangka wajib diisi minimal 1 agenda.';
@@ -292,6 +331,7 @@ const handleSubmit = async () => {
       pegawaiIds: form.pegawaiList.map((p) => p.id),
       dalamRangka: formattedDalamRangka,
       kopSuratId: form.kopSuratId,
+      penandatanganId: form.penandatanganId || undefined,
       tanggalSurat: form.tanggalSurat,
       alatAngkut: form.alatAngkut.length > 0 ? form.alatAngkut.join(', ') : undefined,
       tempatBerangkat: form.tempatBerangkat.trim() || undefined,
@@ -317,6 +357,9 @@ const handleSubmit = async () => {
       const data = await res.json();
       createdSuratTugas.value = data;
       submitSuccess.value = true;
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       toast.success(
         isEditMode.value
           ? `Perubahan Surat Tugas nomor ${data.nomorSurat} berhasil disimpan!`
@@ -353,7 +396,11 @@ const handleDownloadPdf = async (id: string) => {
 };
 
 const handleCancel = () => {
-  router.back();
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push('/surat-tugas');
+  }
 };
 </script>
 
@@ -560,8 +607,8 @@ const handleCancel = () => {
 
         <hr class="border-border" />
 
-        <!-- 3. Pengaturan Dokumen (Kop Surat & Tanggal) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- 3. Pengaturan Dokumen (Kop Surat, Pejabat Penandatangan & Tanggal) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-text-main">
               3. Kop Surat Dinas
@@ -575,13 +622,34 @@ const handleCancel = () => {
               :loading="loadingKop"
             />
             <p class="text-xs text-text-muted">
-              Pilihan template kop dinas resmi yang akan dilekatkan pada dokumen PDF.
+              Pilihan template kop dinas resmi pada dokumen PDF.
             </p>
           </div>
 
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-text-main">
-              4. Tanggal Surat
+              4. Pejabat Penandatangan <span class="text-red-500">*</span>
+            </label>
+            <GovSelect
+              v-model="form.penandatanganId"
+              :options="penandatanganOptions"
+              option-label="nama"
+              option-value="id"
+              placeholder="Pilih Pejabat Penandatangan"
+              :invalid="!!errors.penandatanganId"
+              :loading="loadingPenandatangan"
+            />
+            <small v-if="errors.penandatanganId" class="text-red-500 text-xs block">
+              {{ errors.penandatanganId }}
+            </small>
+            <p v-else class="text-xs text-text-muted">
+              Pejabat yang menandatangani Surat Tugas (Sekda / Kabag Umum).
+            </p>
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-sm font-semibold text-text-main">
+              5. Tanggal Surat
             </label>
             <GovDatePicker
               v-model="form.tanggalSurat"
@@ -595,11 +663,11 @@ const handleCancel = () => {
 
         <hr class="border-border" />
 
-        <!-- 5. Parameter Perjalanan Dinas (Tujuan, Transportasi & Durasi - Digunakan saat Menerbitkan SPD) -->
+        <!-- 6. Parameter Perjalanan Dinas (Tujuan, Transportasi & Durasi - Digunakan saat Menerbitkan SPD) -->
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-semibold text-text-main">
-              5. Rincian Perjalanan Dinas (Opsional untuk Penerbitan SPD)
+              6. Rincian Perjalanan Dinas (Opsional untuk Penerbitan SPD)
             </label>
             <p class="text-xs text-text-muted mt-0.5">
               Rincian ini dapat diisi sekarang untuk otomatis mengisi data penerbitan Surat Perjalanan Dinas (SPD).

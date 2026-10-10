@@ -47,6 +47,7 @@ export interface PegawaiOption {
   jabatan: string;
   unitKerja: string;
   isASN?: boolean;
+  isPenandatangan?: boolean;
 }
 
 const list = ref<UserItem[]>([]);
@@ -139,6 +140,25 @@ const onPegawaiSelected = () => {
     if (!form.value.email && (found as any).email) {
       form.value.email = (found as any).email;
     }
+    if (found.isPenandatangan) {
+      form.value.role = Role.PENANDATANGAN;
+    }
+  }
+};
+
+const availablePegawaiOptions = computed(() => {
+  if (form.value.role === Role.PENANDATANGAN) {
+    return pegawaiOptions.value.filter((p) => p.isPenandatangan);
+  }
+  return pegawaiOptions.value;
+});
+
+const onRoleChange = () => {
+  if (form.value.role === Role.PENANDATANGAN) {
+    const isCurrentValid = availablePegawaiOptions.value.some((p) => p.id === form.value.pegawaiId);
+    if (!isCurrentValid) {
+      form.value.pegawaiId = '';
+    }
   }
 };
 
@@ -205,6 +225,11 @@ const openEditDialog = async (item: UserItem) => {
 const handleSave = async () => {
   if (!form.value.username.trim() || !form.value.name.trim()) {
     showAlert('Username/NIP dan Nama Lengkap wajib diisi.', 'warn');
+    return;
+  }
+
+  if (form.value.role === Role.PENANDATANGAN && !form.value.pegawaiId) {
+    showAlert('Peran Penandatangan wajib ditautkan ke Pegawai ASN Pejabat Penandatangan.', 'warn');
     return;
   }
 
@@ -316,6 +341,8 @@ const getRoleBadgeSeverity = (role: RoleType | string) => {
       return 'danger';
     case Role.ADMIN:
       return 'info';
+    case Role.PENANDATANGAN:
+      return 'success';
     case Role.STAFF:
       return 'warn';
     default:
@@ -467,6 +494,7 @@ onMounted(async () => {
                 <option value="SEMUA">Semua Peran</option>
                 <option :value="Role.SUPER_ADMIN">SUPER_ADMIN</option>
                 <option :value="Role.ADMIN">ADMIN</option>
+                <option :value="Role.PENANDATANGAN">PENANDATANGAN</option>
                 <option :value="Role.STAFF">STAFF</option>
                 <option :value="Role.USER">USER</option>
               </select>
@@ -581,11 +609,14 @@ onMounted(async () => {
           <!-- Column: Aksi -->
           <Column header="Aksi" body-class="text-right" class="w-40">
             <template #body="{ data }">
-              <div class="flex items-center justify-end gap-1.5">
+              <div class="flex items-center justify-end gap-1">
                 <!-- Toggle Status Button -->
                 <GovButton
                   :icon="data.isActive ? 'pi pi-ban' : 'pi pi-check-circle'"
-                  :severity="data.isActive ? 'secondary' : 'primary'"
+                  size="small"
+                  :severity="data.isActive ? 'warn' : 'success'"
+                  variant="text"
+                  rounded
                   :title="data.isActive ? 'Nonaktifkan Akun' : 'Aktifkan Akun'"
                   :disabled="data.username === '198801152010011002' && data.isActive"
                   @click="handleToggleStatus(data)"
@@ -594,7 +625,10 @@ onMounted(async () => {
                 <!-- Edit Button -->
                 <GovButton
                   icon="pi pi-pencil"
-                  severity="secondary"
+                  size="small"
+                  severity="info"
+                  variant="text"
+                  rounded
                   title="Ubah Pengguna"
                   @click="openEditDialog(data)"
                 />
@@ -602,7 +636,10 @@ onMounted(async () => {
                 <!-- Delete Button -->
                 <GovButton
                   icon="pi pi-trash"
+                  size="small"
                   severity="danger"
+                  variant="text"
+                  rounded
                   title="Hapus Pengguna"
                   :disabled="data.username === '198801152010011002' || data.username === currentLoggedInUsername"
                   @click="openDeleteConfirm(data)"
@@ -624,18 +661,28 @@ onMounted(async () => {
       <form class="space-y-4 pt-2" @submit.prevent="handleSave">
         <!-- Opsi Tautkan ASN -->
         <div class="space-y-1">
-          <label for="userPegawai" class="text-xs font-semibold text-text-main">
-            Tautkan ke Pegawai ASN (Opsional)
+          <label for="userPegawai" class="text-xs font-semibold text-text-main flex items-center justify-between">
+            <span>
+              Tautkan ke Pegawai ASN
+              <span v-if="form.role === Role.PENANDATANGAN" class="text-red-500">* (Wajib)</span>
+              <span v-else class="text-text-muted font-normal"> (Opsional)</span>
+            </span>
+            <span v-if="form.role === Role.PENANDATANGAN" class="text-[11px] text-primary font-medium">
+              Hanya menampilkan ASN Pejabat Penandatangan
+            </span>
           </label>
           <select
             id="userPegawai"
             v-model="form.pegawaiId"
             class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            :class="{ 'border-red-400': form.role === Role.PENANDATANGAN && !form.pegawaiId }"
+            :required="form.role === Role.PENANDATANGAN"
             @change="onPegawaiSelected"
           >
-            <option value="">-- Tidak Ditautkan (Akun Sistem Bebas) --</option>
+            <option v-if="form.role !== Role.PENANDATANGAN" value="">-- Tidak Ditautkan (Akun Sistem Bebas) --</option>
+            <option v-else value="" disabled>-- Wajib Pilih Pejabat Penandatangan --</option>
             <option
-              v-for="pegawai in pegawaiOptions"
+              v-for="pegawai in availablePegawaiOptions"
               :key="pegawai.id"
               :value="pegawai.id"
             >
@@ -643,7 +690,9 @@ onMounted(async () => {
             </option>
           </select>
           <p class="text-xs text-text-muted mt-0.5">
-            Memilih ASN akan otomatis mengisikan NIP sebagai username login dan nama pegawai.
+            {{ form.role === Role.PENANDATANGAN
+              ? 'Akun login ini memiliki hak menandatangani dokumen dinas sehingga wajib terhubung ke data ASN pejabat penandatangan.'
+              : 'Memilih ASN akan otomatis mengisikan NIP sebagai username login dan nama pegawai.' }}
           </p>
         </div>
 
@@ -698,9 +747,11 @@ onMounted(async () => {
               v-model="form.role"
               class="w-full px-3 py-2 text-xs rounded-lg border border-border bg-surface text-text-main focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
               required
+              @change="onRoleChange"
             >
               <option :value="Role.SUPER_ADMIN">SUPER_ADMIN (Akses Penuh Seluruh Sistem)</option>
               <option :value="Role.ADMIN">ADMIN (Pengelola SPD & ASN)</option>
+              <option :value="Role.PENANDATANGAN">PENANDATANGAN (Pejabat Penandatangan Dokumen)</option>
               <option :value="Role.STAFF">STAFF (Operator Pembuatan Surat)</option>
               <option :value="Role.USER">USER (Pengguna Biasa / Lihat Agenda)</option>
             </select>
@@ -737,6 +788,7 @@ onMounted(async () => {
           <GovButton
             label="Batal"
             severity="secondary"
+            variant="outlined"
             type="button"
             @click="isFormDialogOpen = false"
           />
@@ -771,6 +823,7 @@ onMounted(async () => {
           <GovButton
             label="Batal"
             severity="secondary"
+            variant="outlined"
             type="button"
             @click="isDeleteDialogOpen = false"
           />

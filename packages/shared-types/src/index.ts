@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const Role = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
+  PENANDATANGAN: 'PENANDATANGAN',
   STAFF: 'STAFF',
   USER: 'USER',
 } as const;
@@ -10,8 +11,9 @@ export const Role = {
 export type RoleType = (typeof Role)[keyof typeof Role];
 
 export const RoleHierarchy: Record<RoleType, number> = {
-  [Role.SUPER_ADMIN]: 4,
-  [Role.ADMIN]: 3,
+  [Role.SUPER_ADMIN]: 5,
+  [Role.ADMIN]: 4,
+  [Role.PENANDATANGAN]: 3,
   [Role.STAFF]: 2,
   [Role.USER]: 1,
 };
@@ -29,6 +31,8 @@ export const UserSchema = z.object({
   isActive: z.boolean().optional(),
   pegawaiId: z.string().nullable().optional(),
   nip: z.string().nullable().optional(),
+  isPenandatangan: z.boolean().optional(),
+  jabatan: z.string().nullable().optional(),
   createdAt: z.date().or(z.string()),
   updatedAt: z.date().or(z.string()),
 });
@@ -102,6 +106,13 @@ export const SpdSchema = z.object({
   keterangan: z.string().nullable().optional(),
   kopSuratId: z.string().nullable().optional(),
   kopSurat: z.any().optional(),
+  suratTugasId: z.string().nullable().optional(),
+  penandatanganId: z.string().nullable().optional(),
+  penandatangan: z.any().optional(),
+  penandatanganNama: z.string().nullable().optional(),
+  penandatanganJabatan: z.string().nullable().optional(),
+  penandatanganPangkat: z.string().nullable().optional(),
+  penandatanganNip: z.string().nullable().optional(),
   status: z.string().default('DRAFT'),
   createdAt: z.date().or(z.string()),
   updatedAt: z.date().or(z.string()),
@@ -126,6 +137,12 @@ export const CreateSpdSchema = z.object({
   pengikut: z.string().nullable().optional(),
   keterangan: z.string().nullable().optional(),
   kopSuratId: z.string().nullable().optional(),
+  suratTugasId: z.string().nullable().optional(),
+  penandatanganId: z.string().nullable().optional(),
+  penandatanganNama: z.string().nullable().optional(),
+  penandatanganJabatan: z.string().nullable().optional(),
+  penandatanganPangkat: z.string().nullable().optional(),
+  penandatanganNip: z.string().nullable().optional(),
   status: z.string().optional(),
 });
 
@@ -156,6 +173,8 @@ export const SuratTugasSchema = z.object({
   dalamRangka: z.string(),
   tempatDikeluarkan: z.string().default('Banggai'),
   tanggalSurat: z.date().or(z.string()),
+  penandatanganId: z.string().nullable().optional(),
+  penandatangan: z.any().optional(),
   penandatanganNama: z.string().default('ARSID HAMIDI, SH'),
   penandatanganJabatan: z.string().default('KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT'),
   penandatanganPangkat: z.string().default('Pembina, IV/a'),
@@ -189,6 +208,7 @@ export const CreateSuratTugasSchema = z.object({
   pegawaiIds: z.array(z.string()).min(1, 'Minimal satu pegawai pelaksana wajib dipilih'),
   tempatDikeluarkan: z.string().optional(),
   tanggalSurat: z.string().or(z.date()).optional(),
+  penandatanganId: z.string().nullable().optional(),
   penandatanganNama: z.string().optional(),
   penandatanganJabatan: z.string().optional(),
   penandatanganPangkat: z.string().optional(),

@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginRequestDto, AuthResponseDto, RoleType } from '@si-setda/shared-types';
+import { LoginRequestDto, AuthResponseDto, RoleType, Role } from '@si-setda/shared-types';
 import { verifyPassword, signJwt } from './crypto.util';
 
 @Injectable()
@@ -60,11 +60,20 @@ export class AuthService {
       throw new UnauthorizedException('Akun pengguna tidak aktif');
     }
 
+    const isPenandatangan = user.pegawai?.isPenandatangan ?? (user.role === Role.PENANDATANGAN);
+    const resolvedName = user.pegawai?.nama || user.name;
+    const resolvedNip = user.pegawai?.nip || null;
+    const resolvedJabatan = user.pegawai?.jabatan || null;
+
     const tokenPayload = {
       sub: user.id,
       username: user.username,
+      name: resolvedName,
       role: user.role,
       pegawaiId: user.pegawaiId,
+      nip: resolvedNip,
+      isPenandatangan,
+      jabatan: resolvedJabatan,
     };
 
     const accessToken = signJwt(tokenPayload);
@@ -74,12 +83,14 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
-        name: user.pegawai?.nama || user.name,
+        name: resolvedName,
         role: user.role as RoleType,
         email: user.email || null,
         isActive: user.isActive,
         pegawaiId: user.pegawaiId,
-        nip: user.pegawai?.nip || null,
+        nip: resolvedNip,
+        isPenandatangan,
+        jabatan: resolvedJabatan,
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
       },

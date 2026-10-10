@@ -18,6 +18,7 @@ import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 
 export interface OfficialSigner {
+  id?: string;
   nama: string;
   nip: string;
   pangkat: string;
@@ -32,6 +33,15 @@ export interface SuratTugasDetailData {
   dalamRangka: string;
   tempatDikeluarkan: string;
   tanggalSurat: string;
+  penandatanganId?: string | null;
+  penandatangan?: {
+    id: string;
+    nama: string;
+    nip: string;
+    jabatan: string;
+    pangkat: string;
+    golongan: string;
+  } | null;
   penandatanganNama: string;
   penandatanganJabatan: string;
   penandatanganPangkat: string;
@@ -79,7 +89,7 @@ const loading = ref(true);
 const errorMessage = ref('');
 
 // Signer choices
-const signersList: OfficialSigner[] = [
+const signersList = ref<OfficialSigner[]>([
   {
     nama: 'ARSID HAMIDI, SH',
     nip: '19700830 200312 1 003',
@@ -101,9 +111,9 @@ const signersList: OfficialSigner[] = [
     golongan: 'IV/a',
     jabatan: 'Kepala Bagian Umum (KPA)',
   },
-];
+]);
 
-const selectedSigner = ref<OfficialSigner>(signersList[0]);
+const selectedSigner = ref<OfficialSigner>(signersList.value[0]);
 
 const fontFamily = ref<'arial' | 'times'>('arial');
 const fontOptions = [
@@ -117,13 +127,6 @@ const isDownloadingPdf = ref(false);
 
 const buildPdfQuery = () => {
   const params = new URLSearchParams();
-  if (selectedSigner.value) {
-    params.set('signerNama', selectedSigner.value.nama);
-    params.set('signerNip', selectedSigner.value.nip);
-    params.set('signerPangkat', selectedSigner.value.pangkat);
-    params.set('signerGolongan', selectedSigner.value.golongan);
-    params.set('signerJabatan', selectedSigner.value.jabatan);
-  }
   params.set('fontFamily', fontFamily.value);
   return params.toString();
 };
@@ -175,6 +178,71 @@ const handleDownloadPdf = async () => {
     toast.error(err.message || 'Terjadi kesalahan sistem saat mengunduh PDF');
   } finally {
     isDownloadingPdf.value = false;
+  }
+};
+
+const isPenandatanganUser = computed(() => {
+  return localStorage.getItem('user_is_penandatangan') === 'true' ||
+         localStorage.getItem('user_role') === 'PENANDATANGAN' ||
+         localStorage.getItem('user_role') === 'ADMIN' ||
+         localStorage.getItem('user_role') === 'SUPER_ADMIN';
+});
+
+const isSigningDoc = ref(false);
+
+const handleSignDocument = async () => {
+  isSigningDoc.value = true;
+  try {
+    const res = await apiFetch(`/api/surat-tugas/${suratTugasId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DISETUJUI' }),
+    });
+    if (res.ok) {
+      toast.success(
+        `Surat Tugas ${data.value?.nomorSurat || ''} berhasil ditandatangani!`,
+        'Tanda Tangan Berhasil'
+      );
+      if (data.value) {
+        data.value.status = 'DISETUJUI';
+      }
+      await loadPdfPreview();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menandatangani Surat Tugas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigningDoc.value = false;
+  }
+};
+
+const handleRevertDocument = async () => {
+  isSigningDoc.value = true;
+  try {
+    const res = await apiFetch(`/api/surat-tugas/${suratTugasId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'DRAFT' }),
+    });
+    if (res.ok) {
+      toast.warn(
+        `Tanda tangan pada Surat Tugas ${data.value?.nomorSurat || ''} telah dibatalkan.`,
+        'Status Dikembalikan ke Draf'
+      );
+      if (data.value) {
+        data.value.status = 'DRAFT';
+      }
+      await loadPdfPreview();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal membatalkan tanda tangan');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem');
+  } finally {
+    isSigningDoc.value = false;
   }
 };
 
@@ -441,13 +509,60 @@ const fetchData = async () => {
   loading.value = true;
   errorMessage.value = '';
   try {
-    const res = await apiFetch(`/api/surat-tugas/${suratTugasId}`);
-    if (res.ok) {
-      data.value = await res.json();
-      await loadPdfPreview();
+    const [stRes, signersRes] = await Promise.all([
+      apiFetch(`/api/surat-tugas/${suratTugasId}`),
+      apiFetch('/api/pegawai?isPenandatangan=true'),
+    ]);
+
+    if (stRes.ok) {
+      data.value = await stRes.json();
     } else {
       errorMessage.value = 'Dokumen Surat Tugas tidak ditemukan.';
+      return;
     }
+
+    if (signersRes.ok) {
+      const signersData = await signersRes.json();
+      if (Array.isArray(signersData) && signersData.length > 0) {
+        signersList.value = signersData.map((p: any) => ({
+          id: p.id,
+          nama: p.nama,
+          nip: p.nip,
+          pangkat: p.pangkat,
+          golongan: p.golongan,
+          jabatan: p.jabatan,
+        }));
+
+        const targetSignerId = data.value?.penandatanganId || data.value?.penandatangan?.id;
+        const docNip = (data.value?.penandatanganNip || '').replace(/[^0-9]/g, '');
+        const docName = (data.value?.penandatanganNama || '').toLowerCase().trim();
+        const userNip = (localStorage.getItem('user_nip') || '').replace(/[^0-9]/g, '');
+        const userName = (localStorage.getItem('user_name') || '').toLowerCase().trim();
+
+        let matched = signersList.value.find((s) => {
+          if (targetSignerId && s.id === targetSignerId) return true;
+          const sNip = (s.nip || '').replace(/[^0-9]/g, '');
+          const sName = (s.nama || '').toLowerCase().trim();
+          if (docNip && sNip && docNip.includes(sNip)) return true;
+          if (docName && (sName.includes(docName) || docName.includes(sName))) return true;
+          return false;
+        });
+
+        if (!matched && (localStorage.getItem('user_role') === 'PENANDATANGAN' || localStorage.getItem('user_is_penandatangan') === 'true')) {
+          matched = signersList.value.find((s) => {
+            const sNip = (s.nip || '').replace(/[^0-9]/g, '');
+            const sName = (s.nama || '').toLowerCase().trim();
+            if (userNip && sNip && userNip.includes(sNip)) return true;
+            if (userName && (sName.includes(userName) || userName.includes(sName))) return true;
+            return false;
+          });
+        }
+
+        selectedSigner.value = matched || signersList.value[0];
+      }
+    }
+
+    await loadPdfPreview();
   } catch (err: any) {
     errorMessage.value = err.message || 'Terjadi kesalahan sistem.';
   } finally {
@@ -474,6 +589,11 @@ onMounted(() => {
               <span class="text-xs px-2 py-0.5 rounded font-mono bg-blue-100 dark:bg-blue-900/40 text-primary font-semibold">
                 {{ data?.nomorSurat || 'DRAFT' }}
               </span>
+              <Tag
+                :value="data?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT'"
+                :severity="data?.status === 'DISETUJUI' ? 'success' : 'warn'"
+                class="text-[10px] font-bold"
+              />
             </div>
             <p class="text-xs text-text-muted mt-0.5">
               Dokumen Resmi Penugasan Personil ASN &bull; Terpadu Kop Surat &bull; Ukuran Legal
@@ -490,6 +610,27 @@ onMounted(() => {
             size="small"
             @click="handleBack"
             title="Kembali ke halaman sebelumnya"
+          />
+          <GovButton
+            v-if="data?.status === 'DRAFT' && isPenandatanganUser"
+            label="Tandatangani Surat Tugas"
+            icon="pi pi-check-circle"
+            severity="success"
+            size="small"
+            :loading="isSigningDoc"
+            @click="handleSignDocument"
+            title="Tandatangani resmi dokumen Surat Tugas ini"
+          />
+          <GovButton
+            v-else-if="data?.status === 'DISETUJUI' && isPenandatanganUser"
+            label="Batal Tanda Tangan"
+            icon="pi pi-undo"
+            severity="warn"
+            variant="outlined"
+            size="small"
+            :loading="isSigningDoc"
+            @click="handleRevertDocument"
+            title="Batalkan persetujuan / kembalikan status ke Draf"
           />
           <GovButton
             label="Edit Surat"
@@ -534,16 +675,13 @@ onMounted(() => {
       <!-- Quick Document Settings -->
       <div class="flex flex-wrap items-center justify-between gap-4 bg-surface border border-border rounded-xl p-4 text-xs">
         <div class="flex flex-wrap items-center gap-6">
-          <!-- Penandatangan Selector -->
+          <!-- Penandatangan Info (Ditetapkan saat pembuatan Surat Tugas) -->
           <div class="flex items-center gap-2">
             <span class="text-text-muted">Pejabat Penandatangan:</span>
-            <GovSelect
-              v-model="selectedSigner"
-              :options="signersList"
-              option-label="nama"
-              class="w-64 text-xs"
-              @change="loadPdfPreview()"
-            />
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 text-blue-900 dark:text-blue-200 font-medium">
+              <i class="pi pi-user-check text-xs text-primary"></i>
+              <span>{{ data?.penandatangan?.nama || data?.penandatanganNama || '-' }}</span>
+            </span>
           </div>
 
           <!-- Font Selector -->
@@ -594,6 +732,7 @@ onMounted(() => {
       <div v-else-if="activePdfUrl" class="w-full max-w-5xl space-y-3">
         <div class="w-full bg-surface rounded-xl shadow-lg border border-border overflow-hidden">
           <object
+            :key="activePdfUrl"
             :data="activePdfUrl"
             type="application/pdf"
             class="w-full h-[980px] block"
@@ -628,9 +767,9 @@ onMounted(() => {
                 <i class="pi pi-file-import text-xl"></i>
               </div>
               <div>
-                <h3 class="text-sm font-bold text-text-main flex items-center gap-2">
-                  Daftar Surat Perjalanan Dinas (SPD) Terhubung
-                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                <h3 class="text-sm font-bold text-text-main flex flex-wrap items-center gap-2">
+                  <span>Daftar Surat Perjalanan Dinas (SPD) Terhubung</span>
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold whitespace-nowrap shrink-0 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
                     {{ data.spdList.length }} Dokumen Diterbitkan
                   </span>
                 </h3>

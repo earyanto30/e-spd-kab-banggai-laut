@@ -1,12 +1,101 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto, DASAR_HUKUM_DEFAULT } from '@si-setda/shared-types';
+import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto, DASAR_HUKUM_DEFAULT, Role } from '@si-setda/shared-types';
 
 @Injectable()
 export class SuratTugasService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(query?: string, status?: string, startDate?: string, endDate?: string) {
+  private isPenandatanganOnly(currentUser?: any): boolean {
+    if (!currentUser) return false;
+    if (currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.ADMIN) {
+      return false;
+    }
+    return currentUser.role === Role.PENANDATANGAN || currentUser.isPenandatangan === true;
+  }
+
+  private buildSignerOrConditions(currentUser: any): any[] {
+    const conditions: any[] = [];
+    if (!currentUser) return conditions;
+
+    if (currentUser.pegawaiId) {
+      conditions.push({ penandatanganId: currentUser.pegawaiId });
+    }
+
+    const rawNip = (currentUser.nip || '').trim();
+    const cleanNip = rawNip.replace(/[^0-9]/g, '');
+    if (cleanNip.length >= 8) {
+      conditions.push({ penandatanganNip: { contains: cleanNip } });
+    }
+    if (rawNip.length > 0) {
+      conditions.push({ penandatanganNip: { contains: rawNip } });
+    }
+
+    const username = (currentUser.username || '').trim();
+    if (username && /^\d{8,}$/.test(username)) {
+      conditions.push({ penandatanganNip: { contains: username } });
+    }
+
+    const name = (currentUser.name || '').trim();
+    if (name.length > 0) {
+      conditions.push({ penandatanganNama: { contains: name } });
+      const cleanName = name
+        .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
+        .split(',')[0]
+        .trim();
+      if (cleanName.length >= 4 && cleanName !== name) {
+        conditions.push({ penandatanganNama: { contains: cleanName } });
+      }
+    }
+
+    if (currentUser.jabatan && currentUser.jabatan.trim()) {
+      conditions.push({ penandatanganJabatan: { contains: currentUser.jabatan.trim() } });
+    }
+
+    return conditions;
+  }
+
+  private verifySignerAccess(currentUser: any, item: any) {
+    if (!this.isPenandatanganOnly(currentUser)) return;
+
+    if (currentUser.pegawaiId && item.penandatanganId && item.penandatanganId === currentUser.pegawaiId) {
+      return;
+    }
+
+    const rawNip = (currentUser.nip || '').trim();
+    const cleanNip = rawNip.replace(/[^0-9]/g, '');
+    const username = (currentUser.username || '').trim();
+    const isUsernameNip = /^\d{8,}$/.test(username);
+    const name = (currentUser.name || '').toLowerCase().trim();
+    const cleanName = name
+      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
+      .split(',')[0]
+      .trim();
+
+    const docNip = (item.penandatanganNip || '').replace(/[^0-9]/g, '');
+    const docRawNip = (item.penandatanganNip || '').trim();
+    const docNama = (item.penandatanganNama || '').toLowerCase().trim();
+    const docJabatan = (item.penandatanganJabatan || '').toLowerCase().trim();
+
+    if (cleanNip.length >= 8 && docNip.includes(cleanNip)) return;
+    if (rawNip.length > 0 && docRawNip.includes(rawNip)) return;
+    if (isUsernameNip && docNip.includes(username)) return;
+    if (name.length > 0 && (docNama.includes(name) || name.includes(docNama))) return;
+    if (cleanName.length >= 4 && (docNama.includes(cleanName) || cleanName.includes(docNama))) return;
+    if (currentUser.jabatan && docJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
+
+    throw new ForbiddenException(
+      'Anda tidak memiliki hak akses untuk melihat dokumen Surat Tugas ini karena dokumen ini ditugaskan untuk pejabat penandatangan lain.'
+    );
+  }
+
+  async findAll(
+    query?: string,
+    status?: string,
+    startDate?: string,
+    endDate?: string,
+    currentUser?: any,
+  ) {
     const where: any = {};
 
     if (status && status.trim() && status.trim() !== 'SEMUA') {
@@ -66,9 +155,24 @@ export class SuratTugasService {
       where.OR = orConditions;
     }
 
+    if (this.isPenandatanganOnly(currentUser)) {
+      const signerOr = this.buildSignerOrConditions(currentUser);
+      const finalSignerCondition = signerOr.length > 0 ? signerOr : [{ id: '__NO_ACCESS__' }];
+      if (where.OR) {
+        where.AND = [
+          { OR: where.OR },
+          { OR: finalSignerCondition },
+        ];
+        delete where.OR;
+      } else {
+        where.OR = finalSignerCondition;
+      }
+    }
+
     const items = await this.prisma.suratTugas.findMany({
       where,
       include: {
+        penandatangan: true,
         spdList: {
           include: {
             pegawai: true,
@@ -115,10 +219,11 @@ export class SuratTugasService {
     });
   }
 
-  async findById(id: string) {
+  async findById(id: string, currentUser?: any) {
     const item = await this.prisma.suratTugas.findUnique({
       where: { id },
       include: {
+        penandatangan: true,
         spdList: {
           include: {
             pegawai: true,
@@ -130,6 +235,8 @@ export class SuratTugasService {
     if (!item) {
       throw new NotFoundException(`Surat Tugas dengan ID '${id}' tidak ditemukan`);
     }
+
+    this.verifySignerAccess(currentUser, item);
 
     let pegawaiList = item.spdList.map((s) => s.pegawai).filter(Boolean);
     if (pegawaiList.length === 0 && item.pegawaiIds) {
@@ -191,6 +298,36 @@ export class SuratTugasService {
 
     const tglSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : new Date();
 
+    let penandatanganId = dto.penandatanganId || null;
+    let penandatanganNama = dto.penandatanganNama?.trim();
+    let penandatanganJabatan = dto.penandatanganJabatan?.trim();
+    let penandatanganPangkat = dto.penandatanganPangkat?.trim();
+    let penandatanganNip = dto.penandatanganNip?.trim();
+
+    if (penandatanganId) {
+      const p = await this.prisma.pegawai.findUnique({ where: { id: penandatanganId } });
+      if (p) {
+        penandatanganNama = p.nama;
+        penandatanganJabatan = p.jabatan;
+        penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
+        penandatanganNip = p.nip;
+      }
+    } else if (penandatanganNip) {
+      const cleanNip = penandatanganNip.replace(/[^0-9]/g, '');
+      const match = await this.prisma.pegawai.findFirst({
+        where: {
+          isPenandatangan: true,
+          nip: { contains: cleanNip },
+        },
+      });
+      if (match) {
+        penandatanganId = match.id;
+        if (!penandatanganNama) penandatanganNama = match.nama;
+        if (!penandatanganJabatan) penandatanganJabatan = match.jabatan;
+        if (!penandatanganPangkat) penandatanganPangkat = match.golongan ? `${match.pangkat}, ${match.golongan}` : match.pangkat;
+      }
+    }
+
     // Create Surat Tugas as Parent with stored pegawaiIds
     const suratTugas = await this.prisma.suratTugas.create({
       data: {
@@ -199,10 +336,11 @@ export class SuratTugasService {
         dalamRangka: dto.dalamRangka.trim(),
         tempatDikeluarkan: dto.tempatDikeluarkan?.trim() || 'Banggai',
         tanggalSurat: tglSurat,
-        penandatanganNama: dto.penandatanganNama?.trim() || 'ARSID HAMIDI, SH',
-        penandatanganJabatan: dto.penandatanganJabatan?.trim() || 'KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT',
-        penandatanganPangkat: dto.penandatanganPangkat?.trim() || 'Pembina, IV/a',
-        penandatanganNip: dto.penandatanganNip?.trim() || '19700830 200312 1 003',
+        penandatanganId,
+        penandatanganNama: penandatanganNama || 'ARSID HAMIDI, SH',
+        penandatanganJabatan: penandatanganJabatan || 'KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT',
+        penandatanganPangkat: penandatanganPangkat || 'Pembina, IV/a',
+        penandatanganNip: penandatanganNip || '19700830 200312 1 003',
         kopSuratId: dto.kopSuratId || null,
         status: dto.status?.trim() || 'DRAFT',
         pegawaiIds: JSON.stringify(dto.pegawaiIds),
@@ -227,10 +365,22 @@ export class SuratTugasService {
     if (dto.dalamRangka) updateData.dalamRangka = dto.dalamRangka.trim();
     if (dto.tempatDikeluarkan) updateData.tempatDikeluarkan = dto.tempatDikeluarkan.trim();
     if (dto.tanggalSurat) updateData.tanggalSurat = new Date(dto.tanggalSurat);
-    if (dto.penandatanganNama) updateData.penandatanganNama = dto.penandatanganNama.trim();
-    if (dto.penandatanganJabatan) updateData.penandatanganJabatan = dto.penandatanganJabatan.trim();
-    if (dto.penandatanganPangkat) updateData.penandatanganPangkat = dto.penandatanganPangkat.trim();
-    if (dto.penandatanganNip) updateData.penandatanganNip = dto.penandatanganNip.trim();
+    if (dto.penandatanganId !== undefined) {
+      updateData.penandatanganId = dto.penandatanganId || null;
+      if (dto.penandatanganId) {
+        const p = await this.prisma.pegawai.findUnique({ where: { id: dto.penandatanganId } });
+        if (p) {
+          updateData.penandatanganNama = p.nama;
+          updateData.penandatanganJabatan = p.jabatan;
+          updateData.penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
+          updateData.penandatanganNip = p.nip;
+        }
+      }
+    }
+    if (dto.penandatanganNama && !updateData.penandatanganNama) updateData.penandatanganNama = dto.penandatanganNama.trim();
+    if (dto.penandatanganJabatan && !updateData.penandatanganJabatan) updateData.penandatanganJabatan = dto.penandatanganJabatan.trim();
+    if (dto.penandatanganPangkat && !updateData.penandatanganPangkat) updateData.penandatanganPangkat = dto.penandatanganPangkat.trim();
+    if (dto.penandatanganNip && !updateData.penandatanganNip) updateData.penandatanganNip = dto.penandatanganNip.trim();
     if (dto.kopSuratId !== undefined) updateData.kopSuratId = dto.kopSuratId;
     if (dto.status) updateData.status = dto.status.trim();
     if (dto.pegawaiIds && Array.isArray(dto.pegawaiIds)) {
@@ -247,6 +397,7 @@ export class SuratTugasService {
       where: { id },
       data: updateData,
       include: {
+        penandatangan: true,
         spdList: {
           include: {
             pegawai: true,
@@ -274,6 +425,11 @@ export class SuratTugasService {
       if (dto.kopSuratId !== undefined) {
         spdSyncData.kopSuratId = dto.kopSuratId;
       }
+      if (updateData.penandatanganId !== undefined) spdSyncData.penandatanganId = updateData.penandatanganId;
+      if (updateData.penandatanganNama !== undefined) spdSyncData.penandatanganNama = updateData.penandatanganNama;
+      if (updateData.penandatanganJabatan !== undefined) spdSyncData.penandatanganJabatan = updateData.penandatanganJabatan;
+      if (updateData.penandatanganPangkat !== undefined) spdSyncData.penandatanganPangkat = updateData.penandatanganPangkat;
+      if (updateData.penandatanganNip !== undefined) spdSyncData.penandatanganNip = updateData.penandatanganNip;
 
       if (Object.keys(spdSyncData).length > 0) {
         await this.prisma.spd.updateMany({
@@ -328,6 +484,10 @@ export class SuratTugasService {
               tanggalBerangkat: updatedSt.tanggalSurat,
               tanggalKembali: updatedSt.tanggalSurat,
               skpd: 'Bagian Umum Sekretariat Daerah Kab. Banggai Laut',
+              penandatanganNama: updatedSt.penandatanganNama || null,
+              penandatanganJabatan: updatedSt.penandatanganJabatan || null,
+              penandatanganPangkat: updatedSt.penandatanganPangkat || null,
+              penandatanganNip: updatedSt.penandatanganNip || null,
               status: updatedSt.status || 'DRAFT',
             },
           });
@@ -430,11 +590,16 @@ export class SuratTugasService {
             lamaHari,
             tanggalBerangkat: tglBerangkat,
             tanggalKembali: tglKembali,
+            penandatanganId: suratTugas.penandatanganId || null,
+            penandatanganNama: suratTugas.penandatanganNama || null,
+            penandatanganJabatan: suratTugas.penandatanganJabatan || null,
+            penandatanganPangkat: suratTugas.penandatanganPangkat || null,
+            penandatanganNip: suratTugas.penandatanganNip || null,
           },
         });
         const updatedSpds = await this.prisma.spd.findMany({
           where: { suratTugasId: id },
-          include: { pegawai: true },
+          include: { pegawai: true, penandatangan: true },
         });
         return {
           message: `Berhasil memperbarui parameter perjalanan dinas untuk ${updatedSpds.length} dokumen SPD!`,
@@ -482,10 +647,16 @@ export class SuratTugasService {
           tanggalKembali: tglKembali,
           kopSuratId: suratTugas.kopSuratId || null,
           skpd: 'Bagian Umum Sekretariat Daerah Kab. Banggai Laut',
+          penandatanganId: suratTugas.penandatanganId || null,
+          penandatanganNama: suratTugas.penandatanganNama || null,
+          penandatanganJabatan: suratTugas.penandatanganJabatan || null,
+          penandatanganPangkat: suratTugas.penandatanganPangkat || null,
+          penandatanganNip: suratTugas.penandatanganNip || null,
           status: 'DRAFT',
         },
         include: {
           pegawai: true,
+          penandatangan: true,
         },
       });
       createdSpds.push(spd);
