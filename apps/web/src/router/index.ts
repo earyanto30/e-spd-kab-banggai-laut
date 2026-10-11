@@ -3,6 +3,7 @@ import { Role, RoleType, hasRequiredRole } from '@si-setda/shared-types';
 
 declare module 'vue-router' {
   interface RouteMeta {
+    title?: string;
     roles?: RoleType[];
     requiresAuth?: boolean;
     hideNavbar?: boolean;
@@ -15,6 +16,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Home',
     component: () => import('../views/HomeView.vue'),
     meta: {
+      title: 'Beranda',
       requiresAuth: true,
     },
   },
@@ -23,6 +25,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Login',
     component: () => import('../views/LoginView.vue'),
     meta: {
+      title: 'Masuk',
       hideNavbar: true,
     },
   },
@@ -31,6 +34,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Unauthorized',
     component: () => import('../views/UnauthorizedView.vue'),
     meta: {
+      title: 'Akses Ditolak',
       requiresAuth: true,
     },
   },
@@ -40,6 +44,7 @@ const routes: RouteRecordRaw[] = [
     name: 'DaftarSuratTugas',
     component: () => import('../views/DaftarSuratTugasView.vue'),
     meta: {
+      title: 'Daftar Surat Tugas',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
@@ -49,6 +54,7 @@ const routes: RouteRecordRaw[] = [
     name: 'BuatSuratTugas',
     component: () => import('../views/BuatSuratTugasView.vue'),
     meta: {
+      title: 'Buat Surat Tugas',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
     },
@@ -58,6 +64,7 @@ const routes: RouteRecordRaw[] = [
     name: 'EditSuratTugas',
     component: () => import('../views/BuatSuratTugasView.vue'),
     meta: {
+      title: 'Edit Surat Tugas',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
     },
@@ -68,6 +75,7 @@ const routes: RouteRecordRaw[] = [
     name: 'SuratTugasDetailPrint',
     component: () => import('../views/SuratTugasDetailPrintView.vue'),
     meta: {
+      title: 'Pratinjau Surat Tugas',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
@@ -78,6 +86,7 @@ const routes: RouteRecordRaw[] = [
     name: 'DaftarSpd',
     component: () => import('../views/DaftarSpdView.vue'),
     meta: {
+      title: 'Daftar Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
@@ -87,6 +96,7 @@ const routes: RouteRecordRaw[] = [
     name: 'BuatSpd',
     component: () => import('../views/BuatSpdView.vue'),
     meta: {
+      title: 'Buat Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
     },
@@ -96,6 +106,7 @@ const routes: RouteRecordRaw[] = [
     name: 'EditSpd',
     component: () => import('../views/BuatSpdView.vue'),
     meta: {
+      title: 'Edit Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
     },
@@ -106,6 +117,7 @@ const routes: RouteRecordRaw[] = [
     name: 'SpdDetailPrint',
     component: () => import('../views/SpdDetailPrintView.vue'),
     meta: {
+      title: 'Pratinjau Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
     },
@@ -128,6 +140,7 @@ const routes: RouteRecordRaw[] = [
     name: 'PengaturanKopSurat',
     component: () => import('../views/PengaturanKopSuratView.vue'),
     meta: {
+      title: 'Pengaturan Kop Surat',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN],
     },
@@ -138,6 +151,7 @@ const routes: RouteRecordRaw[] = [
     name: 'KepegawaianAsn',
     component: () => import('../views/KepegawaianAsnView.vue'),
     meta: {
+      title: 'Data Pegawai (ASN)',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN],
     },
@@ -148,6 +162,7 @@ const routes: RouteRecordRaw[] = [
     name: 'PengaturanPengguna',
     component: () => import('../views/PengaturanPenggunaView.vue'),
     meta: {
+      title: 'Pengaturan Pengguna Sistem',
       requiresAuth: true,
       roles: [Role.SUPER_ADMIN, Role.ADMIN],
     },

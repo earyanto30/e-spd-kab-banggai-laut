@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTheme } from '../../composables/useTheme';
 
@@ -13,6 +14,10 @@ const emit = defineEmits<{
 
 const route = useRoute();
 const { isDark, toggleTheme } = useTheme();
+
+const pageTitle = computed(() => {
+  return (route.meta?.title as string) || (route.name as string) || 'SI-SPD Banggai Laut';
+});
 </script>
 
 <template>
@@ -28,7 +33,7 @@ const { isDark, toggleTheme } = useTheme();
       </button>
       <div>
         <h1 class="text-base font-semibold text-white dark:text-text-main tracking-tight">
-          {{ (route.name as string) || 'SI-SPD Banggai Laut' }}
+          {{ pageTitle }}
         </h1>
         <p class="text-xs text-white/80 dark:text-text-muted font-normal">
           Sistem Informasi Surat Perjalanan Dinas Sekda Kab. Banggai Laut
