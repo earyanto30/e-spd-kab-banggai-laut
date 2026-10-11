@@ -1005,20 +1005,6 @@ onUnmounted(() => {
           </div>
 
           <div v-if="isEditing" class="space-y-3">
-            <!-- Guidelines box -->
-            <div class="p-2.5 bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 rounded-lg text-[11px] text-blue-950 dark:text-blue-200 space-y-1">
-              <div class="flex items-center gap-1.5 font-semibold text-primary">
-                <i class="pi pi-info-circle text-xs"></i>
-                <span>Standar Berkas Tanda Tangan:</span>
-              </div>
-              <ul class="list-disc list-inside space-y-0.5 text-text-muted dark:text-blue-200/80 pl-1">
-                <li>Format wajib <strong>PNG dengan latar belakang transparan</strong>.</li>
-                <li>Rasio horizontal <strong>~2 : 1</strong> (rekomendasi $600 \times 300$ px, min. lebar 100 px).</li>
-                <li>Ukuran berkas maksimal <strong>2 MB</strong>.</li>
-                <li>Berkas disimpan asli secara utuh tanpa pemotongan otomatis.</li>
-              </ul>
-            </div>
-
             <div v-if="form.tandaTangan && signatureUrls[form.id]" class="flex items-center gap-3 p-3 bg-slate-50 dark:bg-canvas border border-border rounded-lg mb-2">
               <div class="p-1 rounded border border-border flex items-center justify-center w-28 h-16 bg-[repeating-conic-gradient(#f1f5f9_0%_25%,#ffffff_0%_50%)] [background-size:10px_10px] dark:bg-[repeating-conic-gradient(#1e293b_0%_25%,#0f172a_0%_50%)]">
                 <img

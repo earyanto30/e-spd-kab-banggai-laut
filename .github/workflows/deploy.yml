@@ -49,6 +49,13 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Prune old images from GHCR
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        continue-on-error: true
+        with:
+          keep-n-tagged: 1
+          delete-untagged: true
+
       - name: Setup SSH agent
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -65,5 +72,5 @@ jobs:
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ${{ env.REGISTRY }} -u '${{ github.actor }}' --password-stdin
             docker compose pull
             docker compose up -d --remove-orphans
-            docker image prune -f
+            docker image prune -af
           "

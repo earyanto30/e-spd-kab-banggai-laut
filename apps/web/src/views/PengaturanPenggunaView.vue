@@ -779,8 +779,10 @@ onMounted(async () => {
         <div class="pt-1">
           <GovCheckbox
             id="isActiveCheckbox"
+            input-id="isActiveCheckbox"
             v-model="form.isActive"
-            label="Akun Aktif (Dapat digunakan untuk masuk ke dalam sistem)"
+            label="Akun Aktif"
+            description="Pengguna dengan status aktif dapat masuk (login) ke dalam sistem SI-SPD."
           />
         </div>
 
