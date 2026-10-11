@@ -211,8 +211,8 @@ export class SpdPdfService {
 
     const kopBytes = fs.readFileSync(kopFilePath);
     const pdfDoc = await PDFDocument.load(kopBytes);
-    const page = pdfDoc.getPages()[0];
-    const { width, height } = page.getSize(); // Legal 612 x 1008 or A4 595 x 842
+    let currentPage = pdfDoc.getPages()[0];
+    const { width, height } = currentPage.getSize(); // Legal 612 x 1008 or A4 595 x 842
 
     const isTimes = fontFamily?.toLowerCase() === 'times';
     const fontRegular = await pdfDoc.embedFont(isTimes ? StandardFonts.TimesRoman : StandardFonts.Helvetica);
@@ -227,25 +227,25 @@ export class SpdPdfService {
     const metaFontSize = 11;
     const lineSpacing = 15;
 
-    page.drawText('Lembar ke', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText('Lembar ke', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
     currentY -= lineSpacing;
 
-    page.drawText('Kode No.', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText('Kode No.', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
     currentY -= lineSpacing;
 
-    page.drawText('Nomor', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
-    page.drawText(spd.nomorSpd || '-', { x: metaX + 70, y: currentY, size: metaFontSize, font: fontBold, color: black });
+    currentPage.drawText('Nomor', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
+    currentPage.drawText(spd.nomorSpd || '-', { x: metaX + 70, y: currentY, size: metaFontSize, font: fontBold, color: black });
 
     // 2. Judul Dokumen (SURAT PERJALANAN DINAS)
     currentY -= 20;
     const title1 = 'SURAT PERJALANAN DINAS';
     const title1Width = fontBold.widthOfTextAtSize(title1, 12);
     const title1X = (width - title1Width) / 2;
-    page.drawText(title1, { x: title1X, y: currentY, size: 12, font: fontBold, color: black });
-    page.drawLine({
+    currentPage.drawText(title1, { x: title1X, y: currentY, size: 12, font: fontBold, color: black });
+    currentPage.drawLine({
       start: { x: title1X, y: currentY - 1.5 },
       end: { x: title1X + title1Width, y: currentY - 1.5 },
       thickness: 0.8,
@@ -255,7 +255,7 @@ export class SpdPdfService {
     currentY -= 14;
     const title2 = '(SPD)';
     const title2Width = fontBold.widthOfTextAtSize(title2, 12);
-    page.drawText(title2, { x: (width - title2Width) / 2, y: currentY, size: 12, font: fontBold, color: black });
+    currentPage.drawText(title2, { x: (width - title2Width) / 2, y: currentY, size: 12, font: fontBold, color: black });
 
     // 3. Tabel Standar 10 Poin
     currentY -= 15;
@@ -270,6 +270,7 @@ export class SpdPdfService {
     const rowLineHeight = 15;
     const cellPaddingY = 3.5;
     const cellPaddingX = 4.5;
+    const marginBottom = 45;
 
     const isKpa =
       (customSigner?.jabatan || '').toLowerCase().includes('kpa') ||
@@ -295,7 +296,7 @@ export class SpdPdfService {
       valBold?: boolean;
       height?: number;
       minHeight?: number;
-      valCustom?: (topY: number) => void;
+      valCustom?: (targetPage: PDFPage, topY: number) => void;
       valMaksud?: boolean;
       isPengikut?: boolean;
     }> = [
@@ -308,10 +309,10 @@ export class SpdPdfService {
       {
         no: '2.',
         desc: ['Nama/Nip Pegawai yang', 'melaksanakan Perjalanan Dinas'],
-        valCustom: (topY: number) => {
+        valCustom: (targetPage: PDFPage, topY: number) => {
           let y = topY - cellPaddingY - fontSize;
-          page.drawText(':', { x: col3X + cellPaddingX, y, size: fontSize, font: fontRegular, color: black });
-          page.drawText((spd.pegawai?.nama || '-').toUpperCase(), {
+          targetPage.drawText(':', { x: col3X + cellPaddingX, y, size: fontSize, font: fontRegular, color: black });
+          targetPage.drawText((spd.pegawai?.nama || '-').toUpperCase(), {
             x: col3X + cellPaddingX + 10,
             y,
             size: fontSize,
@@ -319,8 +320,8 @@ export class SpdPdfService {
             color: black,
           });
           y -= rowLineHeight;
-          page.drawText(':', { x: col3X + cellPaddingX, y, size: fontSize, font: fontRegular, color: black });
-          page.drawText(spd.pegawai?.nip || '-', {
+          targetPage.drawText(':', { x: col3X + cellPaddingX, y, size: fontSize, font: fontRegular, color: black });
+          targetPage.drawText(spd.pegawai?.nip || '-', {
             x: col3X + cellPaddingX + 10,
             y,
             size: fontSize,
@@ -419,18 +420,42 @@ export class SpdPdfService {
         rowH = Math.max(row.minHeight || 20, cellPaddingY * 2 + maxLines * rowLineHeight);
       }
 
+      // Cek apakah baris tabel ini muat di halaman saat ini:
+      if (currentY - rowH < marginBottom) {
+        // Tutup tabel di halaman ini dengan garis bawah
+        currentPage.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
+
+        // Buat halaman baru untuk lanjutan tabel
+        currentPage = pdfDoc.addPage([width, height]);
+
+        // Nomor halaman di bagian atas halaman lanjutan
+        const pageNumText = `- ${pdfDoc.getPageCount()} -`;
+        const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
+        currentPage.drawText(pageNumText, {
+          x: (width - pageNumWidth) / 2,
+          y: height - 40,
+          size: 10,
+          font: fontRegular,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+
+        currentY = height - 70;
+        // Garis atas tabel di halaman baru
+        currentPage.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
+      }
+
       const rowBottomY = currentY - rowH;
 
       // Draw borders
-      page.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
-      page.drawLine({ start: { x: col1X, y: currentY }, end: { x: col1X, y: rowBottomY }, thickness: 0.5, color: black });
+      currentPage.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
+      currentPage.drawLine({ start: { x: col1X, y: currentY }, end: { x: col1X, y: rowBottomY }, thickness: 0.5, color: black });
       // Vertical line after number (col2X) is omitted on all rows to merge number & description
-      page.drawLine({ start: { x: col3X, y: currentY }, end: { x: col3X, y: rowBottomY }, thickness: 0.5, color: black });
-      page.drawLine({ start: { x: tableRightX, y: currentY }, end: { x: tableRightX, y: rowBottomY }, thickness: 0.5, color: black });
+      currentPage.drawLine({ start: { x: col3X, y: currentY }, end: { x: col3X, y: rowBottomY }, thickness: 0.5, color: black });
+      currentPage.drawLine({ start: { x: tableRightX, y: currentY }, end: { x: tableRightX, y: rowBottomY }, thickness: 0.5, color: black });
 
       if (!row.isPengikut) {
         // Col 1 (No)
-        page.drawText(row.no, {
+        currentPage.drawText(row.no, {
           x: col1X + (colWidths[0] - fontRegular.widthOfTextAtSize(row.no, fontSize)) / 2,
           y: currentY - cellPaddingY - fontSize,
           size: fontSize,
@@ -444,7 +469,7 @@ export class SpdPdfService {
         for (const dLine of row.desc || []) {
           const splitLines = this.splitTextToLines(dLine, fontRegular, fontSize, maxDescWidth);
           for (const sLine of splitLines) {
-            page.drawText(sLine, { x: col2X + cellPaddingX, y: descY, size: fontSize, font: fontRegular, color: black });
+            currentPage.drawText(sLine, { x: col2X + cellPaddingX, y: descY, size: fontSize, font: fontRegular, color: black });
             descY -= rowLineHeight;
           }
         }
@@ -452,12 +477,9 @@ export class SpdPdfService {
 
       // Col 3 (Nilai)
       if (row.valCustom) {
-        row.valCustom(currentY);
+        row.valCustom(currentPage, currentY);
       } else if (row.isPengikut) {
         // Row 8 has height: 96
-        // Title banner: 21 pt (leaves ample space below "8. Nama Pengikut")
-        // Sub-header row: 19 pt (clean spacing for No, Nama, Umur, Keterangan)
-        // Body area: 96 - 21 - 19 = 56 pt (each item ~15 pt, leaving ~11 pt safe clearance from row bottom line)
         const titleHeight = 21;
         const subHeight = 19;
         const line1Y = currentY - titleHeight;
@@ -465,30 +487,30 @@ export class SpdPdfService {
         const subMidX = col3X + colWidths[2] / 2;
 
         // 1. Horizontal divider under "8. Nama Pengikut"
-        page.drawLine({ start: { x: tableX, y: line1Y }, end: { x: tableRightX, y: line1Y }, thickness: 0.5, color: black });
+        currentPage.drawLine({ start: { x: tableX, y: line1Y }, end: { x: tableRightX, y: line1Y }, thickness: 0.5, color: black });
 
         // 2. Horizontal divider under sub-header "No / Nama / Umur / Keterangan"
-        page.drawLine({ start: { x: tableX, y: line2Y }, end: { x: tableRightX, y: line2Y }, thickness: 0.5, color: black });
+        currentPage.drawLine({ start: { x: tableX, y: line2Y }, end: { x: tableRightX, y: line2Y }, thickness: 0.5, color: black });
 
         // 3. Vertical divider between Umur and Keterangan (from line1Y to rowBottomY)
-        page.drawLine({ start: { x: subMidX, y: line1Y }, end: { x: subMidX, y: rowBottomY }, thickness: 0.5, color: black });
+        currentPage.drawLine({ start: { x: subMidX, y: line1Y }, end: { x: subMidX, y: rowBottomY }, thickness: 0.5, color: black });
 
         // Text Part 1: "8.    Nama Pengikut" (centered nicely in 21 pt header)
         const titleY = currentY - 4.5 - fontSize;
-        page.drawText('8.', { x: col1X + 8, y: titleY, size: fontSize, font: fontRegular, color: black });
-        page.drawText('Nama Pengikut', { x: col1X + 32, y: titleY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('8.', { x: col1X + 8, y: titleY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('Nama Pengikut', { x: col1X + 32, y: titleY, size: fontSize, font: fontRegular, color: black });
 
         // Text Part 2: Sub-headers (centered nicely in 19 pt header)
         const subTextY = line1Y - 3.5 - fontSize;
-        page.drawText('No', { x: col1X + 10, y: subTextY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('No', { x: col1X + 10, y: subTextY, size: fontSize, font: fontRegular, color: black });
         const namaCenterX = col1X + 32 + (colWidths[1] - fontRegular.widthOfTextAtSize('Nama', fontSize)) / 2;
-        page.drawText('Nama', { x: namaCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('Nama', { x: namaCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
 
         const umurCenterX = col3X + (colWidths[2] / 2 - fontRegular.widthOfTextAtSize('Umur', fontSize)) / 2;
-        page.drawText('Umur', { x: umurCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('Umur', { x: umurCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
 
         const ketCenterX = subMidX + (colWidths[2] / 2 - fontRegular.widthOfTextAtSize('Keterangan', fontSize)) / 2;
-        page.drawText('Keterangan', { x: ketCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText('Keterangan', { x: ketCenterX, y: subTextY, size: fontSize, font: fontRegular, color: black });
 
         // Text Part 3: Body items "1.", "2.", "3."
         let itemY = line2Y - 4 - fontSize;
@@ -499,16 +521,16 @@ export class SpdPdfService {
 
         for (let idx = 0; idx < 3; idx++) {
           const numStr = `${idx + 1}.`;
-          page.drawText(numStr, { x: col1X + 12, y: itemY, size: fontSize, font: fontRegular, color: black });
+          currentPage.drawText(numStr, { x: col1X + 12, y: itemY, size: fontSize, font: fontRegular, color: black });
           if (pengikutArr[idx]) {
-            page.drawText(pengikutArr[idx], { x: col1X + 34, y: itemY, size: fontSize, font: fontRegular, color: black });
+            currentPage.drawText(pengikutArr[idx], { x: col1X + 34, y: itemY, size: fontSize, font: fontRegular, color: black });
           }
           itemY -= rowLineHeight;
         }
       } else if (row.valMaksud) {
         let valY = currentY - cellPaddingY - fontSize;
         const colonX = col3X + cellPaddingX;
-        page.drawText(':', { x: colonX, y: valY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText(':', { x: colonX, y: valY, size: fontSize, font: fontRegular, color: black });
 
         const textStartX = colonX + 10;
         const hasMultiple = maksudItems.length > 1;
@@ -520,14 +542,14 @@ export class SpdPdfService {
           const itemLines = this.splitTextToLines(item, fontRegular, fontSize, colWidths[2] - cellPaddingX * 2 - 10 - numWidth);
 
           if (hasMultiple) {
-            page.drawText(numPrefix, { x: textStartX, y: valY, size: fontSize, font: fontRegular, color: black });
+            currentPage.drawText(numPrefix, { x: textStartX, y: valY, size: fontSize, font: fontRegular, color: black });
           }
 
           const targetWidth = colWidths[2] - cellPaddingX * 2 - 10 - numWidth;
           for (let l = 0; l < itemLines.length; l++) {
             const isLast = l === itemLines.length - 1;
             this.drawJustifiedText(
-              page,
+              currentPage,
               itemLines[l],
               textStartX + numWidth,
               valY,
@@ -554,7 +576,7 @@ export class SpdPdfService {
           for (let l = 0; l < valLines.length; l++) {
             const isLast = l === valLines.length - 1;
             this.drawJustifiedText(
-              page,
+              currentPage,
               valLines[l],
               col3X + cellPaddingX,
               valY,
@@ -573,23 +595,71 @@ export class SpdPdfService {
     }
 
     // Bottom border of table
-    page.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
+    currentPage.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
 
-    // 4. Blok Tanda Tangan
-    currentY -= 20;
+    // 4. Blok Tanda Tangan (Disimpan sebagai Satu Kesatuan Utuh / Atomic Unit)
     const signX = 330;
     const signFontSize = 11;
     const signLineSpacing = 15;
+    const gapBeforeSign = 20;
 
-    page.drawText('Dikeluarkan di', { x: signX, y: currentY, size: signFontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: signX + 78, y: currentY, size: signFontSize, font: fontRegular, color: black });
-    page.drawText('Banggai', { x: signX + 88, y: currentY, size: signFontSize, font: fontRegular, color: black });
+    const sJabatan = customSigner?.jabatan || p?.jabatan || spd.penandatanganJabatan || spd.suratTugas?.penandatanganJabatan;
+    const signerTitle = sJabatan || (
+      (spd.pemberiPerintah || '').toLowerCase().includes('kuasa')
+        ? 'KUASA PENGGUNA ANGGARAN'
+        : 'PENGGUNA ANGGARAN'
+    );
+    const signTitleLines = this.splitTextToLines(signerTitle, fontBold, 11, width - signX - 45);
+
+    // Hitung total ketinggian blok tanda tangan dari baris pertama sampai NIP
+    // - Dikeluarkan di: 15 pt
+    // - Pada Tanggal: 15 + 6 = 21 pt
+    // - Jabatan: signTitleLines.length * 14 pt
+    // - Ruang tanda tangan / stempel / PNG: 95 pt
+    // - Nama: 14 pt
+    // - Pangkat: 14 pt
+    // - NIP: 14 pt
+    const totalSignBlockHeight =
+      signLineSpacing +
+      (signLineSpacing + 6) +
+      signTitleLines.length * 14 +
+      95 +
+      14 +
+      14 +
+      14;
+
+    // Jika blok tanda tangan tidak muat di halaman saat ini (atau menyentuh margin bawah):
+    // Pindahkan SELURUH komponen tanda tangan ke halaman baru (Page 2) sebagai SATU KESATUAN UTUH (Atomic Unit)
+    if (currentY - gapBeforeSign - totalSignBlockHeight < marginBottom) {
+      currentPage = pdfDoc.addPage([width, height]);
+
+      // Nomor halaman di bagian atas halaman lanjutan
+      const pageNumText = `- ${pdfDoc.getPageCount()} -`;
+      const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
+      currentPage.drawText(pageNumText, {
+        x: (width - pageNumWidth) / 2,
+        y: height - 40,
+        size: 10,
+        font: fontRegular,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+
+      // Mulai blok tanda tangan di halaman baru dari posisi atas yang lapang
+      currentY = height - 70;
+    } else {
+      currentY -= gapBeforeSign;
+    }
+
+    // Gambar seluruh komponen tanda tangan secara utuh (Atomic Unit):
+    currentPage.drawText('Dikeluarkan di', { x: signX, y: currentY, size: signFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signX + 78, y: currentY, size: signFontSize, font: fontRegular, color: black });
+    currentPage.drawText('Banggai', { x: signX + 88, y: currentY, size: signFontSize, font: fontRegular, color: black });
     currentY -= signLineSpacing;
 
-    page.drawText('Pada Tanggal', { x: signX, y: currentY, size: signFontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: signX + 78, y: currentY, size: signFontSize, font: fontRegular, color: black });
+    currentPage.drawText('Pada Tanggal', { x: signX, y: currentY, size: signFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signX + 78, y: currentY, size: signFontSize, font: fontRegular, color: black });
     const dateText = this.formatIndonesianDate(spd.createdAt || new Date());
-    page.drawText(dateText, {
+    currentPage.drawText(dateText, {
       x: signX + 88,
       y: currentY,
       size: signFontSize,
@@ -598,7 +668,7 @@ export class SpdPdfService {
     });
     // Garis bawah horizontal di bawah "Pada Tanggal : [Tanggal]"
     const dateLineWidth = 88 + fontRegular.widthOfTextAtSize(dateText, signFontSize);
-    page.drawLine({
+    currentPage.drawLine({
       start: { x: signX, y: currentY - 2 },
       end: { x: signX + dateLineWidth, y: currentY - 2 },
       thickness: 0.8,
@@ -606,14 +676,14 @@ export class SpdPdfService {
     });
     currentY -= signLineSpacing + 6;
 
-    const signerTitle = (spd.pemberiPerintah || '').toLowerCase().includes('kuasa')
-      ? 'KUASA PENGGUNA ANGGARAN'
-      : 'PENGGUNA ANGGARAN';
-
-    page.drawText(signerTitle, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
+    // Jabatan
+    for (const tLine of signTitleLines) {
+      currentPage.drawText(tLine, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
+      currentY -= 14;
+    }
 
     // Space for physical signature / stempel (extra spacious room for official signature and stamp)
-    currentY -= 95;
+    currentY -= (95 - 14);
 
     // Jika dokumen SPD sudah ditandatangani (DISETUJUI) dan pejabat memiliki file tanda tangan PNG
     if (spd.status === 'DISETUJUI' && p?.tandaTangan) {
@@ -626,7 +696,7 @@ export class SpdPdfService {
           // scaleToFit menjaga rasio asli gambar tetap proporsional tanpa memotong/mentrim gambar
           const sigDims = sigImage.scaleToFit(140, 70);
           // Posisikan tanda tangan tepat di atas nama penandatangan (jarak 12 pt dari baseline nama)
-          page.drawImage(sigImage, {
+          currentPage.drawImage(sigImage, {
             x: signX + 5,
             y: currentY + 12,
             width: sigDims.width,
@@ -640,9 +710,9 @@ export class SpdPdfService {
       }
     }
 
-    page.drawText(sNama, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
+    currentPage.drawText(sNama, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
     const namaWidth = fontBold.widthOfTextAtSize(sNama, 11);
-    page.drawLine({
+    currentPage.drawLine({
       start: { x: signX, y: currentY - 1 },
       end: { x: signX + namaWidth, y: currentY - 1 },
       thickness: 0.8,
@@ -650,10 +720,10 @@ export class SpdPdfService {
     });
 
     currentY -= 14;
-    page.drawText(sPangkat, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
+    currentPage.drawText(sPangkat, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
 
     currentY -= 14;
-    page.drawText(`NIP. ${sNip}`, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
+    currentPage.drawText(`NIP. ${sNip}`, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
 
     const pdfBytes = await pdfDoc.save();
     const cleanNum = (spd.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
