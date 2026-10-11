@@ -53,7 +53,6 @@ erDiagram
         String storedFileName
         String fileSize
         String paperSize
-        String tipeSurat
         Boolean isDefault
         DateTime createdAt
         DateTime updatedAt
@@ -166,7 +165,6 @@ erDiagram
 | `storedFileName` | String | No | None | None | Physical filename stored on disk |
 | `fileSize` | String | No | None | None | Formatted file size string |
 | `paperSize` | String | No | `'A4'` | None | Detected paper standard (`Legal`, `A4`, `F4 / Folio`) |
-| `tipeSurat` | String | Yes | `'SPD'` | None | Target letter type |
 | `isDefault` | Boolean | No | `false` | None | System-wide active default template flag |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |

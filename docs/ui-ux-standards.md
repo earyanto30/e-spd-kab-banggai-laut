@@ -112,7 +112,7 @@ The system separates administrative UI fonts from official government document f
 - OpenType Features: `'cv02', 'cv03', 'cv04', 'cv11'` for enhanced tabular figure clarity and character disambiguation
 - Contrast: Complies with WCAG 2.1 AA text contrast ratio ($\ge 4.5:1$ for normal body text)
 
-### 3.2 Official Document Font Stack (`SpdDocument.vue`)
+### 3.2 Official Document Font Stack (`SpdDetailPrintView.vue`)
 - Font Family: `'Times New Roman', Times, Georgia, serif !important`
 - Color: Strict `#000000 !important`
 - Background: Strict `#FFFFFF !important`

@@ -31,7 +31,6 @@ model KopSurat {
   storedFileName String
   fileSize       String
   paperSize      String   @default("A4")
-  tipeSurat      String?  @default("SPD")
   isDefault      Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

@@ -5,7 +5,6 @@ import { useTheme } from '../../composables/useTheme';
 
 defineProps<{
   sidebarCollapsed: boolean;
-  userName?: string | null;
 }>();
 
 const emit = defineEmits<{

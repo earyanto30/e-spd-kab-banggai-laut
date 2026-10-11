@@ -155,17 +155,6 @@ export type UpdateSpdDto = z.infer<typeof UpdateSpdSchema>;
 export const DASAR_HUKUM_DEFAULT =
   'Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)';
 
-export const SuratTugasPegawaiItemSchema = z.object({
-  pegawaiId: z.string(),
-  nama: z.string(),
-  nip: z.string(),
-  pangkat: z.string().optional(),
-  golongan: z.string().optional(),
-  jabatan: z.string().optional(),
-});
-
-export type SuratTugasPegawaiItemDto = z.infer<typeof SuratTugasPegawaiItemSchema>;
-
 export const SuratTugasSchema = z.object({
   id: z.string(),
   nomorSurat: z.string(),

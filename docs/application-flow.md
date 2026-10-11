@@ -61,8 +61,7 @@ All client network requests route through `apps/web/src/utils/api.ts`:
 3. Intercepts HTTP 401 Unauthorized responses to purge session storage and route to `/login`.
 
 ### 2.2 Backend Guards
-- `AuthGuard` (`apps/api/src/auth/auth.guard.ts`): Parses the Authorization Bearer header, validates JWT integrity via HMAC-SHA256, checks expiration, and sets `req.user`.
-- `RolesGuard` (`apps/api/src/auth/roles.guard.ts`): Reads `@Roles(...)` metadata and verifies user role authorization against the defined permissions list.
+- `AuthGuard` (`apps/api/src/auth/auth.guard.ts`): Parses the Authorization Bearer header, validates JWT integrity via HMAC-SHA256, sets `req.user`, and verifies role permissions against `@Roles(...)` metadata.
 
 ---
 

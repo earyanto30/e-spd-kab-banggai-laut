@@ -81,7 +81,6 @@ onMounted(() => {
           <!-- Top Header -->
           <GovHeader
             :sidebar-collapsed="sidebarCollapsed"
-            :user-name="userName"
             @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
           />
 

@@ -50,7 +50,6 @@ erDiagram
         String storedFileName
         String fileSize
         String paperSize
-        String tipeSurat
         Boolean isDefault
         DateTime createdAt
         DateTime updatedAt
@@ -164,7 +163,6 @@ Stores metadata and file locations for official letterhead PDF templates.
 | `storedFileName` | String | No | None | None | Filename on disk (`uploads/kop-surat/kop-[timestamp].pdf`) |
 | `fileSize` | String | No | None | None | Human-readable file size string |
 | `paperSize` | String | No | `'A4'` | None | Detected paper size (`Legal`, `A4`, `F4 / Folio`) |
-| `tipeSurat` | String | Yes | `'SPD'` | None | Target document type |
 | `isDefault` | Boolean | No | `false` | None | System-wide default letterhead flag |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
@@ -335,7 +333,7 @@ The system maintains a separation between administrative UI typography and forma
    - Font Feature Settings: `'cv02', 'cv03', 'cv04', 'cv11'` for enhanced numeral and glyph clarity
    - Body Line Height: 1.5
 
-2. **Official Government Document Typography (`SpdDocument.vue`):**
+2. **Official Government Document Typography (`SpdDetailPrintView.vue`):**
    - Font Family: Strict Serif stack (`'Times New Roman', Times, Georgia, serif !important`)
    - Document Text Color: Strict `#000000 !important` (completely isolated from UI dark mode)
    - Paper Background: Strict `#FFFFFF !important`
@@ -374,7 +372,7 @@ The toast container is mounted at the root (`App.vue`) and styled via fixed posi
 
 ### 2.6 Physical Document Layout & Print Media Standard
 
-The document renderer (`apps/web/src/components/spd/SpdDocument.vue`) conforms to Indonesian Ministry of Home Affairs (Permendagri) and Regional Regulations (Perbup Banggai Laut):
+The document renderer (`apps/web/src/views/SpdDetailPrintView.vue`) conforms to Indonesian Ministry of Home Affairs (Permendagri) and Regional Regulations (Perbup Banggai Laut):
 
 #### 2.6.1 Paper Dimensions
 - **Legal / F4 (Primary):** `215.9mm` x `355.6mm` (`8.5in x 14in` / `612pt x 1008pt`)
