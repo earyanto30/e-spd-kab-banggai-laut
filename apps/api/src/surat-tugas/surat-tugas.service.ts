@@ -699,4 +699,22 @@ export class SuratTugasService {
       where: { id },
     });
   }
+
+  async bulkDelete(ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return { success: true, count: 0, message: 'Tidak ada surat tugas yang dipilih.' };
+    }
+    // Delete child SPD records created under these Surat Tugas first
+    await this.prisma.spd.deleteMany({
+      where: { suratTugasId: { in: ids } },
+    });
+    const result = await this.prisma.suratTugas.deleteMany({
+      where: { id: { in: ids } },
+    });
+    return {
+      success: true,
+      count: result.count,
+      message: `Berhasil menghapus ${result.count} data Surat Tugas beserta SPD terkait.`,
+    };
+  }
 }

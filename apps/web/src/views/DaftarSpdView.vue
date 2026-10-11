@@ -103,6 +103,137 @@ const activeSpd = ref<SpdItem | null>(null);
 const newStatus = ref<'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL'>('DRAFT');
 const isSubmitting = ref(false);
 
+// Checkbox Selection Mode & Bulk Actions
+const isSelectionMode = ref(false);
+const selectedSpd = ref<SpdItem[]>([]);
+const isBulkDeleting = ref(false);
+const isBulkPrinting = ref(false);
+const isBulkDownloading = ref(false);
+const showBulkDeleteDialog = ref(false);
+
+const toggleSelectionMode = () => {
+  isSelectionMode.value = !isSelectionMode.value;
+  if (!isSelectionMode.value) {
+    selectedSpd.value = [];
+  }
+};
+
+const clearSelection = () => {
+  selectedSpd.value = [];
+};
+
+const handleBulkPrint = async () => {
+  if (selectedSpd.value.length === 0) {
+    toast.warn('Pilih minimal satu Surat Perjalanan Dinas untuk dicetak');
+    return;
+  }
+  isBulkPrinting.value = true;
+  try {
+    const ids = selectedSpd.value.map((s) => s.id);
+    const res = await apiFetch('/api/spd/bulk-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 3000);
+        }, 200);
+      };
+      toast.success(`Menyiapkan cetak untuk ${selectedSpd.value.length} dokumen SPD`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menyiapkan berkas cetak SPD');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat memproses cetak massal');
+  } finally {
+    isBulkPrinting.value = false;
+  }
+};
+
+const handleBulkDownload = async () => {
+  if (selectedSpd.value.length === 0) {
+    toast.warn('Pilih minimal satu Surat Perjalanan Dinas untuk diunduh');
+    return;
+  }
+  isBulkDownloading.value = true;
+  try {
+    const ids = selectedSpd.value.map((s) => s.id);
+    const res = await apiFetch('/api/spd/bulk-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SPD_Gabungan_${ids.length}_Dokumen.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Berhasil mengunduh gabungan ${ids.length} dokumen SPD`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh berkas SPD');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengunduh');
+  } finally {
+    isBulkDownloading.value = false;
+  }
+};
+
+const handleConfirmBulkDelete = async () => {
+  if (selectedSpd.value.length === 0) return;
+  isBulkDeleting.value = true;
+  try {
+    const ids = selectedSpd.value.map((s) => s.id);
+    const res = await apiFetch('/api/spd/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      toast.success(data.message || `Berhasil menghapus ${ids.length} dokumen SPD`);
+      showBulkDeleteDialog.value = false;
+      selectedSpd.value = [];
+      await loadSpdList();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menghapus data SPD terpilih');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat menghapus data terpilih');
+  } finally {
+    isBulkDeleting.value = false;
+  }
+};
+
 // Date formatting
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
@@ -540,6 +671,16 @@ onMounted(() => {
           variant="outlined"
           @click="handleResetFilters"
         />
+
+        <!-- Toggle Mode Pilih / Checkbox -->
+        <GovButton
+          :label="isSelectionMode ? 'Sembunyikan Pilihan' : 'Pilih Sekaligus'"
+          :icon="isSelectionMode ? 'pi pi-check-circle' : 'pi pi-check-square'"
+          :severity="isSelectionMode ? 'primary' : 'secondary'"
+          :variant="isSelectionMode ? undefined : 'outlined'"
+          @click="toggleSelectionMode"
+          :title="isSelectionMode ? 'Nonaktifkan kotak centang' : 'Tampilkan kotak centang untuk pilih beberapa dokumen SPD'"
+        />
       </div>
 
       <div class="text-xs text-text-muted flex-shrink-0 self-end md:self-center">
@@ -547,9 +688,73 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Bulk Actions Banner (Saat Mode Pilihan Aktif) -->
+    <div
+      v-if="isSelectionMode"
+      class="p-3.5 bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs shadow-xs flex-shrink-0">
+          {{ selectedSpd.length }}
+        </div>
+        <div>
+          <div class="text-xs font-bold text-text-main">
+            {{ selectedSpd.length > 0 ? `${selectedSpd.length} Dokumen SPD terpilih` : 'Mode Pilihan Aktif: Centang kotak pada baris tabel' }}
+          </div>
+          <div class="text-[11px] text-text-muted">
+            Pilih satu atau lebih dokumen SPD untuk dicetak sekaligus atau dihapus secara massal.
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <GovButton
+          v-if="selectedSpd.length > 0"
+          label="Cetak Terpilih"
+          icon="pi pi-print"
+          size="small"
+          severity="primary"
+          :loading="isBulkPrinting"
+          @click="handleBulkPrint"
+          title="Cetak langsung seluruh dokumen SPD yang dipilih"
+        />
+        <GovButton
+          v-if="selectedSpd.length > 0"
+          label="Unduh PDF"
+          icon="pi pi-download"
+          size="small"
+          severity="secondary"
+          variant="outlined"
+          :loading="isBulkDownloading"
+          @click="handleBulkDownload"
+          title="Unduh berkas PDF gabungan untuk dokumen SPD yang dipilih"
+        />
+        <GovButton
+          v-if="selectedSpd.length > 0 && !isPenandatanganUser"
+          label="Hapus Terpilih"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          variant="outlined"
+          @click="showBulkDeleteDialog = true"
+          title="Hapus massal dokumen SPD yang dicentang"
+        />
+        <GovButton
+          v-if="selectedSpd.length > 0"
+          label="Batalkan Pilihan"
+          icon="pi pi-times"
+          size="small"
+          severity="secondary"
+          variant="text"
+          @click="clearSelection"
+        />
+      </div>
+    </div>
+
     <!-- Data Table -->
     <div class="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
       <GovTable
+        v-model:selection="selectedSpd"
         :value="spdList"
         :loading="loading"
         :paginator="true"
@@ -563,6 +768,14 @@ onMounted(() => {
             <p class="text-xs text-text-muted mt-1">Coba gunakan kata kunci pencarian lain atau buat SPD baru.</p>
           </div>
         </template>
+
+        <!-- Checkbox Selection Column -->
+        <Column
+          v-if="isSelectionMode"
+          selection-mode="multiple"
+          header-style="width: 3.5rem; text-align: center"
+          body-style="text-align: center"
+        />
 
         <!-- Kolom Nomor SPD -->
         <Column field="nomorSpd" header="Nomor SPD" style="width: 180px;">
@@ -874,6 +1087,58 @@ onMounted(() => {
           />
         </div>
       </template>
+    </Dialog>
+
+    <!-- DIALOG KONFIRMASI HAPUS MASSAL SPD -->
+    <Dialog
+      v-model:visible="showBulkDeleteDialog"
+      header="Konfirmasi Hapus Massal Surat Perjalanan Dinas"
+      :modal="true"
+      class="max-w-md w-full"
+    >
+      <div class="space-y-4 pt-2">
+        <div class="flex items-start gap-3 text-amber-600 dark:text-amber-400">
+          <i class="pi pi-exclamation-triangle text-2xl mt-0.5"></i>
+          <div>
+            <div class="font-semibold text-sm">Hapus {{ selectedSpd.length }} Dokumen SPD Terpilih?</div>
+            <div class="text-xs text-text-muted mt-1 leading-relaxed">
+              Tindakan ini akan menghapus <strong>{{ selectedSpd.length }} data Surat Perjalanan Dinas</strong> secara permanen. Tindakan ini tidak dapat dibatalkan.
+            </div>
+          </div>
+        </div>
+
+        <!-- Ringkasan Dokumen yang akan dihapus -->
+        <div class="max-h-40 overflow-y-auto space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg text-xs">
+          <div
+            v-for="(spd, idx) in selectedSpd"
+            :key="spd.id"
+            class="flex items-center justify-between text-text-main py-0.5"
+          >
+            <div class="truncate mr-2">
+              <span class="font-mono font-medium">{{ idx + 1 }}. {{ spd.nomorSpd }}</span>
+              <span class="text-text-muted ml-1 text-[11px]">({{ spd.pegawai?.nama }})</span>
+            </div>
+            <Tag :value="spd.status" :severity="getStatusSeverity(spd.status)" class="text-[10px]" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4 border-t border-border">
+          <GovButton
+            label="Batal"
+            severity="secondary"
+            variant="outlined"
+            @click="showBulkDeleteDialog = false"
+            :disabled="isBulkDeleting"
+          />
+          <GovButton
+            :label="`Ya, Hapus ${selectedSpd.length} Dokumen`"
+            icon="pi pi-trash"
+            severity="danger"
+            :loading="isBulkDeleting"
+            @click="handleConfirmBulkDelete"
+          />
+        </div>
+      </div>
     </Dialog>
   </div>
 </template>

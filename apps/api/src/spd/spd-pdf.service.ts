@@ -732,4 +732,35 @@ export class SpdPdfService {
       fileName: `SPD_${cleanNum}.pdf`,
     };
   }
+
+  async generateBulkPdf(ids: string[], fontFamily?: string): Promise<{ buffer: Buffer; fileName: string }> {
+    if (!ids || ids.length === 0) {
+      throw new NotFoundException('Daftar ID SPD wajib disertakan');
+    }
+
+    const mergedDoc = await PDFDocument.create();
+
+    for (const id of ids) {
+      try {
+        const { buffer } = await this.generatePdf(id, undefined, fontFamily);
+        const subDoc = await PDFDocument.load(buffer);
+        const copiedPages = await mergedDoc.copyPages(subDoc, subDoc.getPageIndices());
+        for (const p of copiedPages) {
+          mergedDoc.addPage(p);
+        }
+      } catch (err) {
+        console.warn(`[SpdPdfService] Gagal memuat SPD ID '${id}' saat bulk print:`, err);
+      }
+    }
+
+    if (mergedDoc.getPageCount() === 0) {
+      throw new NotFoundException('Tidak ada dokumen SPD yang berhasil dimuat untuk digabungkan');
+    }
+
+    const mergedBytes = await mergedDoc.save();
+    return {
+      buffer: Buffer.from(mergedBytes),
+      fileName: `SPD_Gabungan_${ids.length}_Dokumen.pdf`,
+    };
+  }
 }

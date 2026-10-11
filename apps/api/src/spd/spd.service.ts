@@ -434,4 +434,18 @@ export class SpdService {
     });
     return { success: true, message: 'Surat Perjalanan Dinas berhasil dihapus' };
   }
+
+  async bulkDelete(ids: string[]) {
+    if (!ids || ids.length === 0) {
+      return { success: true, count: 0, message: 'Tidak ada SPD yang dipilih.' };
+    }
+    const result = await this.prisma.spd.deleteMany({
+      where: { id: { in: ids } },
+    });
+    return {
+      success: true,
+      count: result.count,
+      message: `Berhasil menghapus ${result.count} data Surat Perjalanan Dinas.`,
+    };
+  }
 }

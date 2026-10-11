@@ -494,4 +494,35 @@ export class SuratTugasPdfService {
       fileName: `Surat_Tugas_${cleanNum}.pdf`,
     };
   }
+
+  async generateBulkPdf(ids: string[], fontFamily?: string): Promise<{ buffer: Buffer; fileName: string }> {
+    if (!ids || ids.length === 0) {
+      throw new NotFoundException('Daftar ID Surat Tugas wajib disertakan');
+    }
+
+    const mergedDoc = await PDFDocument.create();
+
+    for (const id of ids) {
+      try {
+        const { buffer } = await this.generatePdf(id, undefined, fontFamily);
+        const subDoc = await PDFDocument.load(buffer);
+        const copiedPages = await mergedDoc.copyPages(subDoc, subDoc.getPageIndices());
+        for (const p of copiedPages) {
+          mergedDoc.addPage(p);
+        }
+      } catch (err) {
+        console.warn(`[SuratTugasPdfService] Gagal memuat Surat Tugas ID '${id}' saat bulk print:`, err);
+      }
+    }
+
+    if (mergedDoc.getPageCount() === 0) {
+      throw new NotFoundException('Tidak ada dokumen Surat Tugas yang berhasil dimuat untuk digabungkan');
+    }
+
+    const mergedBytes = await mergedDoc.save();
+    return {
+      buffer: Buffer.from(mergedBytes),
+      fileName: `Surat_Tugas_Gabungan_${ids.length}_Dokumen.pdf`,
+    };
+  }
 }

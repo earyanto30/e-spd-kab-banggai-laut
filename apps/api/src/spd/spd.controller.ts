@@ -11,6 +11,7 @@ import {
   Res,
   Req,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { SpdService } from './spd.service';
@@ -66,6 +67,31 @@ export class SpdController {
       : undefined;
 
     const { buffer, fileName } = await this.spdPdfService.generatePdf(id, signer, fontFamily);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    res.send(buffer);
+  }
+
+  @Post('bulk-delete')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  async bulkDelete(@Body('ids') ids: string[]) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Daftar ID SPD wajib disertakan.');
+    }
+    return this.spdService.bulkDelete(ids);
+  }
+
+  @Post('bulk-pdf')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  async downloadBulkPdf(
+    @Body('ids') ids: string[],
+    @Body('fontFamily') fontFamily: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Daftar ID SPD wajib disertakan.');
+    }
+    const { buffer, fileName } = await this.spdPdfService.generateBulkPdf(ids, fontFamily);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
     res.send(buffer);

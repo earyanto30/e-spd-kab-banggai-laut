@@ -11,6 +11,7 @@ import {
   Res,
   Req,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { SuratTugasService } from './surat-tugas.service';
@@ -93,6 +94,31 @@ export class SuratTugasController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   deleteAllSpd(@Param('id') id: string) {
     return this.suratTugasService.deleteAllSpd(id);
+  }
+
+  @Post('bulk-delete')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
+  async bulkDelete(@Body('ids') ids: string[]) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Daftar ID Surat Tugas wajib disertakan.');
+    }
+    return this.suratTugasService.bulkDelete(ids);
+  }
+
+  @Post('bulk-pdf')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  async downloadBulkPdf(
+    @Body('ids') ids: string[],
+    @Body('fontFamily') fontFamily: string | undefined,
+    @Res() res: Response,
+  ) {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      throw new BadRequestException('Daftar ID Surat Tugas wajib disertakan.');
+    }
+    const { buffer, fileName } = await this.suratTugasPdfService.generateBulkPdf(ids, fontFamily);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    res.send(buffer);
   }
 
   @Get(':id')

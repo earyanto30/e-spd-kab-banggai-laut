@@ -97,6 +97,137 @@ const activeItem = ref<SuratTugasItem | null>(null);
 const newStatus = ref<'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL'>('DRAFT');
 const isSubmitting = ref(false);
 
+// Checkbox Selection Mode & Bulk Actions
+const isSelectionMode = ref(false);
+const selectedSuratTugas = ref<SuratTugasItem[]>([]);
+const isBulkDeleting = ref(false);
+const isBulkPrinting = ref(false);
+const isBulkDownloading = ref(false);
+const showBulkDeleteDialog = ref(false);
+
+const toggleSelectionMode = () => {
+  isSelectionMode.value = !isSelectionMode.value;
+  if (!isSelectionMode.value) {
+    selectedSuratTugas.value = [];
+  }
+};
+
+const clearSelection = () => {
+  selectedSuratTugas.value = [];
+};
+
+const handleBulkPrint = async () => {
+  if (selectedSuratTugas.value.length === 0) {
+    toast.warn('Pilih minimal satu Surat Tugas untuk dicetak');
+    return;
+  }
+  isBulkPrinting.value = true;
+  try {
+    const ids = selectedSuratTugas.value.map((s) => s.id);
+    const res = await apiFetch('/api/surat-tugas/bulk-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 3000);
+        }, 200);
+      };
+      toast.success(`Menyiapkan cetak untuk ${selectedSuratTugas.value.length} Surat Tugas`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menyiapkan berkas cetak Surat Tugas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat memproses cetak massal');
+  } finally {
+    isBulkPrinting.value = false;
+  }
+};
+
+const handleBulkDownload = async () => {
+  if (selectedSuratTugas.value.length === 0) {
+    toast.warn('Pilih minimal satu Surat Tugas untuk diunduh');
+    return;
+  }
+  isBulkDownloading.value = true;
+  try {
+    const ids = selectedSuratTugas.value.map((s) => s.id);
+    const res = await apiFetch('/api/surat-tugas/bulk-pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Surat_Tugas_Gabungan_${ids.length}_Dokumen.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Berhasil mengunduh gabungan ${ids.length} dokumen Surat Tugas`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh berkas Surat Tugas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengunduh');
+  } finally {
+    isBulkDownloading.value = false;
+  }
+};
+
+const handleConfirmBulkDelete = async () => {
+  if (selectedSuratTugas.value.length === 0) return;
+  isBulkDeleting.value = true;
+  try {
+    const ids = selectedSuratTugas.value.map((s) => s.id);
+    const res = await apiFetch('/api/surat-tugas/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      toast.success(data.message || `Berhasil menghapus ${ids.length} Surat Tugas`);
+      showBulkDeleteDialog.value = false;
+      selectedSuratTugas.value = [];
+      await loadData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal menghapus data Surat Tugas terpilih');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat menghapus data terpilih');
+  } finally {
+    isBulkDeleting.value = false;
+  }
+};
+
 // Date formatting
 const formatDate = (dateStr: string | null | undefined): string => {
   if (!dateStr) return '-';
@@ -512,6 +643,16 @@ const exportToCsv = () => {
           variant="outlined"
           @click="handleResetFilters"
         />
+
+        <!-- Toggle Mode Pilih / Checkbox -->
+        <GovButton
+          :label="isSelectionMode ? 'Sembunyikan Pilihan' : 'Pilih Sekaligus'"
+          :icon="isSelectionMode ? 'pi pi-check-circle' : 'pi pi-check-square'"
+          :severity="isSelectionMode ? 'primary' : 'secondary'"
+          :variant="isSelectionMode ? undefined : 'outlined'"
+          @click="toggleSelectionMode"
+          :title="isSelectionMode ? 'Nonaktifkan kotak centang' : 'Tampilkan kotak centang untuk pilih beberapa surat tugas'"
+        />
       </div>
 
       <div class="text-xs text-text-muted flex-shrink-0">
@@ -519,9 +660,73 @@ const exportToCsv = () => {
       </div>
     </div>
 
+    <!-- Bulk Actions Banner (Saat Mode Pilihan Aktif) -->
+    <div
+      v-if="isSelectionMode"
+      class="p-3.5 bg-blue-50/90 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs transition-all"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold text-xs shadow-xs flex-shrink-0">
+          {{ selectedSuratTugas.length }}
+        </div>
+        <div>
+          <div class="text-xs font-bold text-text-main">
+            {{ selectedSuratTugas.length > 0 ? `${selectedSuratTugas.length} Surat Tugas terpilih` : 'Mode Pilihan Aktif: Centang kotak pada baris tabel' }}
+          </div>
+          <div class="text-[11px] text-text-muted">
+            Pilih satu atau lebih surat tugas untuk dicetak sekaligus atau dihapus secara massal.
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap">
+        <GovButton
+          v-if="selectedSuratTugas.length > 0"
+          label="Cetak Terpilih"
+          icon="pi pi-print"
+          size="small"
+          severity="primary"
+          :loading="isBulkPrinting"
+          @click="handleBulkPrint"
+          title="Cetak langsung seluruh surat tugas yang dipilih"
+        />
+        <GovButton
+          v-if="selectedSuratTugas.length > 0"
+          label="Unduh PDF"
+          icon="pi pi-download"
+          size="small"
+          severity="secondary"
+          variant="outlined"
+          :loading="isBulkDownloading"
+          @click="handleBulkDownload"
+          title="Unduh berkas PDF gabungan untuk dokumen yang dipilih"
+        />
+        <GovButton
+          v-if="selectedSuratTugas.length > 0 && !isPenandatanganUser"
+          label="Hapus Terpilih"
+          icon="pi pi-trash"
+          size="small"
+          severity="danger"
+          variant="outlined"
+          @click="showBulkDeleteDialog = true"
+          title="Hapus massal surat tugas yang dicentang"
+        />
+        <GovButton
+          v-if="selectedSuratTugas.length > 0"
+          label="Batalkan Pilihan"
+          icon="pi pi-times"
+          size="small"
+          severity="secondary"
+          variant="text"
+          @click="clearSelection"
+        />
+      </div>
+    </div>
+
     <!-- Data Table -->
     <div class="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
       <GovTable
+        v-model:selection="selectedSuratTugas"
         :value="list"
         :loading="loading"
         :paginator="true"
@@ -535,6 +740,14 @@ const exportToCsv = () => {
             <p class="text-xs text-text-muted mt-1">Coba gunakan kata kunci lain atau terbitkan surat tugas baru.</p>
           </div>
         </template>
+
+        <!-- Checkbox Selection Column -->
+        <Column
+          v-if="isSelectionMode"
+          selection-mode="multiple"
+          header-style="width: 3.5rem; text-align: center"
+          body-style="text-align: center"
+        />
 
         <!-- Nomor Surat -->
         <Column field="nomorSurat" header="Nomor Surat Tugas" style="width: 200px;">
@@ -829,6 +1042,55 @@ const exportToCsv = () => {
           />
         </div>
       </template>
+    </Dialog>
+
+    <!-- DIALOG KONFIRMASI HAPUS MASSAL -->
+    <Dialog
+      v-model:visible="showBulkDeleteDialog"
+      header="Konfirmasi Hapus Massal Surat Tugas"
+      :modal="true"
+      class="max-w-md w-full"
+    >
+      <div class="space-y-4 pt-2">
+        <div class="flex items-start gap-3 text-amber-600 dark:text-amber-400">
+          <i class="pi pi-exclamation-triangle text-2xl mt-0.5"></i>
+          <div>
+            <div class="font-semibold text-sm">Hapus {{ selectedSuratTugas.length }} Surat Tugas Terpilih?</div>
+            <div class="text-xs text-text-muted mt-1 leading-relaxed">
+              Tindakan ini akan menghapus <strong>{{ selectedSuratTugas.length }} dokumen Surat Tugas</strong> beserta seluruh data Surat Perjalanan Dinas (SPD) yang terhubung dengannya secara permanen. Tindakan ini tidak dapat dibatalkan.
+            </div>
+          </div>
+        </div>
+
+        <!-- Ringkasan Dokumen yang akan dihapus -->
+        <div class="max-h-40 overflow-y-auto space-y-1.5 p-2.5 bg-slate-50 dark:bg-slate-900 border border-border rounded-lg text-xs">
+          <div
+            v-for="(st, idx) in selectedSuratTugas"
+            :key="st.id"
+            class="flex items-center justify-between text-text-main py-0.5"
+          >
+            <span class="font-mono font-medium truncate mr-2">{{ idx + 1 }}. {{ st.nomorSurat }}</span>
+            <Tag :value="st.status" :severity="getStatusSeverity(st.status)" class="text-[10px]" />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-4 border-t border-border">
+          <GovButton
+            label="Batal"
+            severity="secondary"
+            variant="outlined"
+            @click="showBulkDeleteDialog = false"
+            :disabled="isBulkDeleting"
+          />
+          <GovButton
+            :label="`Ya, Hapus ${selectedSuratTugas.length} Dokumen`"
+            icon="pi pi-trash"
+            severity="danger"
+            :loading="isBulkDeleting"
+            @click="handleConfirmBulkDelete"
+          />
+        </div>
+      </div>
     </Dialog>
   </div>
 </template>
