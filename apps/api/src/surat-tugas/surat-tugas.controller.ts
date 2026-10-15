@@ -29,7 +29,7 @@ export class SuratTugasController {
   ) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findAll(
     @Req() req: any,
     @Query('q') query?: string,
@@ -41,7 +41,7 @@ export class SuratTugasController {
   }
 
   @Get(':id/pdf')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   async downloadPdf(
     @Param('id') id: string,
     @Req() req: any,
@@ -73,7 +73,7 @@ export class SuratTugasController {
   }
 
   @Patch(':id/status')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   updateStatus(
     @Param('id') id: string,
     @Body('status') status: string,
@@ -106,7 +106,7 @@ export class SuratTugasController {
   }
 
   @Post('bulk-pdf')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   async downloadBulkPdf(
     @Body('ids') ids: string[],
     @Body('fontFamily') fontFamily: string | undefined,
@@ -122,13 +122,13 @@ export class SuratTugasController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findById(@Param('id') id: string, @Req() req: any) {
     return this.suratTugasService.findById(id, req.user);
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   create(@Body() dto: CreateSuratTugasDto) {
     return this.suratTugasService.create(dto);
   }

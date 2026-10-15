@@ -1,100 +1,17 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto, DASAR_HUKUM_DEFAULT, Role } from '@si-setda/shared-types';
+import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto, DASAR_HUKUM_DEFAULT } from '@si-setda/shared-types';
 
 @Injectable()
 export class SuratTugasService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private isPenandatanganOnly(currentUser?: any): boolean {
-    if (!currentUser) return false;
-    if (currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.ADMIN) {
-      return false;
-    }
-    return currentUser.role === Role.PENANDATANGAN || currentUser.isPenandatangan === true;
-  }
-
-  private buildSignerOrConditions(currentUser: any): any[] {
-    const conditions: any[] = [];
-    if (!currentUser) return conditions;
-
-    if (currentUser.pegawaiId) {
-      conditions.push({ penandatanganId: currentUser.pegawaiId });
-    }
-
-    const rawNip = (currentUser.nip || '').trim();
-    const cleanNip = rawNip.replace(/[^0-9]/g, '');
-    if (cleanNip.length >= 8) {
-      conditions.push({ penandatanganNip: { contains: cleanNip } });
-    }
-    if (rawNip.length > 0) {
-      conditions.push({ penandatanganNip: { contains: rawNip } });
-    }
-
-    const username = (currentUser.username || '').trim();
-    if (username && /^\d{8,}$/.test(username)) {
-      conditions.push({ penandatanganNip: { contains: username } });
-    }
-
-    const name = (currentUser.name || '').trim();
-    if (name.length > 0) {
-      conditions.push({ penandatanganNama: { contains: name } });
-      const cleanName = name
-        .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
-        .split(',')[0]
-        .trim();
-      if (cleanName.length >= 4 && cleanName !== name) {
-        conditions.push({ penandatanganNama: { contains: cleanName } });
-      }
-    }
-
-    if (currentUser.jabatan && currentUser.jabatan.trim()) {
-      conditions.push({ penandatanganJabatan: { contains: currentUser.jabatan.trim() } });
-    }
-
-    return conditions;
-  }
-
-  private verifySignerAccess(currentUser: any, item: any) {
-    if (!this.isPenandatanganOnly(currentUser)) return;
-
-    if (currentUser.pegawaiId && item.penandatanganId && item.penandatanganId === currentUser.pegawaiId) {
-      return;
-    }
-
-    const rawNip = (currentUser.nip || '').trim();
-    const cleanNip = rawNip.replace(/[^0-9]/g, '');
-    const username = (currentUser.username || '').trim();
-    const isUsernameNip = /^\d{8,}$/.test(username);
-    const name = (currentUser.name || '').toLowerCase().trim();
-    const cleanName = name
-      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
-      .split(',')[0]
-      .trim();
-
-    const docNip = (item.penandatanganNip || '').replace(/[^0-9]/g, '');
-    const docRawNip = (item.penandatanganNip || '').trim();
-    const docNama = (item.penandatanganNama || '').toLowerCase().trim();
-    const docJabatan = (item.penandatanganJabatan || '').toLowerCase().trim();
-
-    if (cleanNip.length >= 8 && docNip.includes(cleanNip)) return;
-    if (rawNip.length > 0 && docRawNip.includes(rawNip)) return;
-    if (isUsernameNip && docNip.includes(username)) return;
-    if (name.length > 0 && (docNama.includes(name) || name.includes(docNama))) return;
-    if (cleanName.length >= 4 && (docNama.includes(cleanName) || cleanName.includes(docNama))) return;
-    if (currentUser.jabatan && docJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
-
-    throw new ForbiddenException(
-      'Anda tidak memiliki hak akses untuk melihat dokumen Surat Tugas ini karena dokumen ini ditugaskan untuk pejabat penandatangan lain.'
-    );
-  }
 
   async findAll(
     query?: string,
     status?: string,
     startDate?: string,
     endDate?: string,
-    currentUser?: any,
+    _currentUser?: any,
   ) {
     const where: any = {};
 
@@ -153,20 +70,6 @@ export class SuratTugasService {
       }
 
       where.OR = orConditions;
-    }
-
-    if (this.isPenandatanganOnly(currentUser)) {
-      const signerOr = this.buildSignerOrConditions(currentUser);
-      const finalSignerCondition = signerOr.length > 0 ? signerOr : [{ id: '__NO_ACCESS__' }];
-      if (where.OR) {
-        where.AND = [
-          { OR: where.OR },
-          { OR: finalSignerCondition },
-        ];
-        delete where.OR;
-      } else {
-        where.OR = finalSignerCondition;
-      }
     }
 
     const items = await this.prisma.suratTugas.findMany({
@@ -235,8 +138,6 @@ export class SuratTugasService {
     if (!item) {
       throw new NotFoundException(`Surat Tugas dengan ID '${id}' tidak ditemukan`);
     }
-
-    this.verifySignerAccess(currentUser, item);
 
     let pegawaiList = item.spdList.map((s) => s.pegawai).filter(Boolean);
     if (pegawaiList.length === 0 && item.pegawaiIds) {

@@ -286,6 +286,34 @@ startxref
     console.log('[Seed] Seeded default Kop Surat metadata.');
   }
 
+  // 4. Initial Dasar Hukum References
+  const defaultDasarHukum = [
+    {
+      judul: 'UU No. 09 Tahun 2015 tentang Pemerintahan Daerah',
+      isi: 'Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)',
+      isDefault: true,
+      urutan: 1,
+    },
+    {
+      judul: 'Perbup Banggai Laut tentang Perjalanan Dinas',
+      isi: 'Peraturan Bupati Banggai Laut tentang Pedoman Pelaksanaan dan Pertanggungjawaban Perjalanan Dinas di Lingkungan Pemerintah Kabupaten Banggai Laut',
+      isDefault: false,
+      urutan: 2,
+    },
+  ];
+
+  for (const dh of defaultDasarHukum) {
+    const existing = await prisma.dasarHukum.findFirst({
+      where: { judul: dh.judul },
+    });
+    if (!existing) {
+      await prisma.dasarHukum.create({
+        data: dh,
+      });
+    }
+  }
+  console.log('[Seed] Seeded initial Dasar Hukum statutory references.');
+
   console.log('==> Database Seeding Finished Successfully.');
 }
 

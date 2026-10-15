@@ -46,7 +46,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Daftar Surat Tugas',
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -77,7 +77,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Pratinjau Surat Tugas',
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -88,7 +88,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Daftar Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -119,7 +119,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Pratinjau Surat Perjalanan Dinas (SPD)',
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
     },
   },
   {
@@ -153,7 +153,7 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Data Pegawai (ASN)',
       requiresAuth: true,
-      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN],
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
     },
   },
   {

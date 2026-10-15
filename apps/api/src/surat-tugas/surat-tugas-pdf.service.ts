@@ -97,26 +97,6 @@ export class SuratTugasPdfService {
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  private resolveSignaturePath(fileName: string): string | null {
-    if (!fileName) return null;
-    const candidates = [
-      process.env.SIGNATURE_UPLOAD_DIR ? path.resolve(process.env.SIGNATURE_UPLOAD_DIR, fileName) : null,
-      path.resolve(process.cwd(), 'apps/api/uploads/signatures', fileName),
-      path.resolve(process.cwd(), 'uploads/signatures', fileName),
-      path.resolve(__dirname, '../../uploads/signatures', fileName),
-      path.resolve(__dirname, '../../../uploads/signatures', fileName),
-      path.resolve(__dirname, '../../../../uploads/signatures', fileName),
-      path.resolve('/home/evan/projects/e-spd/apps/api/uploads/signatures', fileName),
-    ].filter(Boolean) as string[];
-
-    for (const cand of candidates) {
-      if (fs.existsSync(cand)) {
-        return cand;
-      }
-    }
-    return null;
-  }
-
   async generatePdf(
     id: string,
     customSigner?: OfficialSignerDto,
@@ -150,21 +130,6 @@ export class SuratTugasPdfService {
       : (p ? (p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat) : st.penandatanganPangkat || '');
     const signerNip = customSigner?.nip || p?.nip || st.penandatanganNip || '';
 
-    if ((!p || !p.tandaTangan) && (signerNip || signerNama)) {
-      const matched = await this.prisma.pegawai.findFirst({
-        where: {
-          OR: [
-            signerNip ? { nip: signerNip } : undefined,
-            signerNama ? { nama: signerNama } : undefined,
-          ].filter(Boolean) as any,
-          tandaTangan: { not: null },
-        },
-      });
-      if (matched) {
-        p = matched;
-      }
-    }
-
     // Resolve Kop Surat PDF
     let kopStoredFileName: string | undefined;
     if (st.kopSuratId) {
@@ -187,8 +152,8 @@ export class SuratTugasPdfService {
 
     const kopBytes = fs.readFileSync(kopFilePath);
     const pdfDoc = await PDFDocument.load(kopBytes);
-    const page = pdfDoc.getPages()[0];
-    const { width, height } = page.getSize();
+    let currentPage = pdfDoc.getPages()[0];
+    const { width, height } = currentPage.getSize();
 
     // Word Scale: Font Size 12 Everywhere (Default font: Arial / Helvetica)
     const isTimes = fontFamily?.toLowerCase() === 'times';
@@ -197,6 +162,24 @@ export class SuratTugasPdfService {
     const black = rgb(0, 0, 0);
     const fontSize = 12;
     const lineHeight = 15;
+    const marginBottom = 45;
+
+    // Helper: Buat halaman baru jika konten teks panjang melampaui batas margin bawah
+    const ensureSpaceOrNewPage = (neededHeight: number) => {
+      if (currentY - neededHeight < marginBottom) {
+        currentPage = pdfDoc.addPage([width, height]);
+        const pageNumText = `- ${pdfDoc.getPageCount()} -`;
+        const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
+        currentPage.drawText(pageNumText, {
+          x: (width - pageNumWidth) / 2,
+          y: height - 40,
+          size: 10,
+          font: fontRegular,
+          color: rgb(0.3, 0.3, 0.3),
+        });
+        currentY = height - 70;
+      }
+    };
 
     // Margin setup
     const leftMargin = 54; // ~0.75 in
@@ -210,8 +193,8 @@ export class SuratTugasPdfService {
     const titleText = 'SURAT TUGAS';
     const titleWidth = fontBold.widthOfTextAtSize(titleText, fontSize);
     const titleX = (width - titleWidth) / 2;
-    page.drawText(titleText, { x: titleX, y: currentY, size: fontSize, font: fontBold, color: black });
-    page.drawLine({
+    currentPage.drawText(titleText, { x: titleX, y: currentY, size: fontSize, font: fontBold, color: black });
+    currentPage.drawLine({
       start: { x: titleX, y: currentY - 1.5 },
       end: { x: titleX + titleWidth, y: currentY - 1.5 },
       thickness: 0.8,
@@ -221,7 +204,7 @@ export class SuratTugasPdfService {
     currentY -= 15;
     const nomorText = `Nomor : ${st.nomorSurat || '000.1.2.3/ / Bag.Umum/' + new Date().getFullYear()}`;
     const nomorWidth = fontRegular.widthOfTextAtSize(nomorText, fontSize);
-    page.drawText(nomorText, {
+    currentPage.drawText(nomorText, {
       x: (width - nomorWidth) / 2,
       y: currentY,
       size: fontSize,
@@ -232,18 +215,19 @@ export class SuratTugasPdfService {
     currentY -= 24;
 
     // 2. DASAR HUKUM (Hardcoded statutory basis)
-    page.drawText('Dasar  :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText('Dasar  :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
     const dasarNumberX = leftMargin + 50;
-    page.drawText('1.', { x: dasarNumberX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText('1.', { x: dasarNumberX, y: currentY, size: fontSize, font: fontRegular, color: black });
 
     const dasarTextX = dasarNumberX + 16;
     const dasarWidth = rightMargin - dasarTextX;
     const dasarLines = this.splitTextToLines(st.dasarHukum, fontRegular, fontSize, dasarWidth);
 
     for (let i = 0; i < dasarLines.length; i++) {
+      ensureSpaceOrNewPage(lineHeight);
       const isLast = i === dasarLines.length - 1;
       this.drawJustifiedText(
-        page,
+        currentPage,
         dasarLines[i],
         dasarTextX,
         currentY,
@@ -259,9 +243,10 @@ export class SuratTugasPdfService {
     currentY -= 14;
 
     // 3. MEMERINTAHKAN : (Centered Bold)
+    ensureSpaceOrNewPage(20);
     const memText = 'MEMERINTAHKAN :';
     const memWidth = fontBold.widthOfTextAtSize(memText, fontSize);
-    page.drawText(memText, {
+    currentPage.drawText(memText, {
       x: (width - memWidth) / 2,
       y: currentY,
       size: fontSize,
@@ -272,7 +257,8 @@ export class SuratTugasPdfService {
     currentY -= 20;
 
     // 4. KEPADA : (Daftar Pegawai Pelaksana 1, 2, 3...)
-    page.drawText('Kepada :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
+    ensureSpaceOrNewPage(20);
+    currentPage.drawText('Kepada :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
 
     const kepadaNumX = leftMargin + 85;
     const labelX = kepadaNumX + 18;
@@ -296,12 +282,16 @@ export class SuratTugasPdfService {
     for (let idx = 0; idx < pegawaiItems.length; idx++) {
       const p = pegawaiItems[idx];
       const numPrefix = `${idx + 1}.`;
+      const jabLines = this.splitTextToLines(p.jabatan || '-', fontRegular, fontSize, valMaxWidth);
+      const personilHeight = lineHeight * 3 + jabLines.length * lineHeight + 6;
+
+      ensureSpaceOrNewPage(personilHeight);
 
       // Nama Row
-      page.drawText(numPrefix, { x: kepadaNumX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText('Nama', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText((p.nama || '-').toUpperCase(), {
+      currentPage.drawText(numPrefix, { x: kepadaNumX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText('Nama', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText((p.nama || '-').toUpperCase(), {
         x: valX,
         y: currentY,
         size: fontSize,
@@ -312,24 +302,23 @@ export class SuratTugasPdfService {
 
       // Pangkat/Gol
       const pktGol = p.pangkat ? `${p.pangkat}${p.golongan ? ', ' + p.golongan : ''}` : '-';
-      page.drawText('Pangkat/Gol', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(pktGol, { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText('Pangkat/Gol', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(pktGol, { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
       currentY -= lineHeight;
 
       // NIP
       const nipLabel = p.golongan && !isNaN(Number(p.golongan)) ? 'NI PPPK' : 'NIP';
-      page.drawText(nipLabel, { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(p.nip || '-', { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(nipLabel, { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(p.nip || '-', { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
       currentY -= lineHeight;
 
       // Jabatan
-      const jabLines = this.splitTextToLines(p.jabatan || '-', fontRegular, fontSize, valMaxWidth);
-      page.drawText('Jabatan', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
-      page.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText('Jabatan', { x: labelX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentPage.drawText(':', { x: colonX, y: currentY, size: fontSize, font: fontRegular, color: black });
       for (let j = 0; j < jabLines.length; j++) {
-        page.drawText(jabLines[j], { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
+        currentPage.drawText(jabLines[j], { x: valX, y: currentY, size: fontSize, font: fontRegular, color: black });
         currentY -= lineHeight;
       }
 
@@ -339,7 +328,8 @@ export class SuratTugasPdfService {
     currentY -= 10;
 
     // 5. UNTUK : (Dalam Rangka Multi Agenda)
-    page.drawText('Untuk   :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
+    ensureSpaceOrNewPage(20);
+    currentPage.drawText('Untuk   :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
 
     const untukPrefixX = leftMargin + 50;
     const agendaLines = (st.dalamRangka || '')
@@ -355,23 +345,26 @@ export class SuratTugasPdfService {
       const targetW = rightMargin - textX;
       const lines = this.splitTextToLines(st.dalamRangka || '-', fontRegular, fontSize, targetW);
       for (let i = 0; i < lines.length; i++) {
+        ensureSpaceOrNewPage(lineHeight);
         const isLast = i === lines.length - 1;
-        this.drawJustifiedText(page, lines[i], textX, currentY, fontSize, fontRegular, black, targetW, isLast);
+        this.drawJustifiedText(currentPage, lines[i], textX, currentY, fontSize, fontRegular, black, targetW, isLast);
         currentY -= lineHeight;
       }
     } else {
       for (let idx = 0; idx < agendaLines.length; idx++) {
         const numStr = `${idx + 1}.`;
-        page.drawText(numStr, { x: untukPrefixX, y: currentY, size: fontSize, font: fontRegular, color: black });
-
         const itemTextX = untukPrefixX + 16;
         const itemWidth = rightMargin - itemTextX;
         const subLines = this.splitTextToLines(agendaLines[idx], fontRegular, fontSize, itemWidth);
 
+        ensureSpaceOrNewPage(subLines.length * lineHeight + 5);
+
+        currentPage.drawText(numStr, { x: untukPrefixX, y: currentY, size: fontSize, font: fontRegular, color: black });
+
         for (let i = 0; i < subLines.length; i++) {
           const isLast = i === subLines.length - 1;
           this.drawJustifiedText(
-            page,
+            currentPage,
             subLines[i],
             itemTextX,
             currentY,
@@ -387,15 +380,55 @@ export class SuratTugasPdfService {
       }
     }
 
-    currentY -= 20;
-
-    // 6. BLOK TANDA TANGAN (Kanan Bawah)
+    // 6. BLOK TANDA TANGAN (Kanan Bawah - Atomic Unit / Satu Kesatuan Utuh)
     const signX = 330;
     const signLineSpacing = 16;
+    const gapBeforeSign = 20;
 
-    page.drawText('Dikeluarkan di', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
-    page.drawText(st.tempatDikeluarkan || 'Banggai', {
+    const titleLines = this.splitTextToLines(signerJabatan, fontBold, fontSize, rightMargin - signX);
+
+    // Hitung total tinggi blok tanda tangan secara utuh:
+    // - Dikeluarkan di: signLineSpacing (16 pt)
+    // - Pada Tanggal + underline: signLineSpacing + 8 (24 pt)
+    // - Jabatan: titleLines.length * lineHeight
+    // - Ruang tanda tangan / stempel / PNG: 95 pt
+    // - Nama + Underline: 15 pt
+    // - Pangkat: 15 pt
+    // - NIP: 15 pt
+    const totalSignBlockHeight =
+      signLineSpacing +
+      (signLineSpacing + 8) +
+      titleLines.length * lineHeight +
+      95 +
+      15 +
+      15 +
+      15;
+
+    // Jika blok tanda tangan tidak muat di halaman saat ini:
+    // Pindahkan SELURUH komponen tanda tangan ke halaman berikutnya sebagai SATU KESATUAN UTUH (Atomic Unit)
+    if (currentY - gapBeforeSign - totalSignBlockHeight < marginBottom) {
+      currentPage = pdfDoc.addPage([width, height]);
+
+      // Nomor halaman di bagian atas halaman lanjutan
+      const pageNumText = `- ${pdfDoc.getPageCount()} -`;
+      const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
+      currentPage.drawText(pageNumText, {
+        x: (width - pageNumWidth) / 2,
+        y: height - 40,
+        size: 10,
+        font: fontRegular,
+        color: rgb(0.3, 0.3, 0.3),
+      });
+
+      currentY = height - 70;
+    } else {
+      currentY -= gapBeforeSign;
+    }
+
+    // Gambar seluruh komponen tanda tangan secara utuh:
+    currentPage.drawText('Dikeluarkan di', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(st.tempatDikeluarkan || 'Banggai', {
       x: signX + 92,
       y: currentY,
       size: fontSize,
@@ -404,10 +437,10 @@ export class SuratTugasPdfService {
     });
     currentY -= signLineSpacing;
 
-    page.drawText('Pada Tanggal', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    page.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText('Pada Tanggal', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
     const formattedDate = this.formatIndonesianDate(st.tanggalSurat);
-    page.drawText(formattedDate, {
+    currentPage.drawText(formattedDate, {
       x: signX + 92,
       y: currentY,
       size: fontSize,
@@ -417,7 +450,7 @@ export class SuratTugasPdfService {
 
     // Underline below date
     const dateLineWidth = 92 + fontRegular.widthOfTextAtSize(formattedDate, fontSize);
-    page.drawLine({
+    currentPage.drawLine({
       start: { x: signX, y: currentY - 2 },
       end: { x: signX + dateLineWidth, y: currentY - 2 },
       thickness: 0.8,
@@ -427,46 +460,18 @@ export class SuratTugasPdfService {
     currentY -= signLineSpacing + 8;
 
     // Jabatan Pejabat (Multi lines split if needed)
-    const titleLines = this.splitTextToLines(signerJabatan, fontBold, fontSize, rightMargin - signX);
     for (const tLine of titleLines) {
-      page.drawText(tLine, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
+      currentPage.drawText(tLine, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
       currentY -= lineHeight;
     }
 
-    // Space for physical signature / stempel (extra spacious room for official signature and stamp)
-    const signSpaceTopY = currentY;
+    // Space for physical signature / stempel
     currentY -= 95;
 
-    // Jika dokumen sudah ditandatangani (DISETUJUI) dan pejabat memiliki file tanda tangan PNG
-    if (st.status === 'DISETUJUI' && p?.tandaTangan) {
-      try {
-        const targetPath = this.resolveSignaturePath(p.tandaTangan);
-        if (targetPath) {
-          const sigBytes = fs.readFileSync(targetPath);
-          const sigImage = await pdfDoc.embedPng(sigBytes);
-          // Standarisasi ukuran: batas maksimal lebar 140 pt, tinggi 70 pt.
-          // scaleToFit menjaga rasio asli gambar tetap proporsional tanpa memotong/mentrim gambar
-          const sigDims = sigImage.scaleToFit(140, 70);
-          // Posisikan tanda tangan tepat di atas nama penandatangan (jarak 12 pt dari baseline nama)
-          page.drawImage(sigImage, {
-            x: signX + 5,
-            y: currentY + 12,
-            width: sigDims.width,
-            height: sigDims.height,
-          });
-        } else {
-          console.warn(`[SuratTugasPdfService] File tanda tangan "${p.tandaTangan}" tidak ditemukan di disk.`);
-        }
-      } catch (err) {
-        // Fallback gracefully jika gagal embed gambar
-        console.warn('Gagal memuat tanda tangan digital penandatangan:', err);
-      }
-    }
-
     // Nama Pejabat
-    page.drawText(signerNama, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
+    currentPage.drawText(signerNama, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
     const sNamaWidth = fontBold.widthOfTextAtSize(signerNama, fontSize);
-    page.drawLine({
+    currentPage.drawLine({
       start: { x: signX, y: currentY - 1 },
       end: { x: signX + sNamaWidth, y: currentY - 1 },
       thickness: 0.8,
@@ -475,11 +480,11 @@ export class SuratTugasPdfService {
     currentY -= 15;
 
     // Pangkat
-    page.drawText(signerPangkat, { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(signerPangkat, { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
     currentY -= 15;
 
     // NIP
-    page.drawText(`NIP. ${signerNip}`, {
+    currentPage.drawText(`NIP. ${signerNip}`, {
       x: signX,
       y: currentY,
       size: fontSize,

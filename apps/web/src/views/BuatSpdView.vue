@@ -268,6 +268,7 @@ const angkaTerbilang = (n: number): string => {
 
 const lamaPerjalananDisplay = computed(() => {
   const days = Number(form.lamaHari) || 0;
+  if (days <= 0) return '-';
   return `${days} (${angkaTerbilang(days)}) Hari`;
 });
 
@@ -293,7 +294,9 @@ const validate = (): boolean => {
   if (form.alatAngkut.length === 0) errors.alatAngkut = 'Pilih minimal satu alat angkut.';
   if (!form.tempatBerangkat.trim()) errors.tempatBerangkat = 'Tempat berangkat wajib diisi.';
   if (!form.tempatTujuan.trim()) errors.tempatTujuan = 'Tempat tujuan wajib diisi.';
-  if (!form.lamaHari || form.lamaHari < 1) errors.lamaHari = 'Lama perjalanan minimal 1 hari.';
+  if (form.lamaHari !== null && form.lamaHari !== undefined && Number(form.lamaHari) < 1) {
+    errors.lamaHari = 'Lama perjalanan minimal 1 hari.';
+  }
   if (!form.tanggalBerangkat) errors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
   if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
   if (!form.penandatanganId) errors.penandatanganId = 'Pejabat Penandatangan SPD wajib dipilih.';
@@ -332,7 +335,7 @@ const handleSubmit = async () => {
       alatAngkut: alatAngkutDisplay.value,
       tempatBerangkat: form.tempatBerangkat.trim(),
       tempatTujuan: form.tempatTujuan.trim(),
-      lamaHari: Number(form.lamaHari),
+      lamaHari: form.lamaHari ? Number(form.lamaHari) : undefined,
       tanggalBerangkat: form.tanggalBerangkat!.toISOString(),
       kopSuratId: form.kopSuratId || undefined,
     };
@@ -613,7 +616,7 @@ const handleCancel = () => {
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-text-main">
-              7. Lama Perjalanan Dinas <span class="text-red-500">*</span>
+              7. Lama Perjalanan Dinas <span class="text-xs text-text-muted font-normal">(Opsional)</span>
             </label>
             <GovInputNumber
               v-model="form.lamaHari"

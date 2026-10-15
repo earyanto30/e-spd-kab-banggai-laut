@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const Role = {
   SUPER_ADMIN: 'SUPER_ADMIN',
   ADMIN: 'ADMIN',
-  PENANDATANGAN: 'PENANDATANGAN',
   STAFF: 'STAFF',
   USER: 'USER',
 } as const;
@@ -11,9 +10,8 @@ export const Role = {
 export type RoleType = (typeof Role)[keyof typeof Role];
 
 export const RoleHierarchy: Record<RoleType, number> = {
-  [Role.SUPER_ADMIN]: 5,
-  [Role.ADMIN]: 4,
-  [Role.PENANDATANGAN]: 3,
+  [Role.SUPER_ADMIN]: 4,
+  [Role.ADMIN]: 3,
   [Role.STAFF]: 2,
   [Role.USER]: 1,
 };
@@ -96,9 +94,9 @@ export const SpdSchema = z.object({
   alatAngkut: z.string(),
   tempatBerangkat: z.string(),
   tempatTujuan: z.string(),
-  lamaHari: z.number().int().positive(),
+  lamaHari: z.number().int().positive().nullable().optional(),
   tanggalBerangkat: z.date().or(z.string()),
-  tanggalKembali: z.date().or(z.string()),
+  tanggalKembali: z.date().or(z.string()).nullable().optional(),
   skpd: z.string().default('Bagian Umum Sekretariat Daerah Kab. Banggai Laut'),
   kodeRekening: z.string().nullable().optional(),
   tingkatBiaya: z.string().nullable().optional(),
@@ -128,9 +126,9 @@ export const CreateSpdSchema = z.object({
   alatAngkut: z.string().min(1, 'Alat angkut wajib diisi'),
   tempatBerangkat: z.string().min(1, 'Tempat berangkat wajib diisi'),
   tempatTujuan: z.string().min(1, 'Tempat tujuan wajib diisi'),
-  lamaHari: z.number().int().positive('Lama perjalanan minimal 1 hari'),
+  lamaHari: z.number().int().positive('Lama perjalanan minimal 1 hari').nullable().optional(),
   tanggalBerangkat: z.string().or(z.date()),
-  tanggalKembali: z.string().or(z.date()).optional(),
+  tanggalKembali: z.string().or(z.date()).nullable().optional(),
   skpd: z.string().optional(),
   kodeRekening: z.string().nullable().optional(),
   tingkatBiaya: z.string().nullable().optional(),

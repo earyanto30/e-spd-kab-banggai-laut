@@ -220,7 +220,6 @@ const handleBack = () => {
 
 const isPenandatanganUser = computed(() => {
   return localStorage.getItem('user_is_penandatangan') === 'true' ||
-         localStorage.getItem('user_role') === 'PENANDATANGAN' ||
          localStorage.getItem('user_role') === 'ADMIN' ||
          localStorage.getItem('user_role') === 'SUPER_ADMIN';
 });
@@ -331,7 +330,7 @@ const fetchSpd = async () => {
           return false;
         });
 
-        if (!matched && (localStorage.getItem('user_role') === 'PENANDATANGAN' || localStorage.getItem('user_is_penandatangan') === 'true')) {
+        if (!matched && localStorage.getItem('user_is_penandatangan') === 'true') {
           matched = signersList.value.find((s) => {
             const sNip = (s.nip || '').replace(/[^0-9]/g, '');
             const sName = (s.nama || '').toLowerCase().trim();

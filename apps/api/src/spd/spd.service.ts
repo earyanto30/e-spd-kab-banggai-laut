@@ -1,145 +1,17 @@
-import { Injectable, NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSpdDto, UpdateSpdDto, Role } from '@si-setda/shared-types';
+import { CreateSpdDto, UpdateSpdDto } from '@si-setda/shared-types';
 
 @Injectable()
 export class SpdService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private isPenandatanganOnly(currentUser?: any): boolean {
-    if (!currentUser) return false;
-    if (currentUser.role === Role.SUPER_ADMIN || currentUser.role === Role.ADMIN) {
-      return false;
-    }
-    return currentUser.role === Role.PENANDATANGAN || currentUser.isPenandatangan === true;
-  }
-
-  private buildSpdSignerOrConditions(currentUser: any): any[] {
-    const conditions: any[] = [];
-    if (!currentUser) return conditions;
-
-    if (currentUser.pegawaiId) {
-      conditions.push({ penandatanganId: currentUser.pegawaiId });
-      conditions.push({ suratTugas: { penandatanganId: currentUser.pegawaiId } });
-    }
-
-    const rawNip = (currentUser.nip || '').trim();
-    const cleanNip = rawNip.replace(/[^0-9]/g, '');
-    if (cleanNip.length >= 8) {
-      conditions.push({ penandatanganNip: { contains: cleanNip } });
-      conditions.push({ suratTugas: { penandatanganNip: { contains: cleanNip } } });
-    }
-    if (rawNip.length > 0) {
-      conditions.push({ penandatanganNip: { contains: rawNip } });
-      conditions.push({ suratTugas: { penandatanganNip: { contains: rawNip } } });
-    }
-
-    const username = (currentUser.username || '').trim();
-    if (username && /^\d{8,}$/.test(username)) {
-      conditions.push({ penandatanganNip: { contains: username } });
-      conditions.push({ suratTugas: { penandatanganNip: { contains: username } } });
-    }
-
-    const name = (currentUser.name || '').trim();
-    if (name.length > 0) {
-      conditions.push({ penandatanganNama: { contains: name } });
-      conditions.push({ suratTugas: { penandatanganNama: { contains: name } } });
-      const cleanName = name
-        .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
-        .split(',')[0]
-        .trim();
-      if (cleanName.length >= 4 && cleanName !== name) {
-        conditions.push({ penandatanganNama: { contains: cleanName } });
-        conditions.push({ suratTugas: { penandatanganNama: { contains: cleanName } } });
-      }
-    }
-
-    if (currentUser.jabatan && currentUser.jabatan.trim()) {
-      conditions.push({ penandatanganJabatan: { contains: currentUser.jabatan.trim() } });
-      conditions.push({ suratTugas: { penandatanganJabatan: { contains: currentUser.jabatan.trim() } } });
-
-      const userJab = currentUser.jabatan.toLowerCase();
-      if (userJab.includes('sekretaris daerah') || userJab.includes('sekda')) {
-        conditions.push({ pemberiPerintah: { contains: 'Pengguna Anggaran' } });
-      } else if (userJab.includes('bagian umum') || userJab.includes('kpa')) {
-        conditions.push({ pemberiPerintah: { contains: 'Kuasa Pengguna Anggaran' } });
-      }
-    }
-
-    return conditions;
-  }
-
-  private verifySignerAccess(currentUser: any, item: any) {
-    if (!this.isPenandatanganOnly(currentUser)) return;
-
-    if (currentUser.pegawaiId && item.penandatanganId && item.penandatanganId === currentUser.pegawaiId) {
-      return;
-    }
-    if (currentUser.pegawaiId && item.suratTugas?.penandatanganId && item.suratTugas.penandatanganId === currentUser.pegawaiId) {
-      return;
-    }
-
-    const rawNip = (currentUser.nip || '').trim();
-    const cleanNip = rawNip.replace(/[^0-9]/g, '');
-    const username = (currentUser.username || '').trim();
-    const isUsernameNip = /^\d{8,}$/.test(username);
-    const name = (currentUser.name || '').toLowerCase().trim();
-    const cleanName = name
-      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s+/gi, '')
-      .split(',')[0]
-      .trim();
-
-    // Direct SPD signer check
-    const docNip = (item.penandatanganNip || '').replace(/[^0-9]/g, '');
-    const docRawNip = (item.penandatanganNip || '').trim();
-    const docNama = (item.penandatanganNama || '').toLowerCase().trim();
-    const docJabatan = (item.penandatanganJabatan || '').toLowerCase().trim();
-
-    if (cleanNip.length >= 8 && docNip.includes(cleanNip)) return;
-    if (rawNip.length > 0 && docRawNip.includes(rawNip)) return;
-    if (isUsernameNip && docNip.includes(username)) return;
-    if (name.length > 0 && (docNama.includes(name) || name.includes(docNama))) return;
-    if (cleanName.length >= 4 && (docNama.includes(cleanName) || cleanName.includes(docNama))) return;
-    if (currentUser.jabatan && docJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
-
-    // Check connected Surat Tugas
-    if (item.suratTugas) {
-      const stNip = (item.suratTugas.penandatanganNip || '').replace(/[^0-9]/g, '');
-      const stRawNip = (item.suratTugas.penandatanganNip || '').trim();
-      const stNama = (item.suratTugas.penandatanganNama || '').toLowerCase().trim();
-      const stJabatan = (item.suratTugas.penandatanganJabatan || '').toLowerCase().trim();
-
-      if (cleanNip.length >= 8 && stNip.includes(cleanNip)) return;
-      if (rawNip.length > 0 && stRawNip.includes(rawNip)) return;
-      if (isUsernameNip && stNip.includes(username)) return;
-      if (name.length > 0 && (stNama.includes(name) || name.includes(stNama))) return;
-      if (cleanName.length >= 4 && (stNama.includes(cleanName) || cleanName.includes(stNama))) return;
-      if (currentUser.jabatan && stJabatan.includes(currentUser.jabatan.toLowerCase().trim())) return;
-    }
-
-    // Check pemberiPerintah authority
-    if (item.pemberiPerintah && currentUser.jabatan) {
-      const userJab = currentUser.jabatan.toLowerCase();
-      const pemberi = item.pemberiPerintah.toLowerCase();
-      if ((userJab.includes('sekretaris daerah') || userJab.includes('sekda')) && pemberi.includes('pengguna anggaran')) {
-        return;
-      }
-      if ((userJab.includes('bagian umum') || userJab.includes('kpa')) && pemberi.includes('kuasa pengguna anggaran')) {
-        return;
-      }
-    }
-
-    throw new ForbiddenException(
-      'Anda tidak memiliki hak akses untuk melihat dokumen SPD ini karena dokumen ini ditugaskan untuk pejabat penandatangan lain.'
-    );
-  }
 
   async findAll(
     query?: string,
     status?: string,
     startDate?: string,
     endDate?: string,
-    currentUser?: any,
+    _currentUser?: any,
   ) {
     const where: any = {};
 
@@ -180,20 +52,6 @@ export class SpdService {
       ];
     }
 
-    if (this.isPenandatanganOnly(currentUser)) {
-      const signerOr = this.buildSpdSignerOrConditions(currentUser);
-      const finalSignerCondition = signerOr.length > 0 ? signerOr : [{ id: '__NO_ACCESS__' }];
-      if (where.OR) {
-        where.AND = [
-          { OR: where.OR },
-          { OR: finalSignerCondition },
-        ];
-        delete where.OR;
-      } else {
-        where.OR = finalSignerCondition;
-      }
-    }
-
     return this.prisma.spd.findMany({
       where,
       include: {
@@ -220,7 +78,7 @@ export class SpdService {
     });
   }
 
-  async findById(id: string, currentUser?: any) {
+  async findById(id: string, _currentUser?: any) {
     const item = await this.prisma.spd.findUnique({
       where: { id },
       include: {
@@ -234,8 +92,6 @@ export class SpdService {
     if (!item) {
       throw new NotFoundException(`Surat Perjalanan Dinas dengan ID '${id}' tidak ditemukan`);
     }
-
-    this.verifySignerAccess(currentUser, item);
 
     return item;
   }
@@ -276,9 +132,14 @@ export class SpdService {
     }
 
     const tglBerangkat = new Date(dto.tanggalBerangkat);
-    let tglKembali = dto.tanggalKembali ? new Date(dto.tanggalKembali) : new Date(tglBerangkat);
-    if (!dto.tanggalKembali) {
-      tglKembali.setDate(tglKembali.getDate() + Math.max(0, dto.lamaHari - 1));
+    let tglKembali: Date | null = dto.tanggalKembali ? new Date(dto.tanggalKembali) : null;
+    if (!tglKembali) {
+      if (dto.lamaHari && Number(dto.lamaHari) > 0) {
+        tglKembali = new Date(tglBerangkat);
+        tglKembali.setDate(tglKembali.getDate() + Math.max(0, Number(dto.lamaHari) - 1));
+      } else {
+        tglKembali = new Date(tglBerangkat);
+      }
     }
 
     let penandatanganId = dto.penandatanganId || null;
@@ -316,7 +177,7 @@ export class SpdService {
         alatAngkut: dto.alatAngkut.trim(),
         tempatBerangkat: dto.tempatBerangkat.trim(),
         tempatTujuan: dto.tempatTujuan.trim(),
-        lamaHari: Number(dto.lamaHari),
+        lamaHari: dto.lamaHari !== undefined && dto.lamaHari !== null ? Number(dto.lamaHari) : null,
         tanggalBerangkat: tglBerangkat,
         tanggalKembali: tglKembali,
         skpd: dto.skpd?.trim() || 'Bagian Umum Sekretariat Daerah Kab. Banggai Laut',
@@ -374,7 +235,7 @@ export class SpdService {
       ...(dto.alatAngkut && { alatAngkut: dto.alatAngkut.trim() }),
       ...(dto.tempatBerangkat && { tempatBerangkat: dto.tempatBerangkat.trim() }),
       ...(dto.tempatTujuan && { tempatTujuan: dto.tempatTujuan.trim() }),
-      ...(dto.lamaHari !== undefined && { lamaHari: Number(dto.lamaHari) }),
+      ...(dto.lamaHari !== undefined && { lamaHari: dto.lamaHari !== null ? Number(dto.lamaHari) : null }),
       ...(dto.skpd && { skpd: dto.skpd.trim() }),
       ...(dto.kodeRekening !== undefined && { kodeRekening: dto.kodeRekening?.trim() || null }),
       ...(dto.tingkatBiaya !== undefined && { tingkatBiaya: dto.tingkatBiaya?.trim() || null }),
@@ -405,14 +266,18 @@ export class SpdService {
       data.tanggalBerangkat = new Date(dto.tanggalBerangkat);
     }
 
-    if (dto.tanggalKembali) {
-      data.tanggalKembali = new Date(dto.tanggalKembali);
+    if (dto.tanggalKembali !== undefined) {
+      data.tanggalKembali = dto.tanggalKembali ? new Date(dto.tanggalKembali) : null;
     } else if (dto.tanggalBerangkat || dto.lamaHari !== undefined) {
       const tglBerangkat = data.tanggalBerangkat || existing.tanggalBerangkat;
       const lamaHari = data.lamaHari !== undefined ? data.lamaHari : existing.lamaHari;
-      const tglKembali = new Date(tglBerangkat);
-      tglKembali.setDate(tglKembali.getDate() + Math.max(0, lamaHari - 1));
-      data.tanggalKembali = tglKembali;
+      if (lamaHari && Number(lamaHari) > 0) {
+        const tglKembali = new Date(tglBerangkat);
+        tglKembali.setDate(tglKembali.getDate() + Math.max(0, Number(lamaHari) - 1));
+        data.tanggalKembali = tglKembali;
+      } else {
+        data.tanggalKembali = tglBerangkat ? new Date(tglBerangkat) : null;
+      }
     }
 
     return this.prisma.spd.update({

@@ -60,10 +60,9 @@ const dateRange = ref<(Date | null)[] | null>(null);
 
 const userRole = localStorage.getItem('user_role') || '';
 const isPenandatanganUser = computed(() => {
-  return (
-    userRole === 'PENANDATANGAN' ||
-    localStorage.getItem('user_is_penandatangan') === 'true'
-  ) && userRole !== 'SUPER_ADMIN' && userRole !== 'ADMIN';
+  return localStorage.getItem('user_is_penandatangan') === 'true' &&
+         userRole !== 'SUPER_ADMIN' &&
+         userRole !== 'ADMIN';
 });
 const loggedInUserName = localStorage.getItem('user_name') || 'Pejabat Penandatangan';
 

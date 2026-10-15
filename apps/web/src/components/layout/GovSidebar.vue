@@ -32,20 +32,20 @@ const allMenuItems = [
     label: 'Beranda',
     icon: 'pi pi-home',
     route: '/',
-    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
   },
   {
     key: 'surat-tugas',
     label: 'Surat Tugas',
     icon: 'pi pi-file-edit',
-    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
     items: [
       {
         key: 'surat-tugas-daftar',
         label: 'Daftar Surat Tugas',
         icon: 'pi pi-list',
         route: '/surat-tugas',
-        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
       },
       {
         key: 'surat-tugas-buat',
@@ -60,14 +60,14 @@ const allMenuItems = [
     key: 'spd',
     label: 'Surat Perjalanan Dinas',
     icon: 'pi pi-briefcase',
-    roles: [Role.USER, Role.STAFF, Role.PENANDATANGAN, Role.ADMIN, Role.SUPER_ADMIN],
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
     items: [
       {
         key: 'spd-daftar',
         label: 'Daftar SPD',
         icon: 'pi pi-list',
         route: '/spd',
-        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER],
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
       },
       {
         key: 'spd-buat',
@@ -82,14 +82,14 @@ const allMenuItems = [
     key: 'kepegawaian',
     label: 'Kepegawaian',
     icon: 'pi pi-users',
-    roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PENANDATANGAN],
+    roles: [Role.ADMIN, Role.SUPER_ADMIN],
     items: [
       {
         key: 'kepegawaian-asn',
         label: 'Data ASN',
         icon: 'pi pi-id-card',
         route: '/kepegawaian/asn',
-        roles: [Role.ADMIN, Role.SUPER_ADMIN, Role.PENANDATANGAN],
+        roles: [Role.ADMIN, Role.SUPER_ADMIN],
       },
     ],
   },
@@ -119,23 +119,17 @@ const allMenuItems = [
 
 // Filter menu items by role recursively
 function filterByRole(items: typeof allMenuItems, role: string): any[] {
-  const isPenandatangan = role === Role.PENANDATANGAN || localStorage.getItem('user_is_penandatangan') === 'true';
-
   return items
     .filter((item) => {
       if (!item.roles) return true;
-      if (item.roles.includes(role as RoleType)) return true;
-      if (isPenandatangan && item.roles.includes(Role.PENANDATANGAN)) return true;
-      return false;
+      return item.roles.includes(role as RoleType);
     })
     .map((item) => ({
       ...item,
       items: item.items
         ? item.items.filter((sub) => {
             if (!sub.roles) return true;
-            if (sub.roles.includes(role as RoleType)) return true;
-            if (isPenandatangan && sub.roles.includes(Role.PENANDATANGAN)) return true;
-            return false;
+            return sub.roles.includes(role as RoleType);
           })
         : undefined,
     }))

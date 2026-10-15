@@ -60,7 +60,7 @@ export class AuthService {
       throw new UnauthorizedException('Akun pengguna tidak aktif');
     }
 
-    const isPenandatangan = user.pegawai?.isPenandatangan ?? (user.role === Role.PENANDATANGAN);
+    const isPenandatangan = user.pegawai?.isPenandatangan ?? false;
     const resolvedName = user.pegawai?.nama || user.name;
     const resolvedNip = user.pegawai?.nip || null;
     const resolvedJabatan = user.pegawai?.jabatan || null;

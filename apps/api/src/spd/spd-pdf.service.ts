@@ -120,26 +120,6 @@ export class SpdPdfService {
     return String(n);
   }
 
-  private resolveSignaturePath(fileName: string): string | null {
-    if (!fileName) return null;
-    const candidates = [
-      process.env.SIGNATURE_UPLOAD_DIR ? path.resolve(process.env.SIGNATURE_UPLOAD_DIR, fileName) : null,
-      path.resolve(process.cwd(), 'apps/api/uploads/signatures', fileName),
-      path.resolve(process.cwd(), 'uploads/signatures', fileName),
-      path.resolve(__dirname, '../../uploads/signatures', fileName),
-      path.resolve(__dirname, '../../../uploads/signatures', fileName),
-      path.resolve(__dirname, '../../../../uploads/signatures', fileName),
-      path.resolve('/home/evan/projects/e-spd/apps/api/uploads/signatures', fileName),
-    ].filter(Boolean) as string[];
-
-    for (const cand of candidates) {
-      if (fs.existsSync(cand)) {
-        return cand;
-      }
-    }
-    return null;
-  }
-
   async generatePdf(
     spdId: string,
     customSigner?: OfficialSignerDto,
@@ -176,21 +156,6 @@ export class SpdPdfService {
       ? `${customSigner.pangkat}${customSigner.golongan ? ', ' + customSigner.golongan : ''}`
       : (p ? (p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat) : (spd.penandatanganPangkat || spd.suratTugas?.penandatanganPangkat || 'Pembina Utama Muda, IV/c'));
     const sNip = customSigner?.nip || p?.nip || spd.penandatanganNip || spd.suratTugas?.penandatanganNip || '19750510 200012 1 004';
-
-    if ((!p || !p.tandaTangan) && (sNip || sNama)) {
-      const matched = await this.prisma.pegawai.findFirst({
-        where: {
-          OR: [
-            sNip ? { nip: sNip } : undefined,
-            sNama ? { nama: sNama } : undefined,
-          ].filter(Boolean) as any,
-          tandaTangan: { not: null },
-        },
-      });
-      if (matched) {
-        p = matched;
-      }
-    }
 
     // Resolve Kop Surat PDF
     let kopStoredFileName = spd.kopSurat?.storedFileName;
@@ -684,31 +649,6 @@ export class SpdPdfService {
 
     // Space for physical signature / stempel (extra spacious room for official signature and stamp)
     currentY -= (95 - 14);
-
-    // Jika dokumen SPD sudah ditandatangani (DISETUJUI) dan pejabat memiliki file tanda tangan PNG
-    if (spd.status === 'DISETUJUI' && p?.tandaTangan) {
-      try {
-        const targetPath = this.resolveSignaturePath(p.tandaTangan);
-        if (targetPath) {
-          const sigBytes = fs.readFileSync(targetPath);
-          const sigImage = await pdfDoc.embedPng(sigBytes);
-          // Standarisasi ukuran: batas maksimal lebar 140 pt, tinggi 70 pt.
-          // scaleToFit menjaga rasio asli gambar tetap proporsional tanpa memotong/mentrim gambar
-          const sigDims = sigImage.scaleToFit(140, 70);
-          // Posisikan tanda tangan tepat di atas nama penandatangan (jarak 12 pt dari baseline nama)
-          currentPage.drawImage(sigImage, {
-            x: signX + 5,
-            y: currentY + 12,
-            width: sigDims.width,
-            height: sigDims.height,
-          });
-        } else {
-          console.warn(`[SpdPdfService] File tanda tangan "${p.tandaTangan}" tidak ditemukan di disk.`);
-        }
-      } catch (err) {
-        console.warn('Gagal memuat tanda tangan digital penandatangan SPD:', err);
-      }
-    }
 
     currentPage.drawText(sNama, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
     const namaWidth = fontBold.widthOfTextAtSize(sNama, 11);

@@ -8,13 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
-  UploadedFile,
-  UseInterceptors,
-  Res,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { Response } from 'express';
-import * as fs from 'fs';
 import { PegawaiService, CreatePegawaiDto, UpdatePegawaiDto } from './pegawai.service';
 import { Role } from '@si-setda/shared-types';
 import { AuthGuard } from '../auth/auth.guard';
@@ -26,7 +20,7 @@ export class PegawaiController {
   constructor(private readonly pegawaiService: PegawaiService) {}
 
   @Get()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findAll(
     @Query('q') query?: string,
     @Query('isASN') isASN?: string,
@@ -36,7 +30,7 @@ export class PegawaiController {
   }
 
   @Get(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findById(@Param('id') id: string) {
     return this.pegawaiService.findById(id);
   }
@@ -57,32 +51,6 @@ export class PegawaiController {
   @Roles(Role.SUPER_ADMIN, Role.ADMIN)
   delete(@Param('id') id: string) {
     return this.pegawaiService.delete(id);
-  }
-
-  @Post(':id/tanda-tangan')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN)
-  @UseInterceptors(FileInterceptor('file'))
-  uploadSignature(
-    @Param('id') id: string,
-    @UploadedFile() file: any,
-  ) {
-    return this.pegawaiService.saveSignature(id, file);
-  }
-
-  @Get(':id/tanda-tangan')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN, Role.STAFF, Role.USER)
-  async streamSignature(@Param('id') id: string, @Res() res: Response) {
-    const filePath = await this.pegawaiService.getSignaturePath(id);
-    res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `inline; filename="ttd-${id}.png"`);
-    const stream = fs.createReadStream(filePath);
-    stream.pipe(res);
-  }
-
-  @Delete(':id/tanda-tangan')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.PENANDATANGAN)
-  deleteSignature(@Param('id') id: string) {
-    return this.pegawaiService.deleteSignature(id);
   }
 }
 

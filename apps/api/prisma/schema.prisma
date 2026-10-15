@@ -48,7 +48,6 @@ model Pegawai {
   unitKerja String   @default("Sekretariat Daerah")
   isASN           Boolean  @default(true)
   isPenandatangan Boolean  @default(false)
-  tandaTangan     String?
 
   user                         User?
   spdList                      Spd[]        @relation("SpdPelaksana")
@@ -69,9 +68,9 @@ model Spd {
   alatAngkut       String
   tempatBerangkat  String
   tempatTujuan     String
-  lamaHari         Int
+  lamaHari         Int?
   tanggalBerangkat DateTime
-  tanggalKembali   DateTime
+  tanggalKembali   DateTime?
   skpd             String      @default("Bagian Umum Sekretariat Daerah Kab. Banggai Laut")
   kodeRekening     String?
   tingkatBiaya     String?
@@ -117,4 +116,15 @@ model SuratTugas {
 
   spdList         Spd[]
 }
+
+model DasarHukum {
+  id        String   @id @default(cuid())
+  judul     String
+  isi       String
+  isDefault Boolean  @default(false)
+  urutan    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 

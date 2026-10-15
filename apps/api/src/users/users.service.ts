@@ -144,11 +144,6 @@ export class UsersService {
       if (pegawai.user) {
         throw new ConflictException(`Pegawai '${pegawai.nama}' sudah memiliki akun user login`);
       }
-      if (dto.role === Role.PENANDATANGAN && !pegawai.isPenandatangan) {
-        throw new BadRequestException(`Pegawai '${pegawai.nama}' belum ditandai sebagai Pejabat Penandatangan`);
-      }
-    } else if (dto.role === Role.PENANDATANGAN) {
-      throw new BadRequestException('Pengguna dengan peran Penandatangan wajib ditautkan ke Pegawai ASN');
     }
 
     const hashedPassword = hashPassword(dto.password);
@@ -208,20 +203,6 @@ export class UsersService {
     }
 
     // Check pegawai conflict
-    const targetRole = dto.role !== undefined ? dto.role : existing.role;
-    const targetPegawaiId = dto.pegawaiId !== undefined ? dto.pegawaiId : existing.pegawaiId;
-
-    if (targetRole === Role.PENANDATANGAN) {
-      if (!targetPegawaiId) {
-        throw new BadRequestException('Pengguna dengan peran Penandatangan wajib ditautkan ke Pegawai ASN');
-      }
-      const pegawai = await this.prisma.pegawai.findUnique({
-        where: { id: targetPegawaiId },
-      });
-      if (!pegawai || !pegawai.isPenandatangan) {
-        throw new BadRequestException('Pegawai yang ditautkan harus ditandai sebagai Pejabat Penandatangan');
-      }
-    }
 
     if (dto.pegawaiId && dto.pegawaiId !== existing.pegawaiId) {
       const pegawai = await this.prisma.pegawai.findUnique({
