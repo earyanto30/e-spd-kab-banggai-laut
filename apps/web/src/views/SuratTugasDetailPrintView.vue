@@ -158,69 +158,7 @@ const handleDownloadPdf = async () => {
   }
 };
 
-const isPenandatanganUser = computed(() => {
-  return localStorage.getItem('user_is_penandatangan') === 'true' ||
-         localStorage.getItem('user_role') === 'ADMIN' ||
-         localStorage.getItem('user_role') === 'SUPER_ADMIN';
-});
 
-const isSigningDoc = ref(false);
-
-const handleSignDocument = async () => {
-  isSigningDoc.value = true;
-  try {
-    const res = await apiFetch(`/api/surat-tugas/${suratTugasId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'DISETUJUI' }),
-    });
-    if (res.ok) {
-      toast.success(
-        `Surat Tugas ${data.value?.nomorSurat || ''} berhasil ditandatangani!`,
-        'Tanda Tangan Berhasil'
-      );
-      if (data.value) {
-        data.value.status = 'DISETUJUI';
-      }
-      await loadPdfPreview();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal menandatangani Surat Tugas');
-    }
-  } catch (err: any) {
-    toast.error(err.message || 'Terjadi kesalahan sistem');
-  } finally {
-    isSigningDoc.value = false;
-  }
-};
-
-const handleRevertDocument = async () => {
-  isSigningDoc.value = true;
-  try {
-    const res = await apiFetch(`/api/surat-tugas/${suratTugasId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'DRAFT' }),
-    });
-    if (res.ok) {
-      toast.warn(
-        `Tanda tangan pada Surat Tugas ${data.value?.nomorSurat || ''} telah dibatalkan.`,
-        'Status Dikembalikan ke Draf'
-      );
-      if (data.value) {
-        data.value.status = 'DRAFT';
-      }
-      await loadPdfPreview();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal membatalkan tanda tangan');
-    }
-  } catch (err: any) {
-    toast.error(err.message || 'Terjadi kesalahan sistem');
-  } finally {
-    isSigningDoc.value = false;
-  }
-};
 
 const isGeneratingSpd = ref(false);
 const showSpdDialog = ref(false);
@@ -587,27 +525,7 @@ onMounted(() => {
             @click="handleBack"
             title="Kembali ke halaman sebelumnya"
           />
-          <GovButton
-            v-if="data?.status === 'DRAFT' && isPenandatanganUser"
-            label="Tandatangani Surat Tugas"
-            icon="pi pi-check-circle"
-            severity="success"
-            size="small"
-            :loading="isSigningDoc"
-            @click="handleSignDocument"
-            title="Tandatangani resmi dokumen Surat Tugas ini"
-          />
-          <GovButton
-            v-else-if="data?.status === 'DISETUJUI' && isPenandatanganUser"
-            label="Batal Tanda Tangan"
-            icon="pi pi-undo"
-            severity="warn"
-            variant="outlined"
-            size="small"
-            :loading="isSigningDoc"
-            @click="handleRevertDocument"
-            title="Batalkan persetujuan / kembalikan status ke Draf"
-          />
+
           <GovButton
             label="Edit Surat"
             icon="pi pi-pencil"

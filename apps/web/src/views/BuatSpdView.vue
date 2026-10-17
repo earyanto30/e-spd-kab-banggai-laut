@@ -42,6 +42,9 @@ const spdId = computed(() => (route.params.id as string) || null);
 const isEditMode = computed(() => !!spdId.value);
 const existingSpd = ref<any>(null);
 const loadingExisting = ref(false);
+const hasParentSuratTugas = computed(() => {
+  return !!(existingSpd.value?.suratTugasId || existingSpd.value?.suratTugas);
+});
 
 interface PenandatanganOption {
   id: string;
@@ -77,9 +80,49 @@ const form = reactive(getInitialForm());
 const penandatanganOptions = ref<PenandatanganOption[]>([]);
 const loadingPenandatangan = ref(false);
 
+const isKpa = computed(() => (form.pemberiPerintah || '').toLowerCase().includes('kuasa'));
+
+const kabagUmumSigner = computed(() => {
+  return penandatanganOptions.value.find((p) => {
+    const j = (p.jabatan || '').toLowerCase();
+    return j.includes('kepala bagian umum') || j.includes('kabag umum');
+  });
+});
+
+const sekdaSigner = computed(() => {
+  return penandatanganOptions.value.find((p) => {
+    const j = (p.jabatan || '').toLowerCase();
+    return j.includes('sekretaris daerah') || j.includes('sekda');
+  });
+});
+
+const applyDefaultSigner = () => {
+  if (hasParentSuratTugas.value) return;
+  if (isKpa.value) {
+    if (kabagUmumSigner.value) {
+      form.penandatanganId = kabagUmumSigner.value.id;
+    } else if (penandatanganOptions.value.length > 0 && !form.penandatanganId) {
+      form.penandatanganId = penandatanganOptions.value[0].id;
+    }
+  } else {
+    // PA
+    if (sekdaSigner.value) {
+      form.penandatanganId = sekdaSigner.value.id;
+    } else if (penandatanganOptions.value.length > 0 && !form.penandatanganId) {
+      form.penandatanganId = penandatanganOptions.value[0].id;
+    }
+  }
+};
+
+watch(
+  () => form.pemberiPerintah,
+  () => {
+    applyDefaultSigner();
+  }
+);
+
 const previewNomorSpd = computed(() => {
-  const isKpa = form.pemberiPerintah.toLowerCase().includes('kuasa');
-  const defaultPrefix = isKpa ? 'KPA' : '';
+  const defaultPrefix = isKpa.value ? 'KPA' : '';
   const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
   if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
     return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
@@ -94,6 +137,7 @@ const resetForm = () => {
   if (defaultKop) {
     form.kopSuratId = defaultKop.id;
   }
+  applyDefaultSigner();
   existingSpd.value = null;
   createdSpd.value = null;
   submitSuccess.value = false;
@@ -183,8 +227,8 @@ const loadPenandatangan = async () => {
     const res = await apiFetch('/api/pegawai?isPenandatangan=true');
     if (res.ok) {
       penandatanganOptions.value = await res.json();
-      if (!form.penandatanganId && !isEditMode.value && penandatanganOptions.value.length > 0) {
-        form.penandatanganId = penandatanganOptions.value[0].id;
+      if (!isEditMode.value || !form.penandatanganId) {
+        applyDefaultSigner();
       }
     }
   } catch {
@@ -263,10 +307,6 @@ const loadExistingSpd = async (id: string) => {
     loadingExisting.value = false;
   }
 };
-
-const hasParentSuratTugas = computed(() => {
-  return !!(existingSpd.value?.suratTugasId || existingSpd.value?.suratTugas);
-});
 
 onMounted(async () => {
   await Promise.all([loadKopSurat(), loadPenandatangan()]);
@@ -358,8 +398,7 @@ const handleSubmit = async () => {
   try {
     let finalNomorSpd: string | undefined = undefined;
     if (form.nomorSpdMode === 'custom' || isEditMode.value) {
-      const isKpa = form.pemberiPerintah.toLowerCase().includes('kuasa');
-      const defaultPrefix = isKpa ? 'KPA' : '';
+      const defaultPrefix = isKpa.value ? 'KPA' : '';
       const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
       finalNomorSpd = `${prefix}${form.customSeq.trim()}/SPD/${form.tahunSpd || currentYear}`;
     }
@@ -838,6 +877,20 @@ const handleCancel = () => {
               <i class="pi pi-link text-xs"></i>
               Mengikuti Surat Tugas Induk ({{ existingSpd?.suratTugas?.nomorSurat || 'Surat Tugas' }})
             </span>
+            <span
+              v-else-if="isKpa"
+              class="text-xs text-amber-700 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 px-2 py-0.5 rounded font-medium flex items-center gap-1"
+            >
+              <i class="pi pi-lock text-xs"></i>
+              Terkunci Otomatis (Kepala Bagian Umum sebagai KPA)
+            </span>
+            <span
+              v-else
+              class="text-xs text-blue-700 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 px-2 py-0.5 rounded font-medium flex items-center gap-1"
+            >
+              <i class="pi pi-info-circle text-xs"></i>
+              Default Sekda (Dapat dialihkan ke Plt./Plh.)
+            </span>
           </div>
           <GovSelect
             v-model="form.penandatanganId"
@@ -847,7 +900,7 @@ const handleCancel = () => {
             placeholder="Pilih Pejabat Penandatangan..."
             :invalid="!!errors.penandatanganId"
             :loading="loadingPenandatangan"
-            :disabled="hasParentSuratTugas"
+            :disabled="hasParentSuratTugas || isKpa"
           >
             <template #option="{ option }">
               <div class="py-1">
@@ -865,8 +918,11 @@ const handleCancel = () => {
             <span v-if="hasParentSuratTugas">
               Pejabat penandatangan SPD ini terkunci otomatis mengikuti pejabat penandatangan pada Surat Tugas induk.
             </span>
+            <span v-else-if="isKpa">
+              Untuk Kuasa Pengguna Anggaran (KPA), penandatanganan secara regulasi dilakukan oleh Kepala Bagian Umum Setda.
+            </span>
             <span v-else>
-              Pejabat yang berwenang menandatangani lembar Surat Perjalanan Dinas (KPA / Pengguna Anggaran / Sekda).
+              Untuk Pengguna Anggaran (PA), penandatanganan default oleh Sekretaris Daerah atau pejabat pelaksana tugas (Plt./Plh.).
             </span>
           </p>
         </div>

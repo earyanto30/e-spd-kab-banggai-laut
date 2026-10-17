@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Tag from 'primevue/tag';
 import { GovButton, GovSelect, GovMessage } from '../components/core';
@@ -195,69 +195,7 @@ const handleBack = () => {
   }
 };
 
-const isPenandatanganUser = computed(() => {
-  return localStorage.getItem('user_is_penandatangan') === 'true' ||
-         localStorage.getItem('user_role') === 'ADMIN' ||
-         localStorage.getItem('user_role') === 'SUPER_ADMIN';
-});
 
-const isSigningDoc = ref(false);
-
-const handleSignSpd = async () => {
-  isSigningDoc.value = true;
-  try {
-    const res = await apiFetch(`/api/spd/${spdId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'DISETUJUI' }),
-    });
-    if (res.ok) {
-      toast.success(
-        `Surat Perjalanan Dinas ${spd.value?.nomorSpd || ''} berhasil ditandatangani!`,
-        'Tanda Tangan Berhasil'
-      );
-      if (spd.value) {
-        spd.value.status = 'DISETUJUI';
-      }
-      await loadPdfPreview();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal menandatangani SPD');
-    }
-  } catch (err: any) {
-    toast.error(err.message || 'Terjadi kesalahan sistem');
-  } finally {
-    isSigningDoc.value = false;
-  }
-};
-
-const handleRevertSpd = async () => {
-  isSigningDoc.value = true;
-  try {
-    const res = await apiFetch(`/api/spd/${spdId}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status: 'DRAFT' }),
-    });
-    if (res.ok) {
-      toast.warn(
-        `Tanda tangan pada SPD ${spd.value?.nomorSpd || ''} telah dibatalkan.`,
-        'Status Dikembalikan ke Draf'
-      );
-      if (spd.value) {
-        spd.value.status = 'DRAFT';
-      }
-      await loadPdfPreview();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal membatalkan tanda tangan');
-    }
-  } catch (err: any) {
-    toast.error(err.message || 'Terjadi kesalahan sistem');
-  } finally {
-    isSigningDoc.value = false;
-  }
-};
 
 const fetchSpd = async () => {
   loading.value = true;
@@ -370,27 +308,7 @@ onMounted(() => {
             @click="handleBack"
             title="Kembali ke halaman sebelumnya"
           />
-          <GovButton
-            v-if="spd?.status === 'DRAFT' && isPenandatanganUser"
-            label="Tandatangani SPD"
-            icon="pi pi-check-circle"
-            severity="success"
-            size="small"
-            :loading="isSigningDoc"
-            @click="handleSignSpd"
-            title="Tandatangani resmi dokumen Surat Perjalanan Dinas ini"
-          />
-          <GovButton
-            v-else-if="spd?.status === 'DISETUJUI' && isPenandatanganUser"
-            label="Batal Tanda Tangan"
-            icon="pi pi-undo"
-            severity="warn"
-            variant="outlined"
-            size="small"
-            :loading="isSigningDoc"
-            @click="handleRevertSpd"
-            title="Batalkan persetujuan / kembalikan status ke Draf"
-          />
+
           <GovButton
             label="Edit Surat"
             icon="pi pi-pencil"

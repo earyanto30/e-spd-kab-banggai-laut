@@ -568,37 +568,27 @@ export class SpdPdfService {
     currentPage.drawLine({ start: { x: tableX, y: currentY }, end: { x: tableRightX, y: currentY }, thickness: 0.5, color: black });
 
     // 4. Blok Tanda Tangan (Disimpan sebagai Satu Kesatuan Utuh / Atomic Unit)
-    const signX = 330;
+    const signBlockWidth = 230;
+    const signX = tableRightX - signBlockWidth;
     const signFontSize = 11;
     const signLineSpacing = 15;
     const gapBeforeSign = 20;
 
-    const sJabatan = customSigner?.jabatan || p?.jabatan || spd.penandatanganJabatan || spd.suratTugas?.penandatanganJabatan;
-    const signerTitle = sJabatan || (
-      (spd.pemberiPerintah || '').toLowerCase().includes('kuasa')
-        ? 'KUASA PENGGUNA ANGGARAN'
-        : 'PENGGUNA ANGGARAN'
-    );
-    const signTitleLines = this.splitTextToLines(signerTitle, fontBold, 11, width - signX - 45);
+    // Strict Signatory Label: KUASA PENGGUNA ANGGARAN atau PENGGUNA ANGGARAN
+    const signerTitle = isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
+    const signTitleLines = this.splitTextToLines(signerTitle, fontBold, 11, signBlockWidth);
 
     // Hitung total ketinggian blok tanda tangan dari baris pertama sampai NIP
-    // - Dikeluarkan di: 15 pt
-    // - Pada Tanggal: 15 + 6 = 21 pt
-    // - Jabatan: signTitleLines.length * 14 pt
-    // - Ruang tanda tangan / stempel / PNG: 95 pt
-    // - Nama: 14 pt
-    // - Pangkat: 14 pt
-    // - NIP: 14 pt
     const totalSignBlockHeight =
       signLineSpacing +
       (signLineSpacing + 6) +
       signTitleLines.length * 14 +
-      95 +
+      80 +
       14 +
-      14 +
+      (sPangkat ? 14 : 0) +
       14;
 
-    // Jika blok tanda tangan tidak muat di halaman saat ini (atau menyentuh margin bawah):
+    // Jika blok tanda tangan tidak muat di halaman saat ini:
     // Pindahkan SELURUH komponen tanda tangan ke halaman baru (Page 2) sebagai SATU KESATUAN UTUH (Atomic Unit)
     if (currentY - gapBeforeSign - totalSignBlockHeight < marginBottom) {
       currentPage = pdfDoc.addPage([width, height]);
@@ -620,7 +610,7 @@ export class SpdPdfService {
       currentY -= gapBeforeSign;
     }
 
-    // Gambar seluruh komponen tanda tangan secara utuh (Atomic Unit):
+    // Header Dikeluarkan di & Pada Tanggal
     currentPage.drawText('Dikeluarkan di', { x: signX, y: currentY, size: signFontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: signX + 78, y: currentY, size: signFontSize, font: fontRegular, color: black });
     currentPage.drawText('Banggai', { x: signX + 88, y: currentY, size: signFontSize, font: fontRegular, color: black });
@@ -646,29 +636,54 @@ export class SpdPdfService {
     });
     currentY -= signLineSpacing + 6;
 
-    // Jabatan
+    // Jabatan (Center-aligned in sign block)
     for (const tLine of signTitleLines) {
-      currentPage.drawText(tLine, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
+      const tW = fontBold.widthOfTextAtSize(tLine, 11);
+      const tX = signX + (signBlockWidth - tW) / 2;
+      currentPage.drawText(tLine, { x: tX, y: currentY, size: 11, font: fontBold, color: black });
       currentY -= 14;
     }
 
-    // Space for physical signature / stempel (extra spacious room for official signature and stamp)
-    currentY -= (95 - 14);
+    // Space for physical signature / stamp
+    currentY -= (80 - 14);
 
-    currentPage.drawText(sNama, { x: signX, y: currentY, size: 11, font: fontBold, color: black });
+    // Nama Pejabat (Center-aligned with underline)
     const namaWidth = fontBold.widthOfTextAtSize(sNama, 11);
+    const namaX = signX + (signBlockWidth - namaWidth) / 2;
+    currentPage.drawText(sNama, { x: namaX, y: currentY, size: 11, font: fontBold, color: black });
     currentPage.drawLine({
-      start: { x: signX, y: currentY - 1 },
-      end: { x: signX + namaWidth, y: currentY - 1 },
+      start: { x: namaX, y: currentY - 1 },
+      end: { x: namaX + namaWidth, y: currentY - 1 },
       thickness: 0.8,
       color: black,
     });
-
     currentY -= 14;
-    currentPage.drawText(sPangkat, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
 
-    currentY -= 14;
-    currentPage.drawText(`NIP. ${sNip}`, { x: signX, y: currentY, size: 11, font: fontRegular, color: black });
+    // Pangkat (Center-aligned)
+    if (sPangkat) {
+      const pangkatWidth = fontRegular.widthOfTextAtSize(sPangkat, 11);
+      const pangkatX = signX + (signBlockWidth - pangkatWidth) / 2;
+      currentPage.drawText(sPangkat, { x: pangkatX, y: currentY, size: 11, font: fontRegular, color: black });
+      currentY -= 14;
+    }
+
+    // NIP (Center-aligned)
+    const nipText = `NIP. ${sNip}`;
+    const nipWidth = fontRegular.widthOfTextAtSize(nipText, 11);
+    const nipX = signX + (signBlockWidth - nipWidth) / 2;
+    currentPage.drawText(nipText, { x: nipX, y: currentY, size: 11, font: fontRegular, color: black });
+
+    // Page 2: Halaman Belakang (Lembar Visum Perjalanan Dinas)
+    this.drawBackPage(pdfDoc, spd, {
+      width,
+      height,
+      fontRegular,
+      fontBold,
+      sNama,
+      sPangkat,
+      sNip,
+      isKpa,
+    });
 
     const pdfBytes = await pdfDoc.save();
     const cleanNum = (spd.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
@@ -678,28 +693,342 @@ export class SpdPdfService {
     };
   }
 
-  async generateBulkPdf(ids: string[], fontFamily?: string): Promise<{ buffer: Buffer; fileName: string }> {
+  /**
+   * Menggambar Lembar Visum / Halaman Belakang Surat Perjalanan Dinas
+   * Sesuai Standar Resmi Permendagri / Perbup Kab. Banggai Laut
+   */
+  private drawBackPage(
+    pdfDoc: PDFDocument,
+    spd: any,
+    options: {
+      width: number;
+      height: number;
+      fontRegular: PDFFont;
+      fontBold: PDFFont;
+      sNama: string;
+      sPangkat: string;
+      sNip: string;
+      isKpa: boolean;
+    },
+  ): void {
+    const { width, height, fontRegular, fontBold, sNama, sNip, isKpa } = options;
+    const backPage = pdfDoc.addPage([width, height]);
+
+    const black = rgb(0, 0, 0);
+    const tableLeft = 40;
+    const tableRight = 572; // tableWidth = 532
+    const tableCenterX = 306; // half width = 266
+    const borderWidth = 0.75;
+
+    const roleTitleUpper = isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
+    const roleTitleProper = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
+
+    // Helper to draw horizontal line across table
+    const drawHLine = (y: number) => {
+      backPage.drawLine({
+        start: { x: tableLeft, y },
+        end: { x: tableRight, y },
+        thickness: borderWidth,
+        color: black,
+      });
+    };
+
+    // Helper to draw vertical line
+    const drawVLine = (x: number, y1: number, y2: number) => {
+      backPage.drawLine({
+        start: { x, y: y1 },
+        end: { x, y: y2 },
+        thickness: borderWidth,
+        color: black,
+      });
+    };
+
+    // Helper to draw centered text within a box [boxX, boxX + boxWidth]
+    const drawCenteredText = (text: string, font: PDFFont, size: number, boxX: number, boxWidth: number, y: number) => {
+      const w = font.widthOfTextAtSize(text, size);
+      const x = boxX + (boxWidth - w) / 2;
+      backPage.drawText(text, { x, y, size, font, color: black });
+      return { x, w };
+    };
+
+    // -------------------------------------------------------------
+    // ROW I (Top):
+    // Left: Blank. Right: Berangkat dari (Tempat Kedudukan), Ke, Pada Tanggal, Signatory
+    // (No border on top, left, or center divider for Row I)
+    // -------------------------------------------------------------
+    const row1Bottom = 825; // height: 120 pt
+
+    const r1X = tableCenterX + 8;
+    const r1ColonX = tableCenterX + 105;
+    const r1ValX = tableCenterX + 112;
+
+    // Line 1: I. Berangkat dari : [Tempat Kedudukan]
+    backPage.drawText('I.  Berangkat dari', { x: r1X, y: 932, size: 9, font: fontRegular, color: black });
+    backPage.drawText(':', { x: r1ColonX, y: 932, size: 9, font: fontRegular, color: black });
+    const tempatBerangkat = spd.tempatBerangkat || 'Banggai';
+    backPage.drawText(tempatBerangkat, { x: r1ValX, y: 932, size: 9, font: fontRegular, color: black });
+
+    // Line 2: (Tempat Kedudukan)
+    backPage.drawText('(Tempat Kedudukan)', { x: r1X + 16, y: 920, size: 7.5, font: fontRegular, color: black });
+
+    // Line 3: Ke : [Tempat Tujuan]
+    backPage.drawText('Ke', { x: r1X + 16, y: 907, size: 9, font: fontRegular, color: black });
+    backPage.drawText(':', { x: r1ColonX, y: 907, size: 9, font: fontRegular, color: black });
+    if (spd.tempatTujuan) {
+      backPage.drawText(spd.tempatTujuan, { x: r1ValX, y: 907, size: 9, font: fontRegular, color: black });
+    }
+
+    // Line 4: Pada Tanggal : [Tanggal Berangkat]
+    backPage.drawText('Pada Tanggal', { x: r1X + 16, y: 894, size: 9, font: fontRegular, color: black });
+    backPage.drawText(':', { x: r1ColonX, y: 894, size: 9, font: fontRegular, color: black });
+    const tglBerangkat = spd.tanggalBerangkat ? this.formatIndonesianDate(spd.tanggalBerangkat) : '';
+    if (tglBerangkat) {
+      backPage.drawText(tglBerangkat, { x: r1ValX, y: 894, size: 9, font: fontRegular, color: black });
+    }
+
+    // Line 5: Signatory Title
+    backPage.drawText(roleTitleProper, { x: r1X + 16, y: 880, size: 9, font: fontRegular, color: black });
+
+    // Space for physical signature / stamp (~32 pt)
+
+    // Official Name (Underlined)
+    if (sNama) {
+      backPage.drawText(sNama, { x: r1X + 16, y: 846, size: 9.5, font: fontBold, color: black });
+      const sNamaW = fontBold.widthOfTextAtSize(sNama, 9.5);
+      backPage.drawLine({
+        start: { x: r1X + 16, y: 844 },
+        end: { x: r1X + 16 + sNamaW, y: 844 },
+        thickness: 0.8,
+        color: black,
+      });
+    }
+
+    // NIP
+    if (sNip) {
+      backPage.drawText(`NIP. ${sNip}`, { x: r1X + 16, y: 833, size: 8.5, font: fontRegular, color: black });
+    }
+
+    // Horizontal line below Row I
+    drawHLine(row1Bottom);
+
+    // -------------------------------------------------------------
+    // ROWS II, III, IV, V (Transit / Visum Stamping Rows):
+    // -------------------------------------------------------------
+    const transitRows = [
+      { num: 'II.', top: 825, bottom: 745 },
+      { num: 'III.', top: 745, bottom: 665 },
+      { num: 'IV.', top: 665, bottom: 585 },
+      { num: 'V.', top: 585, bottom: 505 },
+    ];
+
+    const dottedLine = '(....................................................................)';
+    const dotSize = 8.5;
+
+    for (const r of transitRows) {
+      // Center vertical divider
+      drawVLine(tableCenterX, r.top, r.bottom);
+
+      // Left Column: Tiba di / Pada Tanggal
+      const leftX = tableLeft + 8;
+      const leftColonX = tableLeft + 95;
+
+      backPage.drawText(`${r.num}  Tiba di`, { x: leftX, y: r.top - 14, size: 9, font: fontRegular, color: black });
+      backPage.drawText(':', { x: leftColonX, y: r.top - 14, size: 9, font: fontRegular, color: black });
+
+      backPage.drawText('Pada Tanggal', { x: leftX + 18, y: r.top - 28, size: 9, font: fontRegular, color: black });
+      backPage.drawText(':', { x: leftColonX, y: r.top - 28, size: 9, font: fontRegular, color: black });
+
+      // Dotted signature line for Left Column
+      drawCenteredText(dottedLine, fontRegular, dotSize, tableLeft, 266, r.bottom + 12);
+
+      // Right Column: Berangkat dari / Ke / Pada Tanggal
+      const rightX = tableCenterX + 8;
+      const rightColonX = tableCenterX + 85;
+
+      backPage.drawText('Berangkat dari', { x: rightX, y: r.top - 14, size: 9, font: fontRegular, color: black });
+      backPage.drawText(':', { x: rightColonX, y: r.top - 14, size: 9, font: fontRegular, color: black });
+
+      backPage.drawText('Ke', { x: rightX, y: r.top - 27, size: 9, font: fontRegular, color: black });
+      backPage.drawText(':', { x: rightColonX, y: r.top - 27, size: 9, font: fontRegular, color: black });
+
+      backPage.drawText('Pada Tanggal', { x: rightX, y: r.top - 40, size: 9, font: fontRegular, color: black });
+      backPage.drawText(':', { x: rightColonX, y: r.top - 40, size: 9, font: fontRegular, color: black });
+
+      // Dotted signature line for Right Column
+      drawCenteredText(dottedLine, fontRegular, dotSize, tableCenterX, 266, r.bottom + 12);
+
+      // Horizontal line below row
+      drawHLine(r.bottom);
+    }
+
+    // -------------------------------------------------------------
+    // ROW VI: Kepulangan & Pemeriksaan
+    // -------------------------------------------------------------
+    const r6Top = 505;
+    const r6Bottom = 390; // height: 115 pt
+
+    // Center vertical divider for Row VI
+    drawVLine(tableCenterX, r6Top, r6Bottom);
+
+    // Left Column of Row VI:
+    const r6LeftX = tableLeft + 8;
+    const r6LeftColonX = tableLeft + 95;
+    const r6LeftValX = tableLeft + 102;
+
+    backPage.drawText('VI. Tiba di', { x: r6LeftX, y: r6Top - 14, size: 9, font: fontRegular, color: black });
+    backPage.drawText(':', { x: r6LeftColonX, y: r6Top - 14, size: 9, font: fontRegular, color: black });
+    backPage.drawText(tempatBerangkat, { x: r6LeftValX, y: r6Top - 14, size: 9, font: fontRegular, color: black });
+
+    backPage.drawText('Pada Tanggal', { x: r6LeftX + 18, y: r6Top - 28, size: 9, font: fontRegular, color: black });
+    backPage.drawText(':', { x: r6LeftColonX, y: r6Top - 28, size: 9, font: fontRegular, color: black });
+    const tglKembali = spd.tanggalKembali ? this.formatIndonesianDate(spd.tanggalKembali) : '';
+    if (tglKembali) {
+      backPage.drawText(tglKembali, { x: r6LeftValX, y: r6Top - 28, size: 9, font: fontRegular, color: black });
+    }
+
+    backPage.drawText(roleTitleProper, { x: r6LeftX + 18, y: r6Top - 42, size: 9, font: fontRegular, color: black });
+
+    // Official signature space in Row VI Left
+    if (sNama) {
+      backPage.drawText(sNama, { x: r6LeftX + 18, y: r6Bottom + 20, size: 9.5, font: fontBold, color: black });
+      const sNamaW = fontBold.widthOfTextAtSize(sNama, 9.5);
+      backPage.drawLine({
+        start: { x: r6LeftX + 18, y: r6Bottom + 18 },
+        end: { x: r6LeftX + 18 + sNamaW, y: r6Bottom + 18 },
+        thickness: 0.8,
+        color: black,
+      });
+    }
+
+    if (sNip) {
+      backPage.drawText(`Nip. ${sNip}`, { x: r6LeftX + 18, y: r6Bottom + 7, size: 8.5, font: fontRegular, color: black });
+    }
+
+    // Right Column of Row VI: Pemeriksaan Text
+    const r6RightX = tableCenterX + 8;
+    const periksaText =
+      'Telah diperiksa, dengan keterangan bahwa perjalanan Dinas tersebut diatas benar dilakukan atas perintahnya dan semata mata untuk kepentingan jabatan dalam waktu yang sesingkat - singkatnya.';
+    const periksaLines = this.splitTextToLines(periksaText, fontRegular, 8.5, 250);
+    let pY = r6Top - 14;
+    for (const pLine of periksaLines) {
+      backPage.drawText(pLine, { x: r6RightX, y: pY, size: 8.5, font: fontRegular, color: black });
+      pY -= 12;
+    }
+
+    // Horizontal line below Row VI
+    drawHLine(r6Bottom);
+
+    // -------------------------------------------------------------
+    // ROW VII: Catatan Lain-lain (Full Width)
+    // -------------------------------------------------------------
+    const r7Top = r6Bottom; // 390
+    const r7Bottom = 365; // height: 25 pt
+
+    backPage.drawText('VII.  Catatan Lain-lain', { x: tableLeft + 8, y: r7Top - 15, size: 9, font: fontRegular, color: black });
+    drawHLine(r7Bottom);
+
+    // -------------------------------------------------------------
+    // ROW VIII: Perhatian (Full Width)
+    // -------------------------------------------------------------
+    const r8Top = r7Bottom; // 365
+    const r8Bottom = 305; // height: 60 pt
+
+    backPage.drawText('VIII. Perhatian', { x: tableLeft + 8, y: r8Top - 13, size: 9, font: fontRegular, color: black });
+
+    const perhatianText =
+      'PPK yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat / tiba serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan keuangan negara apabila negara mendapat rugi akibat kesalahan, kelalaian, dan kealpaannya.';
+    const perhatianLines = this.splitTextToLines(perhatianText, fontRegular, 8.5, 516);
+    let r8Y = r8Top - 25;
+    for (const line of perhatianLines) {
+      backPage.drawText(line, { x: tableLeft + 8, y: r8Y, size: 8.5, font: fontRegular, color: black });
+      r8Y -= 11.5;
+    }
+
+    drawHLine(r8Bottom);
+
+    // -------------------------------------------------------------
+    // BOTTOM SIGNATURE BLOCK (Below the table on the right side)
+    // -------------------------------------------------------------
+    const signBlockWidth = 230;
+    const signX = tableRight - signBlockWidth; // 572 - 230 = 342
+
+    // Signatory Title (Centered in sign block)
+    let curSignY = r8Bottom - 24;
+    drawCenteredText(roleTitleUpper, fontBold, 10, signX, signBlockWidth, curSignY);
+
+    // Physical signature space (~50 pt)
+    curSignY -= 55;
+
+    // Official Name (Centered with Underline)
+    if (sNama) {
+      const { x: nX, w: nW } = drawCenteredText(sNama, fontBold, 10, signX, signBlockWidth, curSignY);
+      backPage.drawLine({
+        start: { x: nX, y: curSignY - 1 },
+        end: { x: nX + nW, y: curSignY - 1 },
+        thickness: 0.8,
+        color: black,
+      });
+    }
+
+    curSignY -= 13;
+
+    // NIP (Centered)
+    if (sNip) {
+      drawCenteredText(`NIP. ${sNip}`, fontRegular, 9, signX, signBlockWidth, curSignY);
+    }
+  }
+
+  async generateBulkPdf(
+    ids: string[],
+    fontFamily?: string,
+    sequence: 'collate' | 'non-collate' = 'non-collate',
+  ): Promise<{ buffer: Buffer; fileName: string }> {
     if (!ids || ids.length === 0) {
       throw new NotFoundException('Daftar ID SPD wajib disertakan');
     }
 
     const mergedDoc = await PDFDocument.create();
+    const loadedDocs: PDFDocument[] = [];
 
     for (const id of ids) {
       try {
         const { buffer } = await this.generatePdf(id, undefined, fontFamily);
         const subDoc = await PDFDocument.load(buffer);
-        const copiedPages = await mergedDoc.copyPages(subDoc, subDoc.getPageIndices());
-        for (const p of copiedPages) {
-          mergedDoc.addPage(p);
-        }
+        loadedDocs.push(subDoc);
       } catch (err) {
         console.warn(`[SpdPdfService] Gagal memuat SPD ID '${id}' saat bulk print:`, err);
       }
     }
 
-    if (mergedDoc.getPageCount() === 0) {
+    if (loadedDocs.length === 0) {
       throw new NotFoundException('Tidak ada dokumen SPD yang berhasil dimuat untuk digabungkan');
+    }
+
+    if (sequence === 'non-collate') {
+      // Non-Collate Batch Printing Sequencer:
+      // Group 1: Render Page 1 (Front) of all documents
+      for (const subDoc of loadedDocs) {
+        if (subDoc.getPageCount() > 0) {
+          const [frontPage] = await mergedDoc.copyPages(subDoc, [0]);
+          mergedDoc.addPage(frontPage);
+        }
+      }
+
+      // Group 2: Render Page 2 (Back) of all documents
+      for (const subDoc of loadedDocs) {
+        if (subDoc.getPageCount() > 1) {
+          const [backPage] = await mergedDoc.copyPages(subDoc, [1]);
+          mergedDoc.addPage(backPage);
+        }
+      }
+    } else {
+      // Collate: Doc A (all pages), Doc B (all pages)...
+      for (const subDoc of loadedDocs) {
+        const copiedPages = await mergedDoc.copyPages(subDoc, subDoc.getPageIndices());
+        for (const p of copiedPages) {
+          mergedDoc.addPage(p);
+        }
+      }
     }
 
     const mergedBytes = await mergedDoc.save();

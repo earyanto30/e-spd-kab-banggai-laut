@@ -395,27 +395,35 @@ export class SuratTugasPdfService {
     }
 
     // 6. BLOK TANDA TANGAN (Kanan Bawah - Atomic Unit / Satu Kesatuan Utuh)
-    const signX = 330;
+    const signBlockWidth = 230;
+    const signX = rightMargin - signBlockWidth;
     const signLineSpacing = 16;
     const gapBeforeSign = 20;
 
-    const titleLines = this.splitTextToLines(signerJabatan, fontBold, fontSize, rightMargin - signX);
+    // Format judul jabatan resmi 2 baris terpusat: KEPALA BAGIAN UMUM / SETDA KAB. BANGGAI LAUT
+    let titleLines: string[] = [];
+    const upperJabatan = (signerJabatan || '').toUpperCase().trim();
+    if (upperJabatan.includes('KEPALA BAGIAN UMUM') || upperJabatan.includes('KABAG UMUM') || !upperJabatan) {
+      const prefix = upperJabatan.startsWith('PLT') ? 'Plt. ' : (upperJabatan.startsWith('PLH') ? 'Plh. ' : '');
+      titleLines = [
+        `${prefix}KEPALA BAGIAN UMUM`,
+        'SETDA KAB. BANGGAI LAUT',
+      ];
+    } else {
+      titleLines = this.splitTextToLines(upperJabatan, fontBold, fontSize, signBlockWidth);
+      if (!upperJabatan.includes('BANGGAI LAUT')) {
+        titleLines.push('SETDA KAB. BANGGAI LAUT');
+      }
+    }
 
     // Hitung total tinggi blok tanda tangan secara utuh:
-    // - Dikeluarkan di: signLineSpacing (16 pt)
-    // - Pada Tanggal + underline: signLineSpacing + 8 (24 pt)
-    // - Jabatan: titleLines.length * lineHeight
-    // - Ruang tanda tangan / stempel / PNG: 95 pt
-    // - Nama + Underline: 15 pt
-    // - Pangkat: 15 pt
-    // - NIP: 15 pt
     const totalSignBlockHeight =
       signLineSpacing +
       (signLineSpacing + 8) +
       titleLines.length * lineHeight +
-      95 +
+      85 +
       15 +
-      15 +
+      (signerPangkat ? 15 : 0) +
       15;
 
     // Jika blok tanda tangan tidak muat di halaman saat ini:
@@ -439,7 +447,7 @@ export class SuratTugasPdfService {
       currentY -= gapBeforeSign;
     }
 
-    // Gambar seluruh komponen tanda tangan secara utuh:
+    // Header Dikeluarkan di & Pada Tanggal
     currentPage.drawText('Dikeluarkan di', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
     currentPage.drawText(st.tempatDikeluarkan || 'Banggai', {
@@ -473,33 +481,43 @@ export class SuratTugasPdfService {
 
     currentY -= signLineSpacing + 8;
 
-    // Jabatan Pejabat (Multi lines split if needed)
+    // Jabatan Pejabat (Center-aligned in sign block)
     for (const tLine of titleLines) {
-      currentPage.drawText(tLine, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
+      const tW = fontBold.widthOfTextAtSize(tLine, fontSize);
+      const tX = signX + (signBlockWidth - tW) / 2;
+      currentPage.drawText(tLine, { x: tX, y: currentY, size: fontSize, font: fontBold, color: black });
       currentY -= lineHeight;
     }
 
     // Space for physical signature / stempel
-    currentY -= 95;
+    currentY -= (85 - lineHeight);
 
-    // Nama Pejabat
-    currentPage.drawText(signerNama, { x: signX, y: currentY, size: fontSize, font: fontBold, color: black });
+    // Nama Pejabat (Center-aligned with underline)
     const sNamaWidth = fontBold.widthOfTextAtSize(signerNama, fontSize);
+    const sNamaX = signX + (signBlockWidth - sNamaWidth) / 2;
+    currentPage.drawText(signerNama, { x: sNamaX, y: currentY, size: fontSize, font: fontBold, color: black });
     currentPage.drawLine({
-      start: { x: signX, y: currentY - 1 },
-      end: { x: signX + sNamaWidth, y: currentY - 1 },
+      start: { x: sNamaX, y: currentY - 1 },
+      end: { x: sNamaX + sNamaWidth, y: currentY - 1 },
       thickness: 0.8,
       color: black,
     });
     currentY -= 15;
 
-    // Pangkat
-    currentPage.drawText(signerPangkat, { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    currentY -= 15;
+    // Pangkat (Center-aligned)
+    if (signerPangkat) {
+      const sPangkatWidth = fontRegular.widthOfTextAtSize(signerPangkat, fontSize);
+      const sPangkatX = signX + (signBlockWidth - sPangkatWidth) / 2;
+      currentPage.drawText(signerPangkat, { x: sPangkatX, y: currentY, size: fontSize, font: fontRegular, color: black });
+      currentY -= 15;
+    }
 
-    // NIP
-    currentPage.drawText(`NIP. ${signerNip}`, {
-      x: signX,
+    // NIP (Center-aligned)
+    const nipText = `NIP. ${signerNip}`;
+    const nipWidth = fontRegular.widthOfTextAtSize(nipText, fontSize);
+    const nipX = signX + (signBlockWidth - nipWidth) / 2;
+    currentPage.drawText(nipText, {
+      x: nipX,
       y: currentY,
       size: fontSize,
       font: fontRegular,

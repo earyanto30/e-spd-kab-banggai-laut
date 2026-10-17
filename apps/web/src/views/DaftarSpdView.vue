@@ -110,6 +110,12 @@ const isBulkPrinting = ref(false);
 const isBulkDownloading = ref(false);
 const showBulkDeleteDialog = ref(false);
 
+const bulkSequenceMode = ref<'non-collate' | 'collate'>('non-collate');
+const sequenceOptions = [
+  { label: 'Non-Kolasi (Depan lalu Belakang)', value: 'non-collate' },
+  { label: 'Kolasi (Depan-Belakang per SPD)', value: 'collate' },
+];
+
 const toggleSelectionMode = () => {
   isSelectionMode.value = !isSelectionMode.value;
   if (!isSelectionMode.value) {
@@ -132,7 +138,7 @@ const handleBulkPrint = async () => {
     const res = await apiFetch('/api/spd/bulk-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ ids, sequence: bulkSequenceMode.value }),
     });
 
     if (res.ok) {
@@ -180,7 +186,7 @@ const handleBulkDownload = async () => {
     const res = await apiFetch('/api/spd/bulk-pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids }),
+      body: JSON.stringify({ ids, sequence: bulkSequenceMode.value }),
     });
 
     if (res.ok) {
@@ -707,6 +713,17 @@ onMounted(() => {
       </div>
 
       <div class="flex items-center gap-2 flex-wrap">
+        <div v-if="selectedSpd.length > 0" class="flex items-center gap-1.5 text-xs">
+          <span class="text-text-muted hidden sm:inline">Urutan:</span>
+          <GovSelect
+            v-model="bulkSequenceMode"
+            :options="sequenceOptions"
+            option-label="label"
+            option-value="value"
+            class="w-56 text-xs"
+            title="Pilih urutan pencetakan lembar dokumen SPD"
+          />
+        </div>
         <GovButton
           v-if="selectedSpd.length > 0"
           label="Cetak Terpilih"

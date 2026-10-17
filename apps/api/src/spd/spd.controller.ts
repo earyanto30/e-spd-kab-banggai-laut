@@ -86,12 +86,13 @@ export class SpdController {
   async downloadBulkPdf(
     @Body('ids') ids: string[],
     @Body('fontFamily') fontFamily: string | undefined,
+    @Body('sequence') sequence: 'collate' | 'non-collate' | undefined,
     @Res() res: Response,
   ) {
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       throw new BadRequestException('Daftar ID SPD wajib disertakan.');
     }
-    const { buffer, fileName } = await this.spdPdfService.generateBulkPdf(ids, fontFamily);
+    const { buffer, fileName } = await this.spdPdfService.generateBulkPdf(ids, fontFamily, sequence || 'non-collate');
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
     res.send(buffer);
