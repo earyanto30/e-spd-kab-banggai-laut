@@ -40,7 +40,15 @@ erDiagram
         String unitKerja
         Boolean isASN
         Boolean isPenandatangan
-        String tandaTangan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    DasarHukum {
+        String id PK
+        String judul
+        String isi
+        Int urutan
         DateTime createdAt
         DateTime updatedAt
     }
@@ -150,7 +158,6 @@ erDiagram
 | `unitKerja` | String | No | `'Sekretariat Daerah'` | None | Organizational sub-division |
 | `isASN` | Boolean | No | `true` | None | ASN employment type flag |
 | `isPenandatangan` | Boolean | No | `false` | None | Flag indicating authorized letter signatory |
-| `tandaTangan` | String | Yes | `null` | None | Filename of signature image in uploads storage |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
 
@@ -188,7 +195,7 @@ erDiagram
 | `pegawaiIds` | String | Yes | `null` | None | Serialized JSON array of assigned employee CUIDs |
 | `alatAngkut` | String | Yes | `null` | None | Transportation mode selection |
 | `tempatTujuan` | String | Yes | `null` | None | Destination |
-| `lamaHari` | Int | Yes | `1` | None | Duration in days |
+| `lamaHari` | Int | Yes | `null` | None | Duration in days |
 | `tanggalBerangkat` | DateTime | Yes | `null` | None | Departure date |
 | `status` | String | No | `'DRAFT'` | None | Status: `DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL` |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
@@ -206,9 +213,9 @@ erDiagram
 | `alatAngkut` | String | No | None | None | Chosen mode(s) of transit |
 | `tempatBerangkat` | String | No | None | None | Origin location |
 | `tempatTujuan` | String | No | None | None | Destination location |
-| `lamaHari` | Int | No | None | Positive Int | Duration in days |
+| `lamaHari` | Int | Yes | `null` | Positive Int | Duration in days (optional) |
 | `tanggalBerangkat` | DateTime | No | None | None | Scheduled departure date |
-| `tanggalKembali` | DateTime | No | None | None | Scheduled return date |
+| `tanggalKembali` | DateTime | Yes | `null` | None | Scheduled return date |
 | `skpd` | String | No | Bagian Umum SETDA | None | Regional work unit funding travel |
 | `kodeRekening` | String | Yes | `null` | None | Budget accounting line |
 | `tingkatBiaya` | String | Yes | `null` | None | Allowance level tier |
@@ -222,6 +229,17 @@ erDiagram
 | `penandatanganPangkat` | String | Yes | `null` | None | Signatory rank snapshot |
 | `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `status` | String | No | `'DRAFT'` | None | Status: `DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL` |
+| `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
+
+### 3.6 Table `DasarHukum`
+
+| Column | Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique statutory reference identifier |
+| `judul` | String | No | None | None | Short title or label of the statutory basis |
+| `isi` | String | No | None | None | Full legal text / statutory reference statement |
+| `urutan` | Int | No | `0` | None | Sort display ordering integer |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
 

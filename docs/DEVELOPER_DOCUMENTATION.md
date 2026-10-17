@@ -37,7 +37,15 @@ erDiagram
         String unitKerja
         Boolean isASN
         Boolean isPenandatangan
-        String tandaTangan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    DasarHukum {
+        String id PK
+        String judul
+        String isi
+        Int urutan
         DateTime createdAt
         DateTime updatedAt
     }
@@ -147,11 +155,22 @@ Master record of civil servants (ASN) and official signatories within the Region
 | `unitKerja` | String | No | `'Sekretariat Daerah'` | None | Organizational administrative unit |
 | `isASN` | Boolean | No | `true` | None | ASN status indicator |
 | `isPenandatangan` | Boolean | No | `false` | None | Flag indicating official signatory authorization |
-| `tandaTangan` | String | Yes | `null` | None | Filename of uploaded transparent PNG signature image |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.3 Table `KopSurat`
+#### 1.3.3 Table `DasarHukum`
+Stores reusable statutory references and legal bases for official assignment letters (Surat Tugas).
+
+| Column | Data Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
+| `judul` | String | No | None | None | Short title or regulation header |
+| `isi` | String | No | None | None | Complete statutory text body |
+| `urutan` | Int | No | `0` | None | Sorting priority for display and letter inclusion |
+| `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
+
+#### 1.3.4 Table `KopSurat`
 Stores metadata and file locations for official letterhead PDF templates.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -167,7 +186,7 @@ Stores metadata and file locations for official letterhead PDF templates.
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.4 Table `SuratTugas`
+#### 1.3.5 Table `SuratTugas`
 Records official assignment orders authorizing official travel for one or multiple civil servants.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -193,7 +212,7 @@ Records official assignment orders authorizing official travel for one or multip
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.5 Table `Spd`
+#### 1.3.6 Table `Spd`
 Stores individual Surat Perjalanan Dinas records formatted to standard official specifications.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -206,7 +225,7 @@ Stores individual Surat Perjalanan Dinas records formatted to standard official 
 | `alatAngkut` | String | No | None | None | Comma-delimited list of transportation modes |
 | `tempatBerangkat` | String | No | None | None | Point of departure (default: `'Banggai'`) |
 | `tempatTujuan` | String | No | None | None | Destination point |
-| `lamaHari` | Int | No | None | Positive Int | Duration in days |
+| `lamaHari` | Int | Yes | `null` | Positive Int | Duration in days (optional / auto-calculated) |
 | `tanggalBerangkat` | DateTime | No | None | None | Departure timestamp |
 | `tanggalKembali` | DateTime | No | None | None | Return timestamp (auto-calculated if omitted) |
 | `skpd` | String | No | Bagian Umum SETDA | None | Regional work unit funding the travel |
@@ -532,35 +551,83 @@ Row 8 (*Nama Pengikut*) is rendered with a fixed height of $96\text{ pt}$:
 - Body space: $56\text{ pt}$ providing 3 numbered sub-rows ($15\text{ pt}$ each) with bottom boundary clearance.
 - Vertical separator divides `Umur` and `Keterangan` down the middle of Column 3 ($X = \text{col3X} + \frac{\text{colWidths}[2]}{2}$).
 
-### 3.5 Digital Signature Embedding
+### 3.5 Signatory Alignment and Governance Rules
 
-Digital signatures are conditionally embedded when:
-1. Document status is `DISETUJUI`.
-2. The resolving signatory record has a defined `tandaTangan` filename.
+Bottom signature blocks for official documents are aligned using calculated center positioning and strictly governed signatory rules:
 
-#### 3.5.1 Path Resolution Hierarchy
-The service searches filesystem locations in order:
-1. `process.env.SIGNATURE_UPLOAD_DIR`
-2. `apps/api/uploads/signatures/<fileName>`
-3. `uploads/signatures/<fileName>`
-4. Production relative path offsets (`../../uploads/signatures`)
-
-#### 3.5.2 Proportional Scaling & Placement
+#### 3.5.1 Centered Signature Blocks
+Both Surat Tugas and SPD calculate horizontal text positions within a $230\text{ pt}$ bounding box positioned at the right table margin:
 ```typescript
-const sigBytes = fs.readFileSync(targetPath);
-const sigImage = await pdfDoc.embedPng(sigBytes);
-const sigDims = sigImage.scaleToFit(140, 70);
+const signBlockWidth = 230;
+const signX = tableRightX - signBlockWidth;
 
-page.drawImage(sigImage, {
-  x: signX + 5,
-  y: currentY + 12,
-  width: sigDims.width,
-  height: sigDims.height,
-});
+const textWidth = font.widthOfTextAtSize(text, fontSize);
+const textX = signX + (signBlockWidth - textWidth) / 2;
 ```
-`scaleToFit` constrains width to $140\text{ pt}$ and height to $70\text{ pt}$ while maintaining aspect ratio. The signature image is positioned $12\text{ pt}$ above the text baseline of the signatory name.
+- **Official Name:** Underlined with exact text width boundaries matching `textX` and `textX + textWidth`.
+- **Surat Tugas Signatory Title:** Formatted explicitly into two centered uppercase lines:
+  ```text
+  KEPALA BAGIAN UMUM
+  SETDA KAB. BANGGAI LAUT
+  ```
+- **SPD Signatory Label & Governance:**
+  - Strictly governed as `KUASA PENGGUNA ANGGARAN` or `PENGGUNA ANGGARAN`.
+  - When **KPA** is selected, the signatory defaults and locks strictly to the Kepala Bagian Umum SETDA.
+  - When **PA** is selected, the signatory defaults to the Sekretaris Daerah with flexible selection for Plt./Plh. officials.
 
-### 3.6 HTTP Streaming Output
+### 3.6 Page 2: Halaman Belakang (Tabel Visum Perjalanan Dinas)
+
+Every generated SPD PDF automatically includes Page 2 (Lembar Visum) formatted according to official Permendagri / Perbup standards:
+
+```text
+Table Boundaries:
+Left: X = 40 pt, Right: X = 572 pt (Width: 532 pt), Center Divider: X = 306 pt
+```
+
+#### 3.6.1 Section Breakdown
+1. **Row I (Keberangkatan Awal):**
+   - Left quadrant: Empty whitespace with no borders on top, left, or center divider.
+   - Right quadrant: `I. Berangkat dari (Tempat Kedudukan)`, `Ke`, `Pada Tanggal`, and the PA/KPA signatory with underlined name and NIP.
+2. **Rows II s/d V (Catatan Tempat Transit / Tujuan Visum):**
+   - Divided down the center ($X = 306\text{ pt}$).
+   - Left: `Tiba di`, `Pada Tanggal`, centered dotted signature line `(....................................................................)`.
+   - Right: `Berangkat dari`, `Ke`, `Pada Tanggal`, centered dotted signature line.
+3. **Row VI (Kepulangan & Pemeriksaan):**
+   - Left: Return arrival to home base (`Banggai`), return date, and PA/KPA signatory.
+   - Right: Multi-line statutory inspection statement:
+     > *"Telah diperiksa, dengan keterangan bahwa perjalanan Dinas tersebut diatas benar dilakukan atas perintahnya dan semata mata untuk kepentingan jabatan dalam waktu yang sesingkat - singkatnya."*
+4. **Row VII (Catatan Lain-lain):**
+   - Full width row across table ($532\text{ pt}$).
+5. **Row VIII (Perhatian):**
+   - Full width row with statutory financial liability warning for PPK, traveler, and certifying officials.
+6. **Bottom Signature Block:**
+   - Positioned below the table on the right side ($X = 342\text{ pt}$, width $230\text{ pt}$).
+   - Centered uppercase title (`KUASA PENGGUNA ANGGARAN` / `PENGGUNA ANGGARAN`), physical signature clearance, underlined official name, and NIP.
+
+### 3.7 Non-Collate Batch Printing Sequencer
+
+When multiple SPDs are selected for printing or downloading simultaneously, `SpdPdfService.generateBulkPdf` supports both `collate` and `non-collate` sequencing:
+
+```typescript
+if (sequence === 'non-collate') {
+  // Group 1: All Front Sheets (Page 1 of Doc A, Doc B, Doc C...)
+  for (const doc of loadedDocs) {
+    const [front] = await mergedDoc.copyPages(doc, [0]);
+    mergedDoc.addPage(front);
+  }
+  // Group 2: All Back Sheets (Page 2 of Doc A, Doc B, Doc C...)
+  for (const doc of loadedDocs) {
+    if (doc.getPageCount() > 1) {
+      const [back] = await mergedDoc.copyPages(doc, [1]);
+      mergedDoc.addPage(back);
+    }
+  }
+}
+```
+
+This enables administrative staff to perform high-volume duplex printing on standard office printers: print all front pages in batch, place the printed stack back into the input tray, and print all back pages on the reverse side.
+
+### 3.8 HTTP Streaming Output
 
 The controller serves generated buffers with standard binary streaming headers:
 ```typescript

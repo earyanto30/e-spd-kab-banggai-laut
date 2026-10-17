@@ -19,6 +19,10 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **Penyempurnaan 2** | Integrasi Pembuatan PDF Asli Menggunakan Kop Surat dari Pengaturan Kop Surat | ✅ **Selesai** | 07 Okt 2026 |
 | **Penyempurnaan 3** | Fitur Edit SPD yang Sudah Dibuat (Form Prefill Lengkap & Update API) | ✅ **Selesai** | 07 Okt 2026 |
 | **Penyempurnaan 4** | Notifikasi Alert Overlay & Auto-Disappear Reusable (PrimeVue Toast) | ✅ **Selesai** | 07 Okt 2026 |
+| **UAT-1 Fase 1** | Pembersihan Skema Database & Autentikasi (Penghapusan Tanda Tangan Digital & Login Terbuka) | ✅ **Selesai** | 17 Okt 2026 |
+| **UAT-1 Fase 2** | CRUD Dasar Hukum Dinamis & Integrasi Dropdown Surat Tugas | ✅ **Selesai** | 17 Okt 2026 |
+| **UAT-1 Fase 3** | Standardisasi Format Tanda Tangan Tengah & Tata Kelola Penandatangan PA/KPA | ✅ **Selesai** | 17 Okt 2026 |
+| **UAT-1 Fase 4** | Cetak Lembar Belakang SPD (Visum Perjalanan Dinas) & Sequencer Cetak Non-Kolasi | ✅ **Selesai** | 17 Okt 2026 |
 
 ---
 
@@ -360,3 +364,60 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
   - Menambahkan bagian opsional "5. Rincian Perjalanan Dinas" pada form Surat Tugas sehingga user dapat menentukan moda transportasi, tujuan, dan durasi sejak awal saat menyusun draft Surat Tugas.
 - **Validasi E2E Playwright MCP**:
   - Seluruh alur form, autocomplete, dialog modal, penerbitan SPD, sinkronisasi nilai, hingga pembukaan halaman cetak SPD telah diverifikasi berjalan sukses tanpa kendala.
+
+---
+
+### 🛡️ UAT-1 Fase 1: Pembersihan Skema Database & Autentikasi Terbuka (Selesai)
+- **Penghapusan Kolom `tandaTangan`:**
+  - Menghapus kolom `tandaTangan` dari model `Pegawai` di Prisma schema dan seluruh DTO `@si-setda/shared-types`.
+  - Mengeliminasi fitur upload gambar tanda tangan digital pada form ASN (`AsnView.vue`) dan PDF generation service karena seluruh dokumen menggunakan tanda tangan basah fisik.
+- **Autentikasi Terbuka (Open Login):**
+  - Mengizinkan seluruh pegawai berstatus ASN maupun Non-ASN untuk dapat login ke dalam sistem jika memiliki akun pengguna terhubung.
+- **Relaksasi Input Durasi SPD:**
+  - Mengubah kolom `lamaHari` pada model `Spd` menjadi nullable (`Int?`), memungkinkan pembuatan dokumen tanpa mewajibkan durasi hari perjalanan saat tanggal keberangkatan/kembali belum pasti.
+
+---
+
+### 📜 UAT-1 Fase 2: Pengaturan Dasar Hukum Dinamis (Selesai)
+- **Model Baru `DasarHukum`:**
+  - Membuat tabel `DasarHukum` di Prisma database dengan kolom `id`, `judul`, `isi`, `urutan`, `createdAt`, dan `updatedAt`.
+  - Menghapus mekanisme teks hardcoded default pada form pembuatan Surat Tugas.
+- **Modul Backend & Manajemen Frontend (`apps/api` & `apps/web`):**
+  - REST API endpoint CRUD lengkap (`GET`, `POST`, `PUT`, `DELETE` di `/api/dasar-hukum`).
+  - Halaman manajemen baru `DasarHukumView.vue` di bawah menu Pengaturan Sistem (`/pengaturan/dasar-hukum`) dengan dialog tambah/edit dan sorting urutan.
+  - Integrasi seleksi dropdown/multiselect dasar hukum dinamis pada form pembuatan Surat Tugas (`BuatSuratTugasView.vue`).
+
+---
+
+### 🖋️ UAT-1 Fase 3: Standardisasi Tanda Tangan Tengah & Tata Kelola PA/KPA (Selesai)
+- **Format Tanda Tangan Rata Tengah Presisi:**
+  - Seluruh blok tanda tangan bawah pada PDF Surat Tugas dan SPD diselaraskan rata tengah secara matematis dalam bounding box $230\text{ pt}$ di margin kanan.
+  - Garis bawah nama pejabat dihitung presisi persis sepanjang teks nama (`textWidth`).
+- **Standardisasi Judul Penandatangan Surat Tugas:**
+  - Ditata baku menjadi dua baris rata tengah:
+    ```text
+    KEPALA BAGIAN UMUM
+    SETDA KAB. BANGGAI LAUT
+    ```
+- **Tata Kelola Penandatangan SPD (PA vs KPA):**
+  - **Kuasa Pengguna Anggaran (KPA):** Jabatan otomatis terkunci pada Kepala Bagian Umum SETDA, dropdown pejabat dikunci ke data definitif/Plt. Kabag Umum.
+  - **Pengguna Anggaran (PA):** Default memilih Sekretaris Daerah dengan fleksibilitas memilih pejabat Plt./Plh. yang ditunjuk.
+  - Penyesuaian label otomatis pada cetakan PDF: `KUASA PENGGUNA ANGGARAN` atau `PENGGUNA ANGGARAN`.
+
+---
+
+### 📄 UAT-1 Fase 4: Cetak Halaman Belakang SPD (Visum) & Sequencer Cetak Non-Kolasi (Selesai)
+- **Penerbitan Otomatis Halaman 2 SPD (Lembar Visum):**
+  - Implementasi metode `drawSpdBackPage` pada `SpdPdfService` (`apps/api/src/spd/spd-pdf.service.ts`).
+  - **Baris I (Keberangkatan):** Ditempatkan di bagian atas tanpa border kiri, atas, maupun garis pemisah tengah.
+  - **Baris II s/d V (Tempat Transit/Tujuan Visum):** Pembagian dua kolom simetris ($X = 306\text{ pt}$) dengan garis tanda tangan titik-titik `(....................................................................)`.
+  - **Baris VI (Kepulangan & Verifikasi):** Kolom kiri mencatat kedatangan kembali di Banggai; kolom kanan memuat teks klausul pemeriksaan sah sesuai regulasi.
+  - **Baris VII & VIII (Catatan & Perhatian):** Baris penuh ($532\text{ pt}$) memuat klausul pertanggungjawaban keuangan PPK/Pelaksana.
+  - **Tanda Tangan Bawah Halaman Belakang:** Format rata tengah dengan label PA/KPA resmi, garis bawah nama pejabat, dan NIP.
+- **Komponen Vue Pratinjau Web (`apps/web`):**
+  - `SpdBackDocument.vue`: Komponen render visual halaman belakang untuk web view dan direct browser printing (`@media print` page break rules).
+- **Sequencer Cetak Non-Kolasi (Duplex Printing Batch):**
+  - Parameter `sequence: 'collate' | 'non-collate'` pada endpoint `POST /api/spd/bulk-pdf`.
+  - Opsi *Non-Kolasi* mengurutkan seluruh Halaman 1 (Muka) terlebih dahulu, kemudian seluruh Halaman 2 (Belakang). Memudahkan cetak bolak-balik berkecepatan tinggi pada printer manual feed.
+  - Selector opsi cetak interaktif pada banner seleksi massal di `DaftarSpdView.vue`.
+

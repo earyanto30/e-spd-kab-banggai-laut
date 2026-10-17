@@ -168,34 +168,85 @@ Row 8 (*Nama Pengikut*) contains an internal sub-grid ($96\text{ pt}$ total heig
 
 ---
 
-## 5. Digital Signature Raster Embedding
+## 5. Signatory Alignment and Governance Rules
 
-When a document reaches status `DISETUJUI`, the service embeds the signatory's transparent PNG signature:
+### 5.1 Centered Signature Blocks
+Bottom signatures for both Surat Tugas and SPD use measured text widths to achieve exact center alignment across all lines:
+```typescript
+const signBlockWidth = 230;
+const signX = tableRightX - signBlockWidth;
+
+// Centering calculation for each element
+const textWidth = font.widthOfTextAtSize(text, fontSize);
+const textX = signX + (signBlockWidth - textWidth) / 2;
+```
+- **Official Name:** Rendered with an underline whose start and end match `textX` and `textX + textWidth`.
+- **Surat Tugas Signatory Title:** Formatted explicitly into two centered lines:
+  ```text
+  KEPALA BAGIAN UMUM
+  SETDA KAB. BANGGAI LAUT
+  ```
+- **SPD Signatory Label:** Strictly governed as `KUASA PENGGUNA ANGGARAN` or `PENGGUNA ANGGARAN`.
+
+---
+
+## 6. Page 2: Halaman Belakang (Tabel Visum Perjalanan Dinas)
+
+Every generated SPD PDF automatically includes Page 2 (Lembar Visum) formatted according to official Permendagri / Perbup standards:
+
+```text
+Table Boundaries:
+Left: X = 40 pt, Right: X = 572 pt (Width: 532 pt), Center Divider: X = 306 pt
+```
+
+### 6.1 Section Breakdown
+1. **Row I (Keberangkatan Awal):**
+   - Left quadrant: Empty whitespace with no borders above or to the left.
+   - Right quadrant: `I. Berangkat dari (Tempat Kedudukan)`, `Ke`, `Pada Tanggal`, and the PA/KPA signatory with underlined name and NIP.
+2. **Rows II s/d V (Catatan Tempat Transit / Tujuan Visum):**
+   - Divided down the center ($X = 306\text{ pt}$).
+   - Left: `Tiba di`, `Pada Tanggal`, centered dotted signature line `(....................................................................)`.
+   - Right: `Berangkat dari`, `Ke`, `Pada Tanggal`, centered dotted signature line.
+3. **Row VI (Kepulangan & Pemeriksaan):**
+   - Left: Return arrival to home base (`Banggai`), return date, and PA/KPA signatory.
+   - Right: Multi-line statutory inspection statement:
+     > *"Telah diperiksa, dengan keterangan bahwa perjalanan Dinas tersebut diatas benar dilakukan atas perintahnya dan semata mata untuk kepentingan jabatan dalam waktu yang sesingkat - singkatnya."*
+4. **Row VII (Catatan Lain-lain):**
+   - Full width row across table ($532\text{ pt}$).
+5. **Row VIII (Perhatian):**
+   - Full width row with statutory financial liability warning for PPK, traveler, and certifying officials.
+6. **Bottom Signature Block:**
+   - Positioned below the table on the right side ($X = 342\text{ pt}$, width $230\text{ pt}$).
+   - Centered uppercase title (`KUASA PENGGUNA ANGGARAN` / `PENGGUNA ANGGARAN`), physical signature clearance, underlined official name, and NIP.
+
+---
+
+## 7. Non-Collate Batch Printing Sequencer
+
+When multiple SPDs are selected for printing or downloading simultaneously, `SpdPdfService.generateBulkPdf` supports non-collate ordering:
 
 ```typescript
-if (spd.status === 'DISETUJUI' && p?.tandaTangan) {
-  const targetPath = this.resolveSignaturePath(p.tandaTangan);
-  if (targetPath) {
-    const sigBytes = fs.readFileSync(targetPath);
-    const sigImage = await pdfDoc.embedPng(sigBytes);
-    
-    // Maintain aspect ratio within bounding limits (140 pt width, 70 pt height)
-    const sigDims = sigImage.scaleToFit(140, 70);
-    
-    // Position signature above signatory name
-    page.drawImage(sigImage, {
-      x: signX + 5,
-      y: currentY + 12,
-      width: sigDims.width,
-      height: sigDims.height,
-    });
+if (sequence === 'non-collate') {
+  // Group 1: All Front Sheets (Page 1 of Doc A, Doc B, Doc C...)
+  for (const doc of loadedDocs) {
+    const [front] = await mergedDoc.copyPages(doc, [0]);
+    mergedDoc.addPage(front);
+  }
+  // Group 2: All Back Sheets (Page 2 of Doc A, Doc B, Doc C...)
+  for (const doc of loadedDocs) {
+    if (doc.getPageCount() > 1) {
+      const [back] = await mergedDoc.copyPages(doc, [1]);
+      mergedDoc.addPage(back);
+    }
   }
 }
 ```
 
+This empowers administrative staff to perform high-volume duplex printing on standard office printers: print all front pages in batch, place the printed stack back into the input tray, and print all back pages on the reverse side.
+
 ---
 
-## 6. HTTP Streaming Pipeline
+## 8. HTTP Streaming Pipeline
 
 Generated documents are returned directly to the client as an inline binary stream:
 
