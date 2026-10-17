@@ -33,6 +33,16 @@ const kpiStats = [
     bgClass: 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800/50',
   },
   {
+    title: 'Total Surat Tugas',
+    value: '52',
+    unit: 'Dokumen',
+    change: '+8 bln ini',
+    changeType: 'up',
+    icon: 'pi pi-file',
+    colorClass: 'text-indigo-600 dark:text-indigo-400',
+    bgClass: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/50',
+  },
+  {
     title: 'SPD Sedang Aktif',
     value: '18',
     unit: 'Pegawai',
@@ -51,16 +61,6 @@ const kpiStats = [
     icon: 'pi pi-users',
     colorClass: 'text-emerald-600 dark:text-emerald-400',
     bgClass: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50',
-  },
-  {
-    title: 'Realisasi Anggaran SPD',
-    value: 'Rp 284,5 Jt',
-    unit: 'Pagu 2026',
-    change: '78.2% terserap',
-    changeType: 'up',
-    icon: 'pi pi-wallet',
-    colorClass: 'text-indigo-600 dark:text-indigo-400',
-    bgClass: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/50',
   },
 ];
 
@@ -381,11 +381,11 @@ onMounted(() => {
               <span
                 class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 dark:bg-primary/20 text-white dark:text-primary border border-white/25 dark:border-primary/40 backdrop-blur-sm"
               >
-                Tahun Anggaran 2026
+                Tahun 2026
               </span>
             </div>
             <p class="text-xs sm:text-sm text-white/85 dark:text-text-muted mt-1 max-w-2xl leading-relaxed">
-              Monitoring penerbitan, penugasan dinas ASN, dan realisasi Surat Perjalanan Dinas Sekretariat Daerah.
+              Monitoring penerbitan, penugasan dinas ASN, dan pelaksanaan Surat Perjalanan Dinas Sekretariat Daerah.
             </p>
           </div>
         </div>
