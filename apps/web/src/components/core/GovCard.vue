@@ -13,8 +13,10 @@ import Card from 'primevue/card';
     <template v-if="$slots.subtitle" #subtitle>
       <slot name="subtitle" />
     </template>
-    <template v-if="$slots.content" #content>
-      <slot name="content" />
+    <template v-if="$slots.content || $slots.default" #content>
+      <slot name="content">
+        <slot />
+      </slot>
     </template>
     <template v-if="$slots.footer" #footer>
       <slot name="footer" />

@@ -89,31 +89,8 @@ const loading = ref(true);
 const errorMessage = ref('');
 
 // Signer choices
-const signersList = ref<OfficialSigner[]>([
-  {
-    nama: 'ARSID HAMIDI, SH',
-    nip: '19700830 200312 1 003',
-    pangkat: 'Pembina',
-    golongan: 'IV/a',
-    jabatan: 'KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT',
-  },
-  {
-    nama: 'Saiful U. Usuria, SE., M.Si',
-    nip: '19750510 200012 1 004',
-    pangkat: 'Pembina Utama Muda',
-    golongan: 'IV/c',
-    jabatan: 'Sekretaris Daerah',
-  },
-  {
-    nama: 'Dedy Kurniawan, S.STP, M.AP',
-    nip: '19850214 200412 1 001',
-    pangkat: 'Pembina',
-    golongan: 'IV/a',
-    jabatan: 'Kepala Bagian Umum (KPA)',
-  },
-]);
-
-const selectedSigner = ref<OfficialSigner>(signersList.value[0]);
+const signersList = ref<OfficialSigner[]>([]);
+const selectedSigner = ref<OfficialSigner | null>(null);
 
 const fontFamily = ref<'arial' | 'times'>('arial');
 const fontOptions = [
@@ -557,7 +534,7 @@ const fetchData = async () => {
           });
         }
 
-        selectedSigner.value = matched || signersList.value[0];
+        selectedSigner.value = matched || signersList.value[0] || null;
       }
     }
 

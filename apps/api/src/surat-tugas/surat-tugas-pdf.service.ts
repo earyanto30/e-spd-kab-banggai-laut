@@ -214,33 +214,47 @@ export class SuratTugasPdfService {
 
     currentY -= 24;
 
-    // 2. DASAR HUKUM (Hardcoded statutory basis)
+    // 2. DASAR HUKUM (Dapat memilih lebih dari satu dasar hukum)
     currentPage.drawText('Dasar  :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
     const dasarNumberX = leftMargin + 50;
-    currentPage.drawText('1.', { x: dasarNumberX, y: currentY, size: fontSize, font: fontRegular, color: black });
-
     const dasarTextX = dasarNumberX + 16;
     const dasarWidth = rightMargin - dasarTextX;
-    const dasarLines = this.splitTextToLines(st.dasarHukum, fontRegular, fontSize, dasarWidth);
 
-    for (let i = 0; i < dasarLines.length; i++) {
+    // Parse multi-item dasar hukum: split by double newline or numbered items
+    const rawDasar = (st.dasarHukum || '').trim();
+    const itemsDasar = rawDasar
+      .split(/\n\s*\n|\r?\n(?=\d+[\.\)]\s+)/)
+      .map((item) => item.trim().replace(/^\d+[\.\)]\s*/, ''))
+      .filter(Boolean);
+
+    const listDasar = itemsDasar.length > 0 ? itemsDasar : [rawDasar];
+
+    for (let dIdx = 0; dIdx < listDasar.length; dIdx++) {
+      const numLabel = `${dIdx + 1}.`;
       ensureSpaceOrNewPage(lineHeight);
-      const isLast = i === dasarLines.length - 1;
-      this.drawJustifiedText(
-        currentPage,
-        dasarLines[i],
-        dasarTextX,
-        currentY,
-        fontSize,
-        fontRegular,
-        black,
-        dasarWidth,
-        isLast,
-      );
-      currentY -= lineHeight;
+      currentPage.drawText(numLabel, { x: dasarNumberX, y: currentY, size: fontSize, font: fontRegular, color: black });
+
+      const dLines = this.splitTextToLines(listDasar[dIdx], fontRegular, fontSize, dasarWidth);
+      for (let i = 0; i < dLines.length; i++) {
+        ensureSpaceOrNewPage(lineHeight);
+        const isLast = i === dLines.length - 1;
+        this.drawJustifiedText(
+          currentPage,
+          dLines[i],
+          dasarTextX,
+          currentY,
+          fontSize,
+          fontRegular,
+          black,
+          dasarWidth,
+          isLast,
+        );
+        currentY -= lineHeight;
+      }
+      currentY -= 4; // Spacing antar dasar hukum
     }
 
-    currentY -= 14;
+    currentY -= 10;
 
     // 3. MEMERINTAHKAN : (Centered Bold)
     ensureSpaceOrNewPage(20);

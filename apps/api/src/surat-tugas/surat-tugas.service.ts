@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto, DASAR_HUKUM_DEFAULT } from '@si-setda/shared-types';
+import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto } from '@si-setda/shared-types';
 
 @Injectable()
 export class SuratTugasService {
@@ -161,8 +161,8 @@ export class SuratTugasService {
   async create(dto: CreateSuratTugasDto) {
     const year = new Date().getFullYear();
 
-    // Auto generate nomorSurat if not provided
-    // Format: 000.1.2.3/{seq}/Bag.Umum/{year}
+    // Auto generate nomorSurat if not provided or support dynamic numbering
+    // Format: 000.1.2.3/[Number]/[UnitCode]/[Year] (e.g. 000.1.2.3/001/Bag.Umum/2026 or 000.1.2.3//Bag.Umum/2026)
     let nomorSurat = dto.nomorSurat?.trim();
     if (!nomorSurat) {
       const count = await this.prisma.suratTugas.count({
@@ -182,6 +182,7 @@ export class SuratTugasService {
         nomorSurat = `000.1.2.3/${String(count + 2).padStart(3, '0')}/Bag.Umum/${year}`;
       }
     } else {
+      // If user supplies empty sequence like "000.1.2.3//Bag.Umum/2026", check or allow unique suffix
       const existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat } });
       if (existing) {
         throw new ConflictException(`Nomor Surat '${nomorSurat}' sudah digunakan`);
@@ -199,11 +200,13 @@ export class SuratTugasService {
 
     const tglSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : new Date();
 
+    const dasarHukumText = dto.dasarHukum?.trim() || null;
+
     let penandatanganId = dto.penandatanganId || null;
-    let penandatanganNama = dto.penandatanganNama?.trim();
-    let penandatanganJabatan = dto.penandatanganJabatan?.trim();
-    let penandatanganPangkat = dto.penandatanganPangkat?.trim();
-    let penandatanganNip = dto.penandatanganNip?.trim();
+    let penandatanganNama = dto.penandatanganNama?.trim() || null;
+    let penandatanganJabatan = dto.penandatanganJabatan?.trim() || null;
+    let penandatanganPangkat = dto.penandatanganPangkat?.trim() || null;
+    let penandatanganNip = dto.penandatanganNip?.trim() || null;
 
     if (penandatanganId) {
       const p = await this.prisma.pegawai.findUnique({ where: { id: penandatanganId } });
@@ -227,21 +230,34 @@ export class SuratTugasService {
         if (!penandatanganJabatan) penandatanganJabatan = match.jabatan;
         if (!penandatanganPangkat) penandatanganPangkat = match.golongan ? `${match.pangkat}, ${match.golongan}` : match.pangkat;
       }
+    } else {
+      // Find first available designated signatory in DB
+      const defaultSigner = await this.prisma.pegawai.findFirst({
+        where: { isPenandatangan: true },
+        orderBy: { createdAt: 'asc' },
+      });
+      if (defaultSigner) {
+        penandatanganId = defaultSigner.id;
+        penandatanganNama = defaultSigner.nama;
+        penandatanganJabatan = defaultSigner.jabatan;
+        penandatanganPangkat = defaultSigner.golongan ? `${defaultSigner.pangkat}, ${defaultSigner.golongan}` : defaultSigner.pangkat;
+        penandatanganNip = defaultSigner.nip;
+      }
     }
 
     // Create Surat Tugas as Parent with stored pegawaiIds
     const suratTugas = await this.prisma.suratTugas.create({
       data: {
         nomorSurat,
-        dasarHukum: dto.dasarHukum?.trim() || DASAR_HUKUM_DEFAULT,
+        dasarHukum: dasarHukumText,
         dalamRangka: dto.dalamRangka.trim(),
         tempatDikeluarkan: dto.tempatDikeluarkan?.trim() || 'Banggai',
         tanggalSurat: tglSurat,
         penandatanganId,
-        penandatanganNama: penandatanganNama || 'ARSID HAMIDI, SH',
-        penandatanganJabatan: penandatanganJabatan || 'KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT',
-        penandatanganPangkat: penandatanganPangkat || 'Pembina, IV/a',
-        penandatanganNip: penandatanganNip || '19700830 200312 1 003',
+        penandatanganNama,
+        penandatanganJabatan,
+        penandatanganPangkat,
+        penandatanganNip,
         kopSuratId: dto.kopSuratId || null,
         status: dto.status?.trim() || 'DRAFT',
         pegawaiIds: JSON.stringify(dto.pegawaiIds),
@@ -527,10 +543,12 @@ export class SuratTugasService {
         },
       });
       const spdSeq = String(spdCount + 1).padStart(3, '0');
-      let nomorSpd = `${spdSeq}/SPD/SETDA/${year}`;
+      const isKpa = pemberiPerintah.toLowerCase().includes('kuasa');
+      const prefix = isKpa ? 'KPA' : '';
+      let nomorSpd = `${prefix}${spdSeq}/SPD/${year}`;
       const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
       if (existing) {
-        nomorSpd = `${String(spdCount + 2).padStart(3, '0')}/SPD/SETDA/${year}`;
+        nomorSpd = `${prefix}${String(spdCount + 2).padStart(3, '0')}/SPD/${year}`;
       }
 
       const spd = await this.prisma.spd.create({

@@ -150,22 +150,19 @@ export const UpdateSpdSchema = CreateSpdSchema.partial();
 
 export type UpdateSpdDto = z.infer<typeof UpdateSpdSchema>;
 
-export const DASAR_HUKUM_DEFAULT =
-  'Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)';
-
 export const SuratTugasSchema = z.object({
   id: z.string(),
   nomorSurat: z.string(),
-  dasarHukum: z.string().default(DASAR_HUKUM_DEFAULT),
+  dasarHukum: z.string().default(''),
   dalamRangka: z.string(),
   tempatDikeluarkan: z.string().default('Banggai'),
   tanggalSurat: z.date().or(z.string()),
   penandatanganId: z.string().nullable().optional(),
   penandatangan: z.any().optional(),
-  penandatanganNama: z.string().default('ARSID HAMIDI, SH'),
-  penandatanganJabatan: z.string().default('KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT'),
-  penandatanganPangkat: z.string().default('Pembina, IV/a'),
-  penandatanganNip: z.string().default('19700830 200312 1 003'),
+  penandatanganNama: z.string().nullable().optional(),
+  penandatanganJabatan: z.string().nullable().optional(),
+  penandatanganPangkat: z.string().nullable().optional(),
+  penandatanganNip: z.string().nullable().optional(),
   kopSuratId: z.string().nullable().optional(),
   pegawaiIds: z.string().nullable().optional(),
   alatAngkut: z.string().nullable().optional(),
@@ -224,6 +221,30 @@ export const GenerateSpdFromSuratTugasSchema = z.object({
 });
 
 export type GenerateSpdFromSuratTugasDto = z.infer<typeof GenerateSpdFromSuratTugasSchema>;
+
+export const DasarHukumSchema = z.object({
+  id: z.string(),
+  judul: z.string(),
+  isi: z.string(),
+  urutan: z.number().int().default(0),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type DasarHukumDto = z.infer<typeof DasarHukumSchema>;
+
+export const CreateDasarHukumSchema = z.object({
+  judul: z.string().min(1, 'Judul dasar hukum wajib diisi'),
+  isi: z.string().min(1, 'Isi redaksi dasar hukum wajib diisi'),
+  urutan: z.number().int().optional().default(0),
+});
+
+export type CreateDasarHukumDto = z.infer<typeof CreateDasarHukumSchema>;
+
+export const UpdateDasarHukumSchema = CreateDasarHukumSchema.partial();
+
+export type UpdateDasarHukumDto = z.infer<typeof UpdateDasarHukumSchema>;
+
 
 
 

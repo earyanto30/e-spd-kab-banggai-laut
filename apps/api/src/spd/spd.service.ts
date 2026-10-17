@@ -104,7 +104,7 @@ export class SpdService {
       throw new NotFoundException(`Pegawai dengan ID '${dto.pegawaiId}' tidak ditemukan`);
     }
 
-    // Auto-generate nomor SPD if not supplied
+    // Auto-generate nomor SPD if not supplied or handle dynamic format [Prefix][Number]/SPD/[Year]
     let nomorSpd = dto.nomorSpd?.trim();
     if (!nomorSpd) {
       const year = new Date().getFullYear();
@@ -117,12 +117,15 @@ export class SpdService {
         },
       });
       const seq = String(count + 1).padStart(3, '0');
-      nomorSpd = `${seq}/SPD/SETDA/${year}`;
+      // Format standard: [Number]/SPD/[Year] or KPA[Number]/SPD/[Year]
+      const isKpa = (dto.pemberiPerintah || '').toLowerCase().includes('kuasa');
+      const prefix = isKpa ? 'KPA' : '';
+      nomorSpd = `${prefix}${seq}/SPD/${year}`;
 
       // Check collision
       const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
       if (existing) {
-        nomorSpd = `${String(count + 2).padStart(3, '0')}/SPD/SETDA/${year}`;
+        nomorSpd = `${prefix}${String(count + 2).padStart(3, '0')}/SPD/${year}`;
       }
     } else {
       const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });

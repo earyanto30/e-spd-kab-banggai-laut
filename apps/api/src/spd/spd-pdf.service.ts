@@ -143,7 +143,7 @@ export class SpdPdfService {
       throw new NotFoundException(`Surat Perjalanan Dinas dengan ID '${spdId}' tidak ditemukan`);
     }
 
-    // Penandatangan resolution with fallback
+    // Penandatangan resolution with database-first fallback
     let p = spd.penandatangan || spd.suratTugas?.penandatangan;
     if (!p && (spd.penandatanganId || spd.suratTugas?.penandatanganId)) {
       const pid = spd.penandatanganId || spd.suratTugas?.penandatanganId;
@@ -151,11 +151,16 @@ export class SpdPdfService {
         p = await this.prisma.pegawai.findUnique({ where: { id: pid } });
       }
     }
-    const sNama = customSigner?.nama || p?.nama || spd.penandatanganNama || spd.suratTugas?.penandatanganNama || 'Saiful U. Usuria, SE., M.Si';
+    if (!p) {
+      p = await this.prisma.pegawai.findFirst({
+        where: { isPenandatangan: true },
+      });
+    }
+    const sNama = customSigner?.nama || p?.nama || spd.penandatanganNama || spd.suratTugas?.penandatanganNama || '';
     const sPangkat = customSigner?.pangkat
       ? `${customSigner.pangkat}${customSigner.golongan ? ', ' + customSigner.golongan : ''}`
-      : (p ? (p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat) : (spd.penandatanganPangkat || spd.suratTugas?.penandatanganPangkat || 'Pembina Utama Muda, IV/c'));
-    const sNip = customSigner?.nip || p?.nip || spd.penandatanganNip || spd.suratTugas?.penandatanganNip || '19750510 200012 1 004';
+      : (p ? (p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat) : (spd.penandatanganPangkat || spd.suratTugas?.penandatanganPangkat || ''));
+    const sNip = customSigner?.nip || p?.nip || spd.penandatanganNip || spd.suratTugas?.penandatanganNip || '';
 
     // Resolve Kop Surat PDF
     let kopStoredFileName = spd.kopSurat?.storedFileName;

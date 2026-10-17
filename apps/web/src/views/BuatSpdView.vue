@@ -52,7 +52,14 @@ interface PenandatanganOption {
   jabatan: string;
 }
 
+const currentYear = new Date().getFullYear();
+
 const getInitialForm = () => ({
+  nomorSpdMode: 'auto' as 'auto' | 'custom',
+  customPrefix: '',
+  customSeq: '',
+  tahunSpd: currentYear,
+  fullNomorSpd: '',
   pemberiPerintah: 'Pengguna Anggaran (PA)',
   pegawai: null as AsnOption | null,
   penandatanganId: null as string | null,
@@ -60,7 +67,7 @@ const getInitialForm = () => ({
   alatAngkut: [] as string[],
   tempatBerangkat: 'Banggai',
   tempatTujuan: '',
-  lamaHari: 1,
+  lamaHari: null as number | null,
   tanggalBerangkat: null as Date | null,
   kopSuratId: null as string | null,
 });
@@ -69,6 +76,17 @@ const getInitialForm = () => ({
 const form = reactive(getInitialForm());
 const penandatanganOptions = ref<PenandatanganOption[]>([]);
 const loadingPenandatangan = ref(false);
+
+const previewNomorSpd = computed(() => {
+  const isKpa = form.pemberiPerintah.toLowerCase().includes('kuasa');
+  const defaultPrefix = isKpa ? 'KPA' : '';
+  const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
+  if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
+    return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
+  }
+  const seqPart = form.customSeq.trim();
+  return `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
+});
 
 const resetForm = () => {
   Object.assign(form, getInitialForm());
@@ -189,6 +207,20 @@ const loadExistingSpd = async (id: string) => {
       const data = await res.json();
       existingSpd.value = data;
 
+      if (data.nomorSpd) {
+        form.fullNomorSpd = data.nomorSpd;
+        const match = data.nomorSpd.match(/^([A-Za-z]*)(\d*)\/SPD\/(\d+)$/);
+        if (match) {
+          form.nomorSpdMode = 'custom';
+          form.customPrefix = match[1] || '';
+          form.customSeq = match[2] || '';
+        } else {
+          form.nomorSpdMode = 'custom';
+          form.customSeq = data.nomorSpd;
+        }
+      }
+      form.tahunSpd = currentYear;
+
       form.pemberiPerintah = data.pemberiPerintah || 'Pengguna Anggaran (PA)';
       form.pegawai = data.pegawai || null;
 
@@ -294,9 +326,6 @@ const validate = (): boolean => {
   if (form.alatAngkut.length === 0) errors.alatAngkut = 'Pilih minimal satu alat angkut.';
   if (!form.tempatBerangkat.trim()) errors.tempatBerangkat = 'Tempat berangkat wajib diisi.';
   if (!form.tempatTujuan.trim()) errors.tempatTujuan = 'Tempat tujuan wajib diisi.';
-  if (form.lamaHari !== null && form.lamaHari !== undefined && Number(form.lamaHari) < 1) {
-    errors.lamaHari = 'Lama perjalanan minimal 1 hari.';
-  }
   if (!form.tanggalBerangkat) errors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
   if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
   if (!form.penandatanganId) errors.penandatanganId = 'Pejabat Penandatangan SPD wajib dipilih.';
@@ -327,7 +356,16 @@ const handleSubmit = async () => {
     .join('\n');
 
   try {
+    let finalNomorSpd: string | undefined = undefined;
+    if (form.nomorSpdMode === 'custom' || isEditMode.value) {
+      const isKpa = form.pemberiPerintah.toLowerCase().includes('kuasa');
+      const defaultPrefix = isKpa ? 'KPA' : '';
+      const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
+      finalNomorSpd = `${prefix}${form.customSeq.trim()}/SPD/${form.tahunSpd || currentYear}`;
+    }
+
     const payload = {
+      nomorSpd: finalNomorSpd,
       pemberiPerintah: form.pemberiPerintah,
       pegawaiId: form.pegawai!.id,
       penandatanganId: form.penandatanganId || undefined,
@@ -437,6 +475,87 @@ const handleCancel = () => {
     <!-- Main Card Form -->
     <div class="bg-surface border border-border rounded-xl p-6 shadow-sm space-y-6">
       <form @submit.prevent="handleSubmit" class="space-y-6">
+
+        <!-- Penomoran SPD (Dynamic & Optional) -->
+        <div class="space-y-3 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-border">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <label class="block text-sm font-semibold text-text-main">
+                Penomoran SPD
+              </label>
+              <p class="text-xs text-text-muted mt-0.5">
+                Format: <span class="font-mono text-primary font-semibold">[Prefix][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="form.nomorSpdMode"
+                  value="auto"
+                  :disabled="isEditMode"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Otomatis (Sistem)</span>
+              </label>
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="form.nomorSpdMode"
+                  value="custom"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Kustom / Manual</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Prefix <span class="text-text-muted font-normal">(opsional)</span>
+              </label>
+              <GovInputText
+                v-model="form.customPrefix"
+                :placeholder="form.pemberiPerintah.toLowerCase().includes('kuasa') ? 'KPA' : 'Kosong / Custom'"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Nomor Urut <span class="text-text-muted font-normal">(opsional)</span>
+              </label>
+              <GovInputText
+                v-model="form.customSeq"
+                :disabled="form.nomorSpdMode === 'auto' && !isEditMode"
+                placeholder="Contoh: 001 atau kosongkan"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Tahun SPD
+              </label>
+              <GovInputNumber
+                v-model="form.tahunSpd"
+                :min="2020"
+                :max="2035"
+                :use-grouping="false"
+                :placeholder="String(currentYear)"
+                block
+              />
+            </div>
+          </div>
+
+          <div class="text-xs text-text-muted pt-1 flex items-center gap-2">
+            <span>Pratinjau Nomor SPD:</span>
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+              {{ previewNomorSpd }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="border-border" />
         
         <!-- 1. Pemberi Perintah -->
         <div class="space-y-2">

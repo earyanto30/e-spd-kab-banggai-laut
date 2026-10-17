@@ -100,6 +100,13 @@ const allMenuItems = [
     roles: [Role.SUPER_ADMIN, Role.ADMIN],
     items: [
       {
+        key: 'pengaturan-dasar-hukum',
+        label: 'Dasar Hukum',
+        icon: 'pi pi-book',
+        route: '/pengaturan/dasar-hukum',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN],
+      },
+      {
         key: 'pengaturan-kop',
         label: 'Kop Surat',
         icon: 'pi pi-file-edit',

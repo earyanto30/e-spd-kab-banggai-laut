@@ -6,11 +6,12 @@ import { PegawaiModule } from './pegawai/pegawai.module';
 import { UsersModule } from './users/users.module';
 import { SpdModule } from './spd/spd.module';
 import { SuratTugasModule } from './surat-tugas/surat-tugas.module';
+import { DasarHukumModule } from './dasar-hukum/dasar-hukum.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
-  imports: [PrismaModule, AuthModule, KopSuratModule, PegawaiModule, UsersModule, SpdModule, SuratTugasModule],
+  imports: [PrismaModule, AuthModule, KopSuratModule, PegawaiModule, UsersModule, SpdModule, SuratTugasModule, DasarHukumModule],
   controllers: [AppController],
   providers: [AppService],
 })

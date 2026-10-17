@@ -10,9 +10,7 @@ import {
   GovDatePicker,
   GovInputText,
   GovInputNumber,
-  GovMultiSelect,
 } from '../components/core';
-import { MODA_TRANSPORTASI_OPTIONS } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 
@@ -23,6 +21,13 @@ interface AsnOption {
   pangkat: string;
   golongan: string;
   jabatan: string;
+}
+
+interface DasarHukumOption {
+  id: string;
+  judul: string;
+  isi: string;
+  urutan: number;
 }
 
 interface KopSuratOption {
@@ -51,22 +56,97 @@ interface PenandatanganOption {
   jabatan: string;
 }
 
+const currentYear = new Date().getFullYear();
+
 const getInitialForm = () => ({
+  nomorSuratMode: 'auto' as 'auto' | 'custom',
+  customSeq: '',
+  unitCode: 'Bag.Umum',
+  tahunSurat: currentYear,
+  fullNomorSurat: '',
+  selectedDasarHukumList: [] as DasarHukumOption[],
   pegawaiList: [] as AsnOption[],
   maksudList: [''] as string[],
   kopSuratId: null as string | null,
   penandatanganId: null as string | null,
+  tempatDikeluarkan: 'Banggai',
   tanggalSurat: new Date(),
-  alatAngkut: [] as string[],
-  tempatBerangkat: 'Banggai',
-  tempatTujuan: '',
-  lamaHari: 1,
-  tanggalBerangkat: null as Date | null,
 });
 
 const form = reactive(getInitialForm());
 const penandatanganOptions = ref<PenandatanganOption[]>([]);
 const loadingPenandatangan = ref(false);
+
+const dasarHukumList = ref<DasarHukumOption[]>([]);
+const loadingDasarHukum = ref(false);
+const currentDasarHukumQuery = ref<DasarHukumOption | string | null>(null);
+const dasarHukumSuggestions = ref<DasarHukumOption[]>([]);
+
+const loadDasarHukum = async () => {
+  loadingDasarHukum.value = true;
+  try {
+    const res = await apiFetch('/api/dasar-hukum');
+    if (res.ok) {
+      dasarHukumList.value = await res.json();
+    }
+  } catch {
+    dasarHukumList.value = [];
+  } finally {
+    loadingDasarHukum.value = false;
+  }
+};
+
+const handleSearchDasarHukum = (event: AutoCompleteCompleteEvent) => {
+  const query = (event.query || '').trim();
+  const selectedIds = new Set(form.selectedDasarHukumList.map((d) => d.id));
+  const available = dasarHukumList.value.filter((d) => !selectedIds.has(d.id));
+
+  if (!query) {
+    dasarHukumSuggestions.value = available;
+    return;
+  }
+
+  const qLower = query.toLowerCase();
+  const matches = available.filter(
+    (d) =>
+      (d.judul && d.judul.toLowerCase().includes(qLower)) ||
+      (d.isi && d.isi.toLowerCase().includes(qLower))
+  );
+
+  const exactMatch = matches.some((m) => m.judul.toLowerCase() === qLower);
+  if (!exactMatch) {
+    matches.push({
+      id: `custom-${Date.now()}`,
+      judul: query,
+      isi: query,
+      urutan: form.selectedDasarHukumList.length + 1,
+    });
+  }
+
+  dasarHukumSuggestions.value = matches;
+};
+
+const handleSelectDasarHukum = (event: any) => {
+  const selected = event.value as DasarHukumOption;
+  if (selected) {
+    if (!form.selectedDasarHukumList.some((d) => d.id === selected.id)) {
+      form.selectedDasarHukumList.push({ ...selected });
+    }
+  }
+  currentDasarHukumQuery.value = null;
+};
+
+const removeDasarHukum = (index: number) => {
+  form.selectedDasarHukumList.splice(index, 1);
+};
+
+const previewNomorSurat = computed(() => {
+  if (form.nomorSuratMode === 'auto' && !isEditMode.value) {
+    return `000.1.2.3/[Otomatis]/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
+  }
+  const seqPart = form.customSeq.trim();
+  return `000.1.2.3/${seqPart}/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
+});
 
 const resetForm = () => {
   Object.assign(form, getInitialForm());
@@ -74,6 +154,7 @@ const resetForm = () => {
   if (defaultKop) {
     form.kopSuratId = defaultKop.id;
   }
+  form.selectedDasarHukumList = [];
   existingData.value = null;
   createdSuratTugas.value = null;
   submitSuccess.value = false;
@@ -109,7 +190,6 @@ const loadPenandatangan = async () => {
     if (res.ok) {
       penandatanganOptions.value = await res.json();
       if (!form.penandatanganId && !isEditMode.value && penandatanganOptions.value.length > 0) {
-        // Default to the first official signer (e.g., Kabag Umum / Sekda)
         form.penandatanganId = penandatanganOptions.value[0].id;
       }
     }
@@ -199,6 +279,42 @@ const loadExistingData = async (id: string) => {
         .filter(Boolean);
       form.maksudList = lines.length > 0 ? lines : [''];
 
+      if (data.nomorSurat) {
+        form.fullNomorSurat = data.nomorSurat;
+        // Parse parts: 000.1.2.3/[seq]/[unit]/[year]
+        const parts = data.nomorSurat.split('/');
+        if (parts.length >= 4) {
+          form.nomorSuratMode = 'custom';
+          form.customSeq = parts[1] || '';
+          form.unitCode = parts[2] || 'Bag.Umum';
+        } else {
+          form.nomorSuratMode = 'custom';
+          form.customSeq = data.nomorSurat;
+        }
+      }
+      form.tahunSurat = currentYear;
+
+      if (data.dasarHukum) {
+        // Parse raw dasarHukum string to match existing master data or fallback item
+        const raw = (data.dasarHukum as string).trim();
+        const items = raw
+          .split(/\n\s*\n|\r?\n(?=\d+[\.\)]\s+)/)
+          .map((s) => s.trim().replace(/^\d+[\.\)]\s*/, ''))
+          .filter(Boolean);
+
+        form.selectedDasarHukumList = items.map((content, idx) => {
+          const matched = dasarHukumList.value.find((d) => d.isi.trim() === content || d.judul.trim() === content);
+          if (matched) return matched;
+          return {
+            id: `custom-${idx}`,
+            judul: `Dasar Hukum ${idx + 1}`,
+            isi: content,
+            urutan: idx + 1,
+          };
+        });
+      }
+
+      if (data.tempatDikeluarkan) form.tempatDikeluarkan = data.tempatDikeluarkan;
       if (data.kopSuratId) form.kopSuratId = data.kopSuratId;
       if (data.penandatanganId) {
         form.penandatanganId = data.penandatanganId;
@@ -206,20 +322,6 @@ const loadExistingData = async (id: string) => {
         form.penandatanganId = data.penandatangan.id;
       }
       if (data.tanggalSurat) form.tanggalSurat = new Date(data.tanggalSurat);
-
-      if (data.alatAngkut) {
-        form.alatAngkut = data.alatAngkut.split(',').map((s: string) => s.trim()).filter(Boolean);
-      } else {
-        form.alatAngkut = [];
-      }
-      form.tempatBerangkat = data.tempatBerangkat || 'Banggai';
-      form.tempatTujuan = data.tempatTujuan || '';
-      form.lamaHari = data.lamaHari || 1;
-      if (data.tanggalBerangkat) {
-        form.tanggalBerangkat = new Date(data.tanggalBerangkat);
-      } else {
-        form.tanggalBerangkat = null;
-      }
     } else {
       toast.error('Gagal memuat data Surat Tugas yang akan diedit');
     }
@@ -230,45 +332,8 @@ const loadExistingData = async (id: string) => {
   }
 };
 
-const transportOptions = [...MODA_TRANSPORTASI_OPTIONS];
-
-const angkaTerbilang = (n: number): string => {
-  const kata = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
-  if (n <= 0) return 'nol';
-  if (n < 12) return kata[n];
-  if (n < 20) return `${kata[n - 10]} belas`;
-  if (n < 100) return `${kata[Math.floor(n / 10)]} puluh${n % 10 ? ' ' + kata[n % 10] : ''}`;
-  return String(n);
-};
-
-const lamaPerjalananDisplay = computed(() => {
-  const days = Number(form.lamaHari) || 0;
-  return `${days} (${angkaTerbilang(days)}) Hari`;
-});
-
-const alatAngkutDisplay = computed(() => {
-  return form.alatAngkut.length > 0 ? form.alatAngkut.join(', ') : '-';
-});
-
-const calculatedTanggalKembali = computed(() => {
-  if (!form.tanggalBerangkat || !form.lamaHari) return null;
-  const d = new Date(form.tanggalBerangkat);
-  if (isNaN(d.getTime())) return null;
-  d.setDate(d.getDate() + (Number(form.lamaHari) - 1));
-  return d;
-});
-
-const formatDate = (date: Date | null): string => {
-  if (!date) return '-';
-  const months = [
-    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-  ];
-  return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-};
-
 onMounted(async () => {
-  await Promise.all([loadKopSurat(), loadPenandatangan()]);
+  await Promise.all([loadKopSurat(), loadPenandatangan(), loadDasarHukum()]);
   if (isEditMode.value && suratTugasId.value) {
     await loadExistingData(suratTugasId.value);
   } else {
@@ -327,17 +392,26 @@ const handleSubmit = async () => {
       .filter(Boolean)
       .join('\n');
 
+    let finalNomorSurat: string | undefined = undefined;
+    if (form.nomorSuratMode === 'custom' || isEditMode.value) {
+      finalNomorSurat = `000.1.2.3/${form.customSeq.trim()}/${form.unitCode.trim() || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
+    }
+
+    // Gabungkan seluruh dasar hukum terpilih dipisah double newline
+    const formattedDasarHukum = form.selectedDasarHukumList
+      .map((d) => d.isi.trim())
+      .filter(Boolean)
+      .join('\n\n');
+
     const payload = {
+      nomorSurat: finalNomorSurat,
+      dasarHukum: formattedDasarHukum || undefined,
       pegawaiIds: form.pegawaiList.map((p) => p.id),
       dalamRangka: formattedDalamRangka,
+      tempatDikeluarkan: form.tempatDikeluarkan.trim() || 'Banggai',
       kopSuratId: form.kopSuratId,
       penandatanganId: form.penandatanganId || undefined,
       tanggalSurat: form.tanggalSurat,
-      alatAngkut: form.alatAngkut.length > 0 ? form.alatAngkut.join(', ') : undefined,
-      tempatBerangkat: form.tempatBerangkat.trim() || undefined,
-      tempatTujuan: form.tempatTujuan.trim() || undefined,
-      lamaHari: form.lamaHari ? Number(form.lamaHari) : undefined,
-      tanggalBerangkat: form.tanggalBerangkat ? form.tanggalBerangkat.toISOString() : undefined,
     };
 
     const url = isEditMode.value
@@ -462,12 +536,182 @@ const handleCancel = () => {
     <!-- Main Card Form -->
     <div v-if="!loadingExisting" class="bg-surface border border-border rounded-xl p-6 shadow-sm space-y-6">
       <form @submit.prevent="handleSubmit" class="space-y-6">
-        
-        <!-- 1. Pegawai Pelaksana (Multiple ASN Lazy Search) -->
+
+        <!-- 1. Penomoran Surat Tugas (Dynamic & Optional) -->
+        <div class="space-y-3 bg-slate-50/70 dark:bg-slate-900/40 p-4 rounded-xl border border-border">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <label class="block text-sm font-semibold text-text-main">
+                1. Penomoran Surat Tugas
+              </label>
+              <p class="text-xs text-text-muted mt-0.5">
+                Format: <span class="font-mono text-primary font-semibold">000.1.2.3/[Nomor]/[Kode Unit]/[Tahun]</span>. Nomor urut bersifat opsional.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="form.nomorSuratMode"
+                  value="auto"
+                  :disabled="isEditMode"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Otomatis (Sistem)</span>
+              </label>
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="form.nomorSuratMode"
+                  value="custom"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Kustom / Manual</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Nomor Urut <span class="text-text-muted font-normal">(opsional)</span>
+              </label>
+              <GovInputText
+                v-model="form.customSeq"
+                :disabled="form.nomorSuratMode === 'auto' && !isEditMode"
+                placeholder="Contoh: 001 atau kosongkan"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Kode Unit Kerja
+              </label>
+              <GovInputText
+                v-model="form.unitCode"
+                placeholder="Contoh: Bag.Umum"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Tahun Surat
+              </label>
+              <GovInputNumber
+                v-model="form.tahunSurat"
+                :min="2020"
+                :max="2035"
+                :use-grouping="false"
+                :placeholder="String(currentYear)"
+                block
+              />
+            </div>
+          </div>
+
+          <div class="text-xs text-text-muted pt-1 flex items-center gap-2">
+            <span>Pratinjau Nomor Dokumen:</span>
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+              {{ previewNomorSurat }}
+            </span>
+          </div>
+        </div>
+
+        <hr class="border-border" />
+
+        <!-- 2. Dasar Hukum Penugasan (Dapat mengetik langsung dan memilih lebih dari satu dasar hukum) -->
         <div class="space-y-3">
           <div>
             <label class="block text-sm font-semibold text-text-main">
-              1. Pegawai Pelaksana Penugasan (ASN) <span class="text-red-500">*</span>
+              2. Dasar Hukum Penugasan
+            </label>
+            <p class="text-xs text-text-muted mt-0.5">
+              Ketik nama atau regulasi dasar hukum untuk menambahkan. Setiap butir dapat disesuaikan teks redaksinya dan akan dicetak berurutan (1, 2, ...).
+            </p>
+          </div>
+
+          <!-- Typeable Autocomplete Input like ASN -->
+          <GovAutoComplete
+            v-model="currentDasarHukumQuery"
+            :suggestions="dasarHukumSuggestions"
+            :loading="loadingDasarHukum"
+            option-label="judul"
+            placeholder="Ketik Nama atau Nomor Regulasi Dasar Hukum untuk menambahkan..."
+            dropdown
+            @complete="handleSearchDasarHukum"
+            @item-select="handleSelectDasarHukum"
+          >
+            <template #option="{ option }">
+              <div class="py-1 max-w-xl">
+                <div class="font-medium text-sm text-text-main flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5">
+                    <i v-if="option.id && option.id.startsWith('custom-')" class="pi pi-plus text-xs text-primary"></i>
+                    <span>{{ option.judul }}</span>
+                  </div>
+                  <span
+                    v-if="option.id && option.id.startsWith('custom-')"
+                    class="text-[10px] bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-normal"
+                  >
+                    Gunakan Teks Ini
+                  </span>
+                </div>
+                <div v-if="option.isi && option.isi !== option.judul" class="text-xs text-text-muted line-clamp-2 mt-0.5">
+                  {{ option.isi }}
+                </div>
+              </div>
+            </template>
+          </GovAutoComplete>
+
+          <!-- List Dasar Hukum Terpilih (Seperti Input Pegawai) -->
+          <div v-if="form.selectedDasarHukumList.length > 0" class="space-y-2.5 pt-1">
+            <div class="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              Daftar Dasar Hukum Terpilih ({{ form.selectedDasarHukumList.length }} Butir):
+            </div>
+            <div class="space-y-2.5">
+              <div
+                v-for="(dh, index) in form.selectedDasarHukumList"
+                :key="dh.id"
+                class="p-3 bg-slate-50 dark:bg-slate-900/50 border border-border rounded-lg text-xs space-y-2"
+              >
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <div class="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-primary font-bold text-xs flex items-center justify-center font-mono flex-shrink-0">
+                      {{ index + 1 }}
+                    </div>
+                    <span class="font-semibold text-text-main text-sm">{{ dh.judul }}</span>
+                  </div>
+                  <GovButton
+                    type="button"
+                    icon="pi pi-times"
+                    severity="danger"
+                    variant="text"
+                    rounded
+                    size="small"
+                    title="Hapus dasar hukum ini"
+                    @click="removeDasarHukum(index)"
+                  />
+                </div>
+                <div>
+                  <GovTextarea
+                    v-model="dh.isi"
+                    rows="2"
+                    placeholder="Isi / konten redaksi dasar hukum..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg text-xs text-amber-800 dark:text-amber-200">
+            Belum ada dasar hukum yang dipilih. Silakan ketik atau pilih dari saran di atas.
+          </div>
+        </div>
+
+        <hr class="border-border" />
+        
+        <!-- 3. Pegawai Pelaksana (Multiple ASN Lazy Search) -->
+        <div class="space-y-3">
+          <div>
+            <label class="block text-sm font-semibold text-text-main">
+              3. Pegawai Pelaksana Penugasan (ASN) <span class="text-red-500">*</span>
             </label>
             <p class="text-xs text-text-muted mt-0.5">
               Cari nama atau NIP pegawai pelaksana tugas. Dapat memilih lebih dari satu ASN.
@@ -538,12 +782,12 @@ const handleCancel = () => {
 
         <hr class="border-border" />
 
-        <!-- 2. Dalam Rangka (Maksud Penugasan Multi-Agenda) -->
+        <!-- 4. Dalam Rangka (Maksud Penugasan Multi-Agenda) -->
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <div>
               <label class="block text-sm font-semibold text-text-main">
-                2. Dalam Rangka (Maksud Penugasan) <span class="text-red-500">*</span>
+                4. Dalam Rangka (Maksud Penugasan) <span class="text-red-500">*</span>
               </label>
               <p class="text-xs text-text-muted mt-0.5">
                 Dapat menambahkan lebih dari satu agenda/tujuan tugas. Output dokumen akan bernomor secara otomatis.
@@ -607,145 +851,59 @@ const handleCancel = () => {
 
         <hr class="border-border" />
 
-        <!-- 3. Pengaturan Dokumen (Kop Surat, Pejabat Penandatangan & Tanggal) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-text-main">
-              3. Kop Surat Dinas
+        <!-- 5. Pengaturan Dokumen (Kop Surat, Pejabat Penandatangan, Tempat & Tanggal) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-text-main">
+              Kop Surat Dinas
             </label>
             <GovSelect
               v-model="form.kopSuratId"
               :options="kopSuratList"
               option-label="nama"
               option-value="id"
-              placeholder="Pilih Template Kop Surat"
+              placeholder="Pilih Kop Surat"
               :loading="loadingKop"
             />
-            <p class="text-xs text-text-muted">
-              Pilihan template kop dinas resmi pada dokumen PDF.
-            </p>
           </div>
 
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-text-main">
-              4. Pejabat Penandatangan <span class="text-red-500">*</span>
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-text-main">
+              Pejabat Penandatangan <span class="text-red-500">*</span>
             </label>
             <GovSelect
               v-model="form.penandatanganId"
               :options="penandatanganOptions"
               option-label="nama"
               option-value="id"
-              placeholder="Pilih Pejabat Penandatangan"
+              placeholder="Pilih Penandatangan"
               :invalid="!!errors.penandatanganId"
               :loading="loadingPenandatangan"
             />
-            <small v-if="errors.penandatanganId" class="text-red-500 text-xs block">
+            <small v-if="errors.penandatanganId" class="text-red-500 text-[11px] block">
               {{ errors.penandatanganId }}
             </small>
-            <p v-else class="text-xs text-text-muted">
-              Pejabat yang menandatangani Surat Tugas (Sekda / Kabag Umum).
-            </p>
           </div>
 
-          <div class="space-y-2">
-            <label class="block text-sm font-semibold text-text-main">
-              5. Tanggal Surat
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-text-main">
+              Tempat Dikeluarkan
+            </label>
+            <GovInputText
+              v-model="form.tempatDikeluarkan"
+              placeholder="Contoh: Banggai"
+              block
+            />
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="block text-xs font-semibold text-text-main">
+              Tanggal Surat
             </label>
             <GovDatePicker
               v-model="form.tanggalSurat"
               date-format="dd/mm/yy"
             />
-            <p class="text-xs text-text-muted">
-              Tanggal penetapan yang tercantum pada titi mangsa surat.
-            </p>
-          </div>
-        </div>
-
-        <hr class="border-border" />
-
-        <!-- 6. Parameter Perjalanan Dinas (Tujuan, Transportasi & Durasi - Digunakan saat Menerbitkan SPD) -->
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-semibold text-text-main">
-              6. Rincian Perjalanan Dinas (Opsional untuk Penerbitan SPD)
-            </label>
-            <p class="text-xs text-text-muted mt-0.5">
-              Rincian ini dapat diisi sekarang untuk otomatis mengisi data penerbitan Surat Perjalanan Dinas (SPD).
-            </p>
-          </div>
-
-          <!-- Alat Angkut -->
-          <div class="space-y-2">
-            <label class="block text-xs font-semibold text-text-main">
-              Alat Angkut / Moda Transportasi
-            </label>
-            <GovMultiSelect
-              v-model="form.alatAngkut"
-              :options="transportOptions"
-              placeholder="Pilih moda transportasi..."
-              display="chip"
-            />
-            <div class="text-[11px] text-text-muted">
-              Format Dokumen: <span class="font-medium text-text-main">{{ alatAngkutDisplay }}</span>
-            </div>
-          </div>
-
-          <!-- Tempat Berangkat & Tempat Tujuan -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-text-main">
-                Tempat Berangkat
-              </label>
-              <GovInputText
-                v-model="form.tempatBerangkat"
-                placeholder="Contoh: Banggai"
-                block
-              />
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-text-main">
-                Tempat Tujuan
-              </label>
-              <GovInputText
-                v-model="form.tempatTujuan"
-                placeholder="Contoh: Palu / Luwuk / Jakarta"
-                block
-              />
-            </div>
-          </div>
-
-          <!-- Lama Perjalanan & Tanggal Berangkat -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-text-main">
-                Lama Perjalanan Dinas
-              </label>
-              <GovInputNumber
-                v-model="form.lamaHari"
-                :min="1"
-                :max="90"
-                :step="1"
-                button-layout="horizontal"
-              />
-              <div class="text-[11px] text-text-muted">
-                Format Hasil: <span class="font-semibold text-primary">{{ lamaPerjalananDisplay }}</span>
-              </div>
-            </div>
-
-            <div class="space-y-2">
-              <label class="block text-xs font-semibold text-text-main">
-                Tanggal Berangkat
-              </label>
-              <GovDatePicker
-                v-model="form.tanggalBerangkat"
-                date-format="dd/mm/yy"
-                placeholder="Pilih tanggal keberangkatan"
-              />
-              <div v-if="calculatedTanggalKembali" class="text-[11px] text-text-muted">
-                Estimasi Kembali: <span class="font-medium text-text-main">{{ formatDate(calculatedTanggalKembali) }}</span>
-              </div>
-            </div>
           </div>
         </div>
 

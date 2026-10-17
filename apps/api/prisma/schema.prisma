@@ -94,16 +94,16 @@ model Spd {
 model SuratTugas {
   id              String   @id @default(cuid())
   nomorSurat      String   @unique
-  dasarHukum      String   @default("Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)")
+  dasarHukum      String   @default("")
   dalamRangka     String
   tempatDikeluarkan String @default("Banggai")
   tanggalSurat    DateTime @default(now())
   penandatanganId String?
   penandatangan   Pegawai? @relation("SuratTugasPenandatangan", fields: [penandatanganId], references: [id], onDelete: SetNull)
-  penandatanganNama     String @default("ARSID HAMIDI, SH")
-  penandatanganJabatan  String @default("KEPALA BAGIAN UMUM SETDA KAB. BANGGAI LAUT")
-  penandatanganPangkat  String @default("Pembina, IV/a")
-  penandatanganNip      String @default("19700830 200312 1 003")
+  penandatanganNama     String?
+  penandatanganJabatan  String?
+  penandatanganPangkat  String?
+  penandatanganNip      String?
   kopSuratId      String?
   pegawaiIds      String?
   alatAngkut      String?
@@ -121,7 +121,6 @@ model DasarHukum {
   id        String   @id @default(cuid())
   judul     String
   isi       String
-  isDefault Boolean  @default(false)
   urutan    Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

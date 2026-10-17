@@ -291,13 +291,11 @@ startxref
     {
       judul: 'UU No. 09 Tahun 2015 tentang Pemerintahan Daerah',
       isi: 'Undang-undang Nomor 09 Tahun 2015 tentang Perubahan kedua atas Undang-undang Nomor 23 Tahun 2014 tentang Pemerintahan Daerah (Lembaran Negara Republik Indonesia Tahun 2015 Nomor 5679)',
-      isDefault: true,
       urutan: 1,
     },
     {
       judul: 'Perbup Banggai Laut tentang Perjalanan Dinas',
       isi: 'Peraturan Bupati Banggai Laut tentang Pedoman Pelaksanaan dan Pertanggungjawaban Perjalanan Dinas di Lingkungan Pemerintah Kabupaten Banggai Laut',
-      isDefault: false,
       urutan: 2,
     },
   ];

@@ -135,6 +135,16 @@ const routes: RouteRecordRaw[] = [
     redirect: '/surat-tugas',
   },
   {
+    path: '/pengaturan/dasar-hukum',
+    name: 'PengaturanDasarHukum',
+    component: () => import('../views/PengaturanDasarHukumView.vue'),
+    meta: {
+      title: 'Pengaturan Dasar Hukum',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+    },
+  },
+  {
     path: '/pengaturan/kop-surat',
     alias: '/spd/kop-surat',
     name: 'PengaturanKopSurat',

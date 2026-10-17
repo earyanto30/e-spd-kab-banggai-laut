@@ -14,12 +14,14 @@ withDefaults(
     invalid?: boolean;
     disabled?: boolean;
     fluid?: boolean;
+    useGrouping?: boolean;
   }>(),
   {
     showButtons: true,
     buttonLayout: 'horizontal',
     step: 1,
     fluid: true,
+    useGrouping: true,
   }
 );
 </script>
@@ -36,6 +38,7 @@ withDefaults(
     :invalid="invalid"
     :disabled="disabled"
     :fluid="fluid"
+    :use-grouping="useGrouping"
     v-bind="$attrs"
   />
 </template>
