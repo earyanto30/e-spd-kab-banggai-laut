@@ -494,30 +494,61 @@ export class SuratTugasService {
     const existingPegawaiIds = new Set(existingSpdList.map((s) => s.pegawaiId));
     const missingPegawaiList = targetPegawaiList.filter((p) => !existingPegawaiIds.has(p.id));
 
+    const targetYear = dto?.tahunSpd || year;
+    const isCustom = dto?.nomorSpdMode === 'custom';
+    const isKpa = pemberiPerintah.toLowerCase().includes('kuasa');
+    const customPrefix = dto?.customPrefix !== undefined ? dto.customPrefix.trim() : '';
+    const prefix = isCustom ? customPrefix : (customPrefix || (isKpa ? 'KPA' : ''));
+
+    const getCustomNomorSpd = (index: number) => {
+      const rawSeq = dto?.customSeq ? dto.customSeq.trim() : '';
+      if (!rawSeq) {
+        return index === 0 ? `${prefix}/SPD/${targetYear}` : `${prefix}${index + 1}/SPD/${targetYear}`;
+      }
+      const parsed = parseInt(rawSeq, 10);
+      if (!isNaN(parsed)) {
+        const nextNum = parsed + index;
+        const padded = String(nextNum).padStart(rawSeq.length, '0');
+        return `${prefix}${padded}/SPD/${targetYear}`;
+      }
+      return index === 0 ? `${prefix}${rawSeq}/SPD/${targetYear}` : `${prefix}${rawSeq}-${index + 1}/SPD/${targetYear}`;
+    };
+
     // Jika seluruh personil sudah memiliki dokumen SPD
     if (missingPegawaiList.length === 0 && existingSpdList.length > 0) {
       if (dto) {
-        await this.prisma.spd.updateMany({
-          where: { suratTugasId: id },
-          data: {
-            pemberiPerintah,
-            alatAngkut: alatAngkutStr,
-            tempatBerangkat,
-            tempatTujuan,
-            lamaHari,
-            tanggalBerangkat: tglBerangkat,
-            tanggalKembali: tglKembali,
-            penandatanganId: suratTugas.penandatanganId || null,
-            penandatanganNama: suratTugas.penandatanganNama || null,
-            penandatanganJabatan: suratTugas.penandatanganJabatan || null,
-            penandatanganPangkat: suratTugas.penandatanganPangkat || null,
-            penandatanganNip: suratTugas.penandatanganNip || null,
-          },
+        const updatePromises = existingSpdList.map(async (spd, i) => {
+          let updatedNomorSpd = spd.nomorSpd;
+          if (isCustom) {
+            updatedNomorSpd = getCustomNomorSpd(i);
+            const duplicate = await this.prisma.spd.findFirst({
+              where: { nomorSpd: updatedNomorSpd, NOT: { id: spd.id } },
+            });
+            if (duplicate) {
+              throw new ConflictException(`Nomor SPD '${updatedNomorSpd}' sudah digunakan`);
+            }
+          }
+          return this.prisma.spd.update({
+            where: { id: spd.id },
+            data: {
+              ...(isCustom && { nomorSpd: updatedNomorSpd }),
+              pemberiPerintah,
+              alatAngkut: alatAngkutStr,
+              tempatBerangkat,
+              tempatTujuan,
+              lamaHari,
+              tanggalBerangkat: tglBerangkat,
+              tanggalKembali: tglKembali,
+              penandatanganId: suratTugas.penandatanganId || null,
+              penandatanganNama: suratTugas.penandatanganNama || null,
+              penandatanganJabatan: suratTugas.penandatanganJabatan || null,
+              penandatanganPangkat: suratTugas.penandatanganPangkat || null,
+              penandatanganNip: suratTugas.penandatanganNip || null,
+            },
+            include: { pegawai: true, penandatangan: true },
+          });
         });
-        const updatedSpds = await this.prisma.spd.findMany({
-          where: { suratTugasId: id },
-          include: { pegawai: true, penandatangan: true },
-        });
+        const updatedSpds = await Promise.all(updatePromises);
         return {
           message: `Berhasil memperbarui parameter perjalanan dinas untuk ${updatedSpds.length} dokumen SPD!`,
           count: updatedSpds.length,
@@ -533,22 +564,31 @@ export class SuratTugasService {
 
     const createdSpds = [];
 
-    for (const peg of missingPegawaiList) {
-      const spdCount = await this.prisma.spd.count({
-        where: {
-          createdAt: {
-            gte: new Date(`${year}-01-01T00:00:00.000Z`),
-            lte: new Date(`${year}-12-31T23:59:59.999Z`),
+    for (let i = 0; i < missingPegawaiList.length; i++) {
+      const peg = missingPegawaiList[i];
+      let nomorSpd: string;
+
+      if (isCustom) {
+        nomorSpd = getCustomNomorSpd(i);
+        const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
+        if (existing) {
+          throw new ConflictException(`Nomor SPD '${nomorSpd}' sudah digunakan`);
+        }
+      } else {
+        const spdCount = await this.prisma.spd.count({
+          where: {
+            createdAt: {
+              gte: new Date(`${targetYear}-01-01T00:00:00.000Z`),
+              lte: new Date(`${targetYear}-12-31T23:59:59.999Z`),
+            },
           },
-        },
-      });
-      const spdSeq = String(spdCount + 1).padStart(3, '0');
-      const isKpa = pemberiPerintah.toLowerCase().includes('kuasa');
-      const prefix = isKpa ? 'KPA' : '';
-      let nomorSpd = `${prefix}${spdSeq}/SPD/${year}`;
-      const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
-      if (existing) {
-        nomorSpd = `${prefix}${String(spdCount + 2).padStart(3, '0')}/SPD/${year}`;
+        });
+        const spdSeq = String(spdCount + 1).padStart(3, '0');
+        nomorSpd = `${prefix}${spdSeq}/SPD/${targetYear}`;
+        const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
+        if (existing) {
+          nomorSpd = `${prefix}${String(spdCount + 2).padStart(3, '0')}/SPD/${targetYear}`;
+        }
       }
 
       const spd = await this.prisma.spd.create({

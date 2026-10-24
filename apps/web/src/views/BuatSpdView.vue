@@ -122,11 +122,12 @@ watch(
 );
 
 const previewNomorSpd = computed(() => {
-  const defaultPrefix = isKpa.value ? 'KPA' : '';
-  const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
   if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
+    const defaultPrefix = isKpa.value ? 'KPA' : '';
+    const prefix = form.customPrefix?.trim() ? form.customPrefix.trim() : defaultPrefix;
     return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
   }
+  const prefix = form.customPrefix ? form.customPrefix.trim() : '';
   const seqPart = form.customSeq.trim();
   return `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
 });
@@ -398,8 +399,7 @@ const handleSubmit = async () => {
   try {
     let finalNomorSpd: string | undefined = undefined;
     if (form.nomorSpdMode === 'custom' || isEditMode.value) {
-      const defaultPrefix = isKpa.value ? 'KPA' : '';
-      const prefix = form.customPrefix !== undefined && form.customPrefix !== '' ? form.customPrefix.trim() : defaultPrefix;
+      const prefix = form.customPrefix ? form.customPrefix.trim() : '';
       finalNomorSpd = `${prefix}${form.customSeq.trim()}/SPD/${form.tahunSpd || currentYear}`;
     }
 
@@ -556,7 +556,8 @@ const handleCancel = () => {
               </label>
               <GovInputText
                 v-model="form.customPrefix"
-                :placeholder="form.pemberiPerintah.toLowerCase().includes('kuasa') ? 'KPA' : 'Kosong / Custom'"
+                :disabled="form.nomorSpdMode === 'auto' && !isEditMode"
+                placeholder="Contoh: KPA atau kosongkan"
                 block
               />
             </div>

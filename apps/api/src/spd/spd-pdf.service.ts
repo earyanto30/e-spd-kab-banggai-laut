@@ -238,9 +238,9 @@ export class SpdPdfService {
 
     const fontSize = 12;
     const rowLineHeight = 15;
-    const cellPaddingY = 3.5;
+    const cellPaddingY = 3.0;
     const cellPaddingX = 4.5;
-    const marginBottom = 45;
+    const marginBottom = 25;
 
     const isKpa =
       (customSigner?.jabatan || '').toLowerCase().includes('kpa') ||
@@ -572,7 +572,7 @@ export class SpdPdfService {
     const signX = tableRightX - signBlockWidth;
     const signFontSize = 11;
     const signLineSpacing = 15;
-    const gapBeforeSign = 20;
+    const gapBeforeSign = 12;
 
     // Strict Signatory Label: KUASA PENGGUNA ANGGARAN atau PENGGUNA ANGGARAN
     const signerTitle = isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
@@ -583,7 +583,7 @@ export class SpdPdfService {
       signLineSpacing +
       (signLineSpacing + 6) +
       signTitleLines.length * 14 +
-      80 +
+      55 +
       14 +
       (sPangkat ? 14 : 0) +
       14;
@@ -645,7 +645,7 @@ export class SpdPdfService {
     }
 
     // Space for physical signature / stamp
-    currentY -= (80 - 14);
+    currentY -= (55 - 14);
 
     // Nama Pejabat (Center-aligned with underline)
     const namaWidth = fontBold.widthOfTextAtSize(sNama, 11);

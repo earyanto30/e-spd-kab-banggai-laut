@@ -212,6 +212,10 @@ export const UpdateSuratTugasSchema = CreateSuratTugasSchema.partial();
 export type UpdateSuratTugasDto = z.infer<typeof UpdateSuratTugasSchema>;
 
 export const GenerateSpdFromSuratTugasSchema = z.object({
+  nomorSpdMode: z.enum(['auto', 'custom']).optional(),
+  customPrefix: z.string().optional(),
+  customSeq: z.string().optional(),
+  tahunSpd: z.number().int().optional(),
   pemberiPerintah: z.string().optional(),
   alatAngkut: z.array(z.string()).or(z.string()).optional(),
   tempatBerangkat: z.string().optional(),

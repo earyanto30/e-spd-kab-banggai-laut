@@ -166,14 +166,32 @@ const showGenerateSpdModal = ref(false);
 
 const pemberiPerintahOptions = ['Pengguna Anggaran (PA)', 'Kuasa Pengguna Anggaran (KPA)'];
 const transportOptions = [...MODA_TRANSPORTASI_OPTIONS];
+const currentYear = new Date().getFullYear();
 
 const generateForm = reactive({
+  nomorSpdMode: 'auto' as 'auto' | 'custom',
+  customPrefix: '',
+  customSeq: '',
+  tahunSpd: currentYear,
   pemberiPerintah: 'Pengguna Anggaran (PA)',
   alatAngkut: ['Mobil Dinas'] as string[],
   tempatBerangkat: 'Banggai',
   tempatTujuan: '',
   lamaHari: 1,
   tanggalBerangkat: new Date() as Date | null,
+});
+
+const isKpa = computed(() => (generateForm.pemberiPerintah || '').toLowerCase().includes('kuasa'));
+
+const previewNomorSpd = computed(() => {
+  if (generateForm.nomorSpdMode === 'auto') {
+    const defaultPrefix = isKpa.value ? 'KPA' : '';
+    const prefix = generateForm.customPrefix?.trim() ? generateForm.customPrefix.trim() : defaultPrefix;
+    return `${prefix}[Otomatis]/SPD/${generateForm.tahunSpd || currentYear}`;
+  }
+  const prefix = generateForm.customPrefix ? generateForm.customPrefix.trim() : '';
+  const seqPart = generateForm.customSeq.trim();
+  return `${prefix}${seqPart}/SPD/${generateForm.tahunSpd || currentYear}`;
 });
 
 const generateErrors = reactive<Record<string, string>>({});
@@ -206,6 +224,11 @@ const calculatedTanggalKembali = computed(() => {
 
 const openGenerateSpdModal = () => {
   Object.keys(generateErrors).forEach((k) => delete generateErrors[k]);
+
+  generateForm.nomorSpdMode = 'auto';
+  generateForm.customPrefix = '';
+  generateForm.customSeq = '';
+  generateForm.tahunSpd = currentYear;
 
   if (data.value) {
     if (data.value.alatAngkut) {
@@ -264,6 +287,10 @@ const submitGenerateSpd = async () => {
   isGeneratingSpd.value = true;
   try {
     const payload = {
+      nomorSpdMode: generateForm.nomorSpdMode,
+      customPrefix: generateForm.customPrefix,
+      customSeq: generateForm.customSeq,
+      tahunSpd: generateForm.tahunSpd,
       pemberiPerintah: generateForm.pemberiPerintah,
       alatAngkut: generateForm.alatAngkut.join(', '),
       tempatBerangkat: generateForm.tempatBerangkat.trim(),
@@ -991,6 +1018,85 @@ onMounted(() => {
         <p class="text-xs text-text-muted">
           Rincian berikut akan diterapkan ke dokumen SPD untuk seluruh personil penugasan (<strong class="text-text-main">{{ data?.pegawaiList?.length || 0 }} personil</strong>) pada Surat Tugas nomor <span class="font-mono font-bold text-text-main">{{ data?.nomorSurat }}</span>.
         </p>
+
+        <!-- Penomoran SPD (Dynamic & Optional) -->
+        <div class="space-y-3 bg-slate-50/70 dark:bg-slate-900/40 p-3.5 rounded-xl border border-border">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <label class="block text-xs font-semibold text-text-main">
+                Penomoran Dokumen SPD
+              </label>
+              <p class="text-[11px] text-text-muted mt-0.5">
+                Format: <span class="font-mono text-primary font-semibold">[Prefix][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="generateForm.nomorSpdMode"
+                  value="auto"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Otomatis (Sistem)</span>
+              </label>
+              <label class="text-xs text-text-muted flex items-center gap-1.5 cursor-pointer">
+                <input
+                  type="radio"
+                  v-model="generateForm.nomorSpdMode"
+                  value="custom"
+                  class="text-primary focus:ring-primary h-3.5 w-3.5"
+                />
+                <span>Kustom / Manual</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Prefix <span class="text-text-muted font-normal">(opsional)</span>
+              </label>
+              <GovInputText
+                v-model="generateForm.customPrefix"
+                :disabled="generateForm.nomorSpdMode === 'auto'"
+                placeholder="Contoh: KPA atau kosongkan"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Nomor Urut <span class="text-text-muted font-normal">(opsional)</span>
+              </label>
+              <GovInputText
+                v-model="generateForm.customSeq"
+                :disabled="generateForm.nomorSpdMode === 'auto'"
+                placeholder="Contoh: 001 atau kosongkan"
+                block
+              />
+            </div>
+            <div class="space-y-1">
+              <label class="block text-xs font-semibold text-text-main">
+                Tahun SPD
+              </label>
+              <GovInputNumber
+                v-model="generateForm.tahunSpd"
+                :min="2020"
+                :max="2035"
+                :use-grouping="false"
+                :placeholder="String(currentYear)"
+                block
+              />
+            </div>
+          </div>
+
+          <div class="text-[11px] text-text-muted pt-1 flex items-center gap-2">
+            <span>Pratinjau Nomor SPD:</span>
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+              {{ previewNomorSpd }}
+            </span>
+          </div>
+        </div>
 
         <!-- 1. Pejabat Pemberi Perintah -->
         <div class="space-y-1.5">

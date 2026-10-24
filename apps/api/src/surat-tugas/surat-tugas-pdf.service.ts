@@ -162,7 +162,7 @@ export class SuratTugasPdfService {
     const black = rgb(0, 0, 0);
     const fontSize = 12;
     const lineHeight = 15;
-    const marginBottom = 45;
+    const marginBottom = 25;
 
     // Helper: Buat halaman baru jika konten teks panjang melampaui batas margin bawah
     const ensureSpaceOrNewPage = (neededHeight: number) => {
@@ -398,7 +398,7 @@ export class SuratTugasPdfService {
     const signBlockWidth = 230;
     const signX = rightMargin - signBlockWidth;
     const signLineSpacing = 16;
-    const gapBeforeSign = 20;
+    const gapBeforeSign = 12;
 
     // Format judul jabatan resmi 2 baris terpusat: KEPALA BAGIAN UMUM / SETDA KAB. BANGGAI LAUT
     let titleLines: string[] = [];
@@ -421,7 +421,7 @@ export class SuratTugasPdfService {
       signLineSpacing +
       (signLineSpacing + 8) +
       titleLines.length * lineHeight +
-      85 +
+      55 +
       15 +
       (signerPangkat ? 15 : 0) +
       15;
@@ -490,7 +490,7 @@ export class SuratTugasPdfService {
     }
 
     // Space for physical signature / stempel
-    currentY -= (85 - lineHeight);
+    currentY -= (55 - lineHeight);
 
     // Nama Pejabat (Center-aligned with underline)
     const sNamaWidth = fontBold.widthOfTextAtSize(signerNama, fontSize);
