@@ -59,13 +59,14 @@ interface PenandatanganOption {
 const currentYear = new Date().getFullYear();
 
 const getInitialForm = () => ({
-  nomorSuratMode: 'auto' as 'auto' | 'custom',
+  nomorSuratMode: 'custom' as 'auto' | 'custom',
   customSeq: '',
   unitCode: 'Bag.Umum',
   tahunSurat: currentYear,
   fullNomorSurat: '',
   selectedDasarHukumList: [] as DasarHukumOption[],
   pegawaiList: [] as AsnOption[],
+  maksudHeader: '',
   maksudList: [''] as string[],
   kopSuratId: null as string | null,
   penandatanganId: null as string | null,
@@ -144,7 +145,7 @@ const previewNomorSurat = computed(() => {
   if (form.nomorSuratMode === 'auto' && !isEditMode.value) {
     return `000.1.2.3/[Otomatis]/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
   }
-  const seqPart = form.customSeq.trim();
+  const seqPart = form.customSeq.trim() || '[Nomor]';
   return `000.1.2.3/${seqPart}/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
 });
 
@@ -273,6 +274,7 @@ const loadExistingData = async (id: string) => {
         : (data.spdList || []).map((s: any) => s.pegawai).filter(Boolean);
 
       // Map multi agenda
+      form.maksudHeader = data.maksudHeader || '';
       const lines = (data.dalamRangka || '')
         .split(/\r?\n/)
         .map((l: string) => l.trim().replace(/^\d+[\.\)]\s*/, ''))
@@ -394,7 +396,12 @@ const handleSubmit = async () => {
 
     let finalNomorSurat: string | undefined = undefined;
     if (form.nomorSuratMode === 'custom' || isEditMode.value) {
-      finalNomorSurat = `000.1.2.3/${form.customSeq.trim()}/${form.unitCode.trim() || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
+      const seq = form.customSeq.trim();
+      const unit = form.unitCode.trim() || 'Bag.Umum';
+      const year = form.tahunSurat || currentYear;
+      if (seq) {
+        finalNomorSurat = `000.1.2.3/${seq}/${unit}/${year}`;
+      }
     }
 
     // Gabungkan seluruh dasar hukum terpilih dipisah double newline
@@ -408,6 +415,7 @@ const handleSubmit = async () => {
       dasarHukum: formattedDasarHukum || undefined,
       pegawaiIds: form.pegawaiList.map((p) => p.id),
       dalamRangka: formattedDalamRangka,
+      maksudHeader: form.maksudHeader?.trim() || undefined,
       tempatDikeluarkan: form.tempatDikeluarkan.trim() || 'Banggai',
       kopSuratId: form.kopSuratId,
       penandatanganId: form.penandatanganId || undefined,
@@ -799,6 +807,21 @@ const handleCancel = () => {
             >
               {{ totalMaksudChars }}/1000
             </span>
+          </div>
+
+          <!-- Judul / Pengantar Maksud Penugasan (Muncul jika multiple agenda) -->
+          <div v-if="form.maksudList.length > 1" class="space-y-1.5 p-3 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+            <label class="block text-xs font-semibold text-text-main">
+              Judul / Teks Pengantar Maksud Tugas (Opsional / Tanpa Nomor)
+            </label>
+            <GovInputText
+              v-model="form.maksudHeader"
+              placeholder="Contoh: Untuk melaksanakan tugas dalam rangka:"
+              class="w-full text-xs"
+            />
+            <p class="text-[11px] text-text-muted">
+              Teks ini akan dicetak tepat di samping label <strong>Untuk :</strong> tanpa nomor urut, diikuti rincian agenda tugas bernomor di bawahnya.
+            </p>
           </div>
 
           <!-- List Input Agenda Dinamis -->

@@ -95,7 +95,7 @@ export const SpdSchema = z.object({
   tempatBerangkat: z.string(),
   tempatTujuan: z.string(),
   lamaHari: z.number().int().positive().nullable().optional(),
-  tanggalBerangkat: z.date().or(z.string()),
+  tanggalBerangkat: z.date().or(z.string()).nullable().optional(),
   tanggalKembali: z.date().or(z.string()).nullable().optional(),
   skpd: z.string().default('Bagian Umum Sekretariat Daerah Kab. Banggai Laut'),
   kodeRekening: z.string().nullable().optional(),
@@ -127,7 +127,7 @@ export const CreateSpdSchema = z.object({
   tempatBerangkat: z.string().min(1, 'Tempat berangkat wajib diisi'),
   tempatTujuan: z.string().min(1, 'Tempat tujuan wajib diisi'),
   lamaHari: z.number().int().positive('Lama perjalanan minimal 1 hari').nullable().optional(),
-  tanggalBerangkat: z.string().or(z.date()),
+  tanggalBerangkat: z.string().or(z.date()).nullable().optional().or(z.literal('')),
   tanggalKembali: z.string().or(z.date()).nullable().optional(),
   skpd: z.string().optional(),
   kodeRekening: z.string().nullable().optional(),
@@ -155,6 +155,7 @@ export const SuratTugasSchema = z.object({
   nomorSurat: z.string(),
   dasarHukum: z.string().default(''),
   dalamRangka: z.string(),
+  maksudHeader: z.string().nullable().optional(),
   tempatDikeluarkan: z.string().default('Banggai'),
   tanggalSurat: z.date().or(z.string()),
   penandatanganId: z.string().nullable().optional(),
@@ -189,6 +190,7 @@ export const CreateSuratTugasSchema = z.object({
   nomorSurat: z.string().optional(),
   dasarHukum: z.string().optional(),
   dalamRangka: z.string().min(1, 'Dalam rangka / maksud penugasan wajib diisi'),
+  maksudHeader: z.string().nullable().optional(),
   pegawaiIds: z.array(z.string()).min(1, 'Minimal satu pegawai pelaksana wajib dipilih'),
   tempatDikeluarkan: z.string().optional(),
   tanggalSurat: z.string().or(z.date()).optional(),
@@ -200,8 +202,8 @@ export const CreateSuratTugasSchema = z.object({
   kopSuratId: z.string().nullable().optional(),
   alatAngkut: z.string().optional(),
   tempatTujuan: z.string().optional(),
-  lamaHari: z.number().int().positive().optional(),
-  tanggalBerangkat: z.string().or(z.date()).optional(),
+  lamaHari: z.number().int().positive().nullable().optional(),
+  tanggalBerangkat: z.string().or(z.date()).nullable().optional().or(z.literal('')),
   status: z.string().optional(),
 });
 
@@ -220,8 +222,8 @@ export const GenerateSpdFromSuratTugasSchema = z.object({
   alatAngkut: z.array(z.string()).or(z.string()).optional(),
   tempatBerangkat: z.string().optional(),
   tempatTujuan: z.string().optional(),
-  lamaHari: z.number().int().positive().optional(),
-  tanggalBerangkat: z.string().or(z.date()).optional(),
+  lamaHari: z.number().int().positive().nullable().optional(),
+  tanggalBerangkat: z.string().or(z.date()).nullable().optional().or(z.literal('')),
 });
 
 export type GenerateSpdFromSuratTugasDto = z.infer<typeof GenerateSpdFromSuratTugasSchema>;

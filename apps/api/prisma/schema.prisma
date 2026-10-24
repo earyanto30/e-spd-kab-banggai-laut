@@ -69,7 +69,7 @@ model Spd {
   tempatBerangkat  String
   tempatTujuan     String
   lamaHari         Int?
-  tanggalBerangkat DateTime
+  tanggalBerangkat DateTime?
   tanggalKembali   DateTime?
   skpd             String      @default("Bagian Umum Sekretariat Daerah Kab. Banggai Laut")
   kodeRekening     String?
@@ -96,6 +96,7 @@ model SuratTugas {
   nomorSurat      String   @unique
   dasarHukum      String   @default("")
   dalamRangka     String
+  maksudHeader    String?
   tempatDikeluarkan String @default("Banggai")
   tanggalSurat    DateTime @default(now())
   penandatanganId String?

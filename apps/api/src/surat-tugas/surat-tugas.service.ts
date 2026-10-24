@@ -162,9 +162,8 @@ export class SuratTugasService {
     const year = new Date().getFullYear();
 
     // Auto generate nomorSurat if not provided or support dynamic numbering
-    // Format: 000.1.2.3/[Number]/[UnitCode]/[Year] (e.g. 000.1.2.3/001/Bag.Umum/2026 or 000.1.2.3//Bag.Umum/2026)
     let nomorSurat = dto.nomorSurat?.trim();
-    if (!nomorSurat) {
+    if (!nomorSurat || nomorSurat.includes('//')) {
       const count = await this.prisma.suratTugas.count({
         where: {
           createdAt: {
@@ -174,15 +173,21 @@ export class SuratTugasService {
         },
       });
       const seq = String(count + 1).padStart(3, '0');
-      nomorSurat = `000.1.2.3/${seq}/Bag.Umum/${year}`;
+      if (nomorSurat && nomorSurat.includes('//')) {
+        nomorSurat = nomorSurat.replace('//', `/${seq}/`);
+      } else {
+        nomorSurat = `000.1.2.3/${seq}/Bag.Umum/${year}`;
+      }
 
       // Check collision
       const existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat } });
       if (existing) {
-        nomorSurat = `000.1.2.3/${String(count + 2).padStart(3, '0')}/Bag.Umum/${year}`;
+        const nextSeq = String(count + 2).padStart(3, '0');
+        nomorSurat = nomorSurat.includes(`/${seq}/`)
+          ? nomorSurat.replace(`/${seq}/`, `/${nextSeq}/`)
+          : `000.1.2.3/${nextSeq}/Bag.Umum/${year}`;
       }
     } else {
-      // If user supplies empty sequence like "000.1.2.3//Bag.Umum/2026", check or allow unique suffix
       const existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat } });
       if (existing) {
         throw new ConflictException(`Nomor Surat '${nomorSurat}' sudah digunakan`);
@@ -200,7 +205,7 @@ export class SuratTugasService {
 
     const tglSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : new Date();
 
-    const dasarHukumText = dto.dasarHukum?.trim() || null;
+    const dasarHukumText = dto.dasarHukum?.trim() || '';
 
     let penandatanganId = dto.penandatanganId || null;
     let penandatanganNama = dto.penandatanganNama?.trim() || null;
@@ -251,6 +256,7 @@ export class SuratTugasService {
         nomorSurat,
         dasarHukum: dasarHukumText,
         dalamRangka: dto.dalamRangka.trim(),
+        maksudHeader: dto.maksudHeader?.trim() || null,
         tempatDikeluarkan: dto.tempatDikeluarkan?.trim() || 'Banggai',
         tanggalSurat: tglSurat,
         penandatanganId,
@@ -280,6 +286,7 @@ export class SuratTugasService {
     if (dto.nomorSurat) updateData.nomorSurat = dto.nomorSurat.trim();
     if (dto.dasarHukum) updateData.dasarHukum = dto.dasarHukum.trim();
     if (dto.dalamRangka) updateData.dalamRangka = dto.dalamRangka.trim();
+    if (dto.maksudHeader !== undefined) updateData.maksudHeader = dto.maksudHeader?.trim() || null;
     if (dto.tempatDikeluarkan) updateData.tempatDikeluarkan = dto.tempatDikeluarkan.trim();
     if (dto.tanggalSurat) updateData.tanggalSurat = new Date(dto.tanggalSurat);
     if (dto.penandatanganId !== undefined) {
@@ -332,12 +339,30 @@ export class SuratTugasService {
     if (currentSpdList.length > 0) {
       // 1. Update properti SPD yang terkait
       const spdSyncData: any = {};
-      if (dto.dalamRangka) spdSyncData.dalamRangka = dto.dalamRangka.trim();
+      if (dto.dalamRangka) {
+        const rawLines = dto.dalamRangka
+          .split(/\r?\n/)
+          .map((l) => l.trim().replace(/^\d+[\.\)]\s*/, ''))
+          .filter(Boolean);
+        const formattedSpdDalamRangka = rawLines
+          .map((item, idx) => (rawLines.length > 1 ? `${idx + 1}. ${item}` : item))
+          .join('\n');
+        spdSyncData.dalamRangka = formattedSpdDalamRangka || dto.dalamRangka.trim();
+      }
       if (dto.tempatDikeluarkan) spdSyncData.tempatBerangkat = dto.tempatDikeluarkan.trim();
-      if (dto.tanggalSurat) {
-        const newDate = new Date(dto.tanggalSurat);
+      if (dto.tempatTujuan) spdSyncData.tempatTujuan = dto.tempatTujuan.trim();
+      if (dto.alatAngkut) spdSyncData.alatAngkut = dto.alatAngkut.trim();
+      if (dto.lamaHari !== undefined) spdSyncData.lamaHari = dto.lamaHari !== null ? Number(dto.lamaHari) : null;
+      if (dto.tanggalBerangkat !== undefined) {
+        const newDate = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
         spdSyncData.tanggalBerangkat = newDate;
-        spdSyncData.tanggalKembali = newDate;
+        if (newDate && dto.lamaHari && Number(dto.lamaHari) > 0) {
+          const tglKembali = new Date(newDate);
+          tglKembali.setDate(tglKembali.getDate() + Math.max(0, Number(dto.lamaHari) - 1));
+          spdSyncData.tanggalKembali = tglKembali;
+        } else {
+          spdSyncData.tanggalKembali = newDate;
+        }
       }
       if (dto.kopSuratId !== undefined) {
         spdSyncData.kopSuratId = dto.kopSuratId;
@@ -446,14 +471,21 @@ export class SuratTugasService {
 
     const tempatBerangkat = dto?.tempatBerangkat?.trim() || suratTugas.tempatDikeluarkan || 'Banggai';
     const tempatTujuan = dto?.tempatTujuan?.trim() || suratTugas.tempatTujuan || 'Sesuai Penugasan';
-    const lamaHari = Number(dto?.lamaHari) || suratTugas.lamaHari || 1;
+    const lamaHari = dto?.lamaHari !== undefined && dto.lamaHari !== null
+      ? Number(dto.lamaHari)
+      : (suratTugas.lamaHari ?? null);
 
     const tglBerangkat = dto?.tanggalBerangkat
       ? new Date(dto.tanggalBerangkat)
-      : (suratTugas.tanggalBerangkat || suratTugas.tanggalSurat || new Date());
+      : (suratTugas.tanggalBerangkat ? new Date(suratTugas.tanggalBerangkat) : null);
 
-    const tglKembali = new Date(tglBerangkat);
-    tglKembali.setDate(tglKembali.getDate() + Math.max(0, lamaHari - 1));
+    let tglKembali: Date | null = null;
+    if (tglBerangkat) {
+      tglKembali = new Date(tglBerangkat);
+      if (lamaHari && lamaHari > 0) {
+        tglKembali.setDate(tglKembali.getDate() + Math.max(0, lamaHari - 1));
+      }
+    }
 
     // Persist travel values to suratTugas if provided
     await this.prisma.suratTugas.update({
@@ -498,7 +530,8 @@ export class SuratTugasService {
     const isCustom = dto?.nomorSpdMode === 'custom';
     const isKpa = pemberiPerintah.toLowerCase().includes('kuasa');
     const customPrefix = dto?.customPrefix !== undefined ? dto.customPrefix.trim() : '';
-    const prefix = isCustom ? customPrefix : (customPrefix || (isKpa ? 'KPA' : ''));
+    const defaultPrefix = isKpa ? 'KPA' : '';
+    const prefix = isCustom ? customPrefix : defaultPrefix;
 
     const getCustomNomorSpd = (index: number) => {
       const rawSeq = dto?.customSeq ? dto.customSeq.trim() : '';

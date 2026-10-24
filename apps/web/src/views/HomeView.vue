@@ -4,6 +4,7 @@ import Chart from 'primevue/chart';
 import Tag from 'primevue/tag';
 import { GovButton } from '../components/core';
 import { useTheme } from '../composables/useTheme';
+import { apiFetch } from '../utils/api';
 import logoUrl from '../assets/logo.png';
 
 const { isDark } = useTheme();
@@ -20,118 +21,94 @@ const checkAuth = () => {
   userRole.value = localStorage.getItem('user_role') || 'USER';
 };
 
-// Summary metrics (mocked with realistic governmental numbers)
-const kpiStats = [
-  {
-    title: 'Total SPD Diterbitkan',
-    value: '148',
-    unit: 'Dokumen',
-    change: '+14% bln ini',
-    changeType: 'up',
-    icon: 'pi pi-file-check',
-    colorClass: 'text-sky-600 dark:text-sky-400',
-    bgClass: 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800/50',
-  },
-  {
-    title: 'Total Surat Tugas',
-    value: '52',
-    unit: 'Dokumen',
-    change: '+8 bln ini',
-    changeType: 'up',
-    icon: 'pi pi-file',
-    colorClass: 'text-indigo-600 dark:text-indigo-400',
-    bgClass: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/50',
-  },
-  {
-    title: 'SPD Sedang Aktif',
-    value: '18',
-    unit: 'Pegawai',
-    change: 'Minggu berjalan',
-    changeType: 'neutral',
-    icon: 'pi pi-compass',
-    colorClass: 'text-amber-600 dark:text-amber-400',
-    bgClass: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50',
-  },
-  {
-    title: 'ASN Pelaksana Tugas',
-    value: '64',
-    unit: 'Orang',
-    change: '+6 pegawai baru',
-    changeType: 'up',
-    icon: 'pi pi-users',
-    colorClass: 'text-emerald-600 dark:text-emerald-400',
-    bgClass: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50',
-  },
-];
+const currentYear = new Date().getFullYear();
+const loadingStats = ref(true);
+const statsData = ref<any>(null);
 
-// Recent mock SPD records for quick glance
-const recentSpdList = [
-  {
-    nomor: '090/042/SPD/SETDA/2026',
-    pegawai: 'Ir. Moh. Rizki, M.Si',
-    nip: '19780512 200501 1 004',
-    tujuan: 'Palu (Kantor Gubernur Sulteng)',
-    tanggal: '12 Okt 2026',
-    durasi: '4 Hari',
-    status: 'DISETUJUI',
-  },
-  {
-    nomor: '090/041/SPD/SETDA/2026',
-    pegawai: 'Siti Rahmawati, S.STP',
-    nip: '19890422 201202 2 003',
-    tujuan: 'Jakarta (Kemendagri RI)',
-    tanggal: '10 Okt 2026',
-    durasi: '5 Hari',
-    status: 'DISETUJUI',
-  },
-  {
-    nomor: '090/040/SPD/SETDA/2026',
-    pegawai: 'Drs. Supriadi Labani',
-    nip: '19750918 200212 1 002',
-    tujuan: 'Luwuk (Rakor Keuangan Daerah)',
-    tanggal: '08 Okt 2026',
-    durasi: '3 Hari',
-    status: 'SELESAI',
-  },
-  {
-    nomor: '090/039/SPD/SETDA/2026',
-    pegawai: 'Nurul Hidayah, S.Sos',
-    nip: '19920115 201704 2 001',
-    tujuan: 'Banggai Utara (Monitoring OPD)',
-    tanggal: '06 Okt 2026',
-    durasi: '2 Hari',
-    status: 'SELESAI',
-  },
-  {
-    nomor: '090/043/SPD/SETDA/2026',
-    pegawai: 'Fadli A. Arsad',
-    nip: '19840310 200801 1 007',
-    tujuan: 'Makassar (Bimtek Tata Kelola)',
-    tanggal: '15 Okt 2026',
-    durasi: '4 Hari',
-    status: 'DRAFT',
-  },
-];
+const fetchDashboardStats = async () => {
+  loadingStats.value = true;
+  try {
+    const res = await apiFetch('/api/dashboard/stats');
+    if (res.ok) {
+      statsData.value = await res.json();
+    }
+  } catch (err) {
+    console.error('Gagal memuat data statistik dashboard:', err);
+  } finally {
+    loadingStats.value = false;
+  }
+};
+
+// Summary metrics (Calculated from Real Database Data)
+const kpiStats = computed(() => {
+  const k = statsData.value?.kpi;
+  return [
+    {
+      title: 'Total SPD Diterbitkan',
+      value: k ? String(k.totalSpd) : '0',
+      unit: 'Dokumen',
+      change: k ? k.spdMonthlyChange : '0 bln ini',
+      changeType: k ? k.spdChangeType : 'neutral',
+      icon: 'pi pi-file-check',
+      colorClass: 'text-sky-600 dark:text-sky-400',
+      bgClass: 'bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800/50',
+    },
+    {
+      title: 'Total Surat Tugas',
+      value: k ? String(k.totalSuratTugas) : '0',
+      unit: 'Dokumen',
+      change: k ? k.suratTugasMonthlyChange : '0 bln ini',
+      changeType: k ? k.suratTugasChangeType : 'neutral',
+      icon: 'pi pi-file',
+      colorClass: 'text-indigo-600 dark:text-indigo-400',
+      bgClass: 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 dark:border-indigo-800/50',
+    },
+    {
+      title: 'SPD Sedang Aktif',
+      value: k ? String(k.spdActive) : '0',
+      unit: 'Dokumen',
+      change: k ? k.spdActiveText : '0 dokumen disetujui',
+      changeType: 'neutral',
+      icon: 'pi pi-compass',
+      colorClass: 'text-amber-600 dark:text-amber-400',
+      bgClass: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50',
+    },
+    {
+      title: 'ASN Pelaksana Tugas',
+      value: k ? String(k.totalPegawai) : '0',
+      unit: 'Orang',
+      change: k ? k.pegawaiNewText : '0 ASN terdaftar',
+      changeType: 'up',
+      icon: 'pi pi-users',
+      colorClass: 'text-emerald-600 dark:text-emerald-400',
+      bgClass: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50',
+    },
+  ];
+});
+
+// Recent real SPD records for quick glance
+const recentSpdList = computed(() => statsData.value?.recentSpd || []);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart 1: Monthly SPD Issuance (Bar Chart - Dalam Daerah vs Luar Daerah)
 // ─────────────────────────────────────────────────────────────────────────────
 const monthlyBarData = computed(() => {
   const isD = isDark.value;
+  const m = statsData.value?.monthlyStats;
   return {
-    labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
+    labels: m?.months || ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
     datasets: [
       {
         label: 'Luar Daerah Sulteng',
         backgroundColor: isD ? '#38BDF8' : '#0F4C81',
         borderRadius: 6,
-        data: [14, 19, 23, 17, 28, 22],
+        data: m?.luarDaerah || [0, 0, 0, 0, 0, 0],
       },
       {
         label: 'Dalam Daerah (Kecamatan/Kab)',
         backgroundColor: isD ? '#F59E0B' : '#D97706',
         borderRadius: 6,
-        data: [8, 12, 11, 15, 14, 18],
+        data: m?.dalamDaerah || [0, 0, 0, 0, 0, 0],
       },
     ],
   };
@@ -140,12 +117,18 @@ const monthlyBarData = computed(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 // Chart 2: Transportation Mode Distribution (Doughnut Chart)
 // ─────────────────────────────────────────────────────────────────────────────
+const hasTransportData = computed(() => {
+  const d = statsData.value?.transportModes?.data;
+  return Array.isArray(d) && d.some((v: number) => v > 0);
+});
+
 const transportDoughnutData = computed(() => {
+  const t = statsData.value?.transportModes;
   return {
-    labels: ['Pesawat Udara', 'Kapal Laut / Feri', 'Speedboat Pemda', 'Kendaraan Darat'],
+    labels: t?.labels || ['Pesawat Udara', 'Kapal Laut / Feri', 'Speedboat Pemda', 'Kendaraan Darat'],
     datasets: [
       {
-        data: [46, 28, 16, 10],
+        data: t?.data || [0, 0, 0, 0],
         backgroundColor: [
           '#0284C7', // Sky-600
           '#0D9488', // Teal-600
@@ -169,12 +152,13 @@ const transportDoughnutData = computed(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 const trendLineData = computed(() => {
   const isD = isDark.value;
+  const t = statsData.value?.durationTrends;
   return {
-    labels: ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
+    labels: t?.months || ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'],
     datasets: [
       {
         label: 'Akumulasi Hari Dinas (Hari)',
-        data: [58, 76, 92, 70, 114, 88],
+        data: t?.data || [0, 0, 0, 0, 0, 0],
         fill: true,
         borderColor: isD ? '#38BDF8' : '#0F4C81',
         backgroundColor: isD ? 'rgba(56, 189, 248, 0.15)' : 'rgba(15, 76, 129, 0.12)',
@@ -193,12 +177,13 @@ const trendLineData = computed(() => {
 // ─────────────────────────────────────────────────────────────────────────────
 const topDestinationsData = computed(() => {
   const isD = isDark.value;
+  const d = statsData.value?.topDestinations;
   return {
-    labels: ['Palu (Provinsi)', 'Luwuk (Kab. Banggai)', 'Jakarta (Pusat)', 'Makassar', 'Gorontalo'],
+    labels: d?.labels || ['Belum ada destinasi'],
     datasets: [
       {
         label: 'Frekuensi Kunjungan',
-        data: [52, 44, 31, 18, 9],
+        data: d?.data || [0],
         backgroundColor: isD ? '#10B981' : '#059669',
         borderRadius: 6,
       },
@@ -298,7 +283,7 @@ const lineChartOptions = computed(() => {
         grid: { display: false },
       },
       y: {
-        ticks: { color: textMuted, font: { size: 11 } },
+        ticks: { color: textMuted, font: { size: 11 }, precision: 0 },
         grid: { color: gridColor },
       },
     },
@@ -337,6 +322,16 @@ const horizontalBarOptions = computed(() => {
   };
 });
 
+const formatDate = (dateStr?: string | Date | null) => {
+  if (!dateStr) return '-';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+};
+
 const getStatusSeverity = (status: string) => {
   switch (status) {
     case 'DISETUJUI':
@@ -350,8 +345,9 @@ const getStatusSeverity = (status: string) => {
   }
 };
 
-onMounted(() => {
+onMounted(async () => {
   checkAuth();
+  await fetchDashboardStats();
 });
 </script>
 
@@ -381,7 +377,7 @@ onMounted(() => {
               <span
                 class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 dark:bg-primary/20 text-white dark:text-primary border border-white/25 dark:border-primary/40 backdrop-blur-sm"
               >
-                Tahun 2026
+                Tahun {{ currentYear }}
               </span>
             </div>
             <p class="text-xs sm:text-sm text-white/85 dark:text-text-muted mt-1 max-w-2xl leading-relaxed">
@@ -392,6 +388,14 @@ onMounted(() => {
 
         <!-- Quick Top Action Buttons -->
         <div class="flex items-center gap-2.5 flex-wrap">
+          <router-link to="/surat-tugas/buat">
+            <GovButton
+              label="Buat Surat Tugas"
+              icon="pi pi-file-plus"
+              severity="secondary"
+              class="!bg-white/15 !text-white hover:!bg-white/25 !border-white/20 shadow-sm"
+            />
+          </router-link>
           <router-link to="/spd/buat">
             <GovButton
               label="Buat SPD Baru"
@@ -432,7 +436,8 @@ onMounted(() => {
         </div>
         <div class="flex items-baseline gap-2">
           <span class="text-2xl sm:text-3xl font-extrabold text-text-main tracking-tight">
-            {{ kpi.value }}
+            <i v-if="loadingStats" class="pi pi-spin pi-spinner text-xl text-text-muted"></i>
+            <template v-else>{{ kpi.value }}</template>
           </span>
           <span class="text-xs font-medium text-text-muted">
             {{ kpi.unit }}
@@ -462,8 +467,8 @@ onMounted(() => {
               Komparasi penerbitan tugas dinas Luar Daerah vs Dalam Wilayah Banggai Laut
             </p>
           </div>
-          <span class="text-xs font-mono font-medium px-2 py-1 rounded bg-slate-100 dark:bg-surface/50 text-text-muted border border-border">
-            Mei - Okt 2026
+          <span class="text-xs font-mono font-medium px-2 py-1 rounded bg-canvas text-text-muted border border-border">
+            {{ statsData?.monthlyStats?.periodLabel || `Tahun ${currentYear}` }}
           </span>
         </div>
         <div class="h-72 w-full pt-2">
@@ -483,7 +488,11 @@ onMounted(() => {
           </p>
         </div>
         <div class="h-72 w-full flex items-center justify-center pt-1">
-          <Chart type="doughnut" :data="transportDoughnutData" :options="doughnutChartOptions" class="w-full h-full" />
+          <div v-if="!hasTransportData" class="text-center text-xs text-text-muted py-8">
+            <i class="pi pi-compass text-3xl mb-2 text-text-muted/40 block"></i>
+            <span>Belum ada data moda transportasi dinas.</span>
+          </div>
+          <Chart v-else type="doughnut" :data="transportDoughnutData" :options="doughnutChartOptions" class="w-full h-full" />
         </div>
       </div>
     </div>
@@ -503,7 +512,7 @@ onMounted(() => {
             </p>
           </div>
           <div class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/40">
-            Rerata 3.8 Hari/SPD
+            Rerata {{ statsData?.durationTrends?.averageDaysPerSpd || 0 }} Hari/SPD
           </div>
         </div>
         <div class="h-64 w-full pt-2">
@@ -523,7 +532,7 @@ onMounted(() => {
               Kota / wilayah dengan frekuensi kunjungan dinas tertinggi
             </p>
           </div>
-          <span class="text-xs text-text-muted">Total 148 Kunjungan</span>
+          <span class="text-xs text-text-muted">Total {{ statsData?.topDestinations?.totalVisits || 0 }} Kunjungan</span>
         </div>
         <div class="h-64 w-full pt-2">
           <Chart type="bar" :data="topDestinationsData" :options="horizontalBarOptions" class="w-full h-full" />
@@ -562,20 +571,39 @@ onMounted(() => {
               </tr>
             </thead>
             <tbody class="divide-y divide-border/60">
+              <tr v-if="loadingStats">
+                <td colspan="4" class="py-8 text-center text-text-muted">
+                  <i class="pi pi-spin pi-spinner text-xl text-primary mb-2 block"></i>
+                  <span>Memuat data riil SPD...</span>
+                </td>
+              </tr>
+              <tr v-else-if="recentSpdList.length === 0">
+                <td colspan="4" class="py-8 text-center text-text-muted">
+                  <i class="pi pi-inbox text-3xl mb-2 block opacity-40"></i>
+                  <span>Belum ada dokumen Surat Perjalanan Dinas (SPD) yang diterbitkan.</span>
+                </td>
+              </tr>
               <tr
                 v-for="item in recentSpdList"
-                :key="item.nomor"
-                class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                :key="item.id || item.nomor"
+                class="hover:bg-canvas transition-colors"
               >
                 <td class="py-3 px-3">
-                  <div class="font-bold text-text-main">{{ item.pegawai }}</div>
-                  <div class="text-[11px] font-mono text-text-muted">{{ item.nomor }}</div>
+                  <router-link
+                    v-if="item.id"
+                    :to="`/spd/cetak/${item.id}`"
+                    class="font-bold text-text-main hover:text-primary transition-colors block"
+                  >
+                    {{ item.pegawai }}
+                  </router-link>
+                  <div v-else class="font-bold text-text-main">{{ item.pegawai }}</div>
+                  <div class="text-[11px] font-mono text-primary font-medium">{{ item.nomor }}</div>
                 </td>
                 <td class="py-3 px-3 text-text-main font-medium">
                   {{ item.tujuan }}
                 </td>
                 <td class="py-3 px-3 text-text-muted">
-                  <div>{{ item.tanggal }}</div>
+                  <div>{{ formatDate(item.tanggal) }}</div>
                   <div class="text-[11px] text-text-muted/80">Durasi: {{ item.durasi }}</div>
                 </td>
                 <td class="py-3 px-3 text-center">
@@ -601,8 +629,19 @@ onMounted(() => {
           </h2>
           <div class="space-y-2">
             <router-link
+              to="/surat-tugas/buat"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
+            >
+              <div class="flex items-center gap-2.5">
+                <i class="pi pi-file-plus text-primary text-sm"></i>
+                <span>Penerbitan Surat Tugas Baru</span>
+              </div>
+              <i class="pi pi-chevron-right text-text-muted text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+            </router-link>
+
+            <router-link
               to="/spd/buat"
-              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-semibold text-text-main group"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
               <div class="flex items-center gap-2.5">
                 <i class="pi pi-plus-circle text-primary text-sm"></i>
@@ -613,7 +652,7 @@ onMounted(() => {
 
             <router-link
               to="/pengaturan/kop-surat"
-              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-semibold text-text-main group"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
               <div class="flex items-center gap-2.5">
                 <i class="pi pi-file-edit text-primary text-sm"></i>
@@ -624,7 +663,7 @@ onMounted(() => {
 
             <router-link
               to="/kepegawaian/asn"
-              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-semibold text-text-main group"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
               <div class="flex items-center gap-2.5">
                 <i class="pi pi-users text-primary text-sm"></i>
@@ -635,7 +674,7 @@ onMounted(() => {
 
             <router-link
               to="/pengaturan/pengguna"
-              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-xs font-semibold text-text-main group"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
               <div class="flex items-center gap-2.5">
                 <i class="pi pi-user-edit text-primary text-sm"></i>
@@ -647,7 +686,7 @@ onMounted(() => {
         </div>
 
         <!-- System & Location Info Box -->
-        <div class="bg-gradient-to-br from-slate-50 to-blue-50/40 dark:from-surface dark:to-surface border border-border rounded-xl p-4 text-xs text-text-muted space-y-2">
+        <div class="bg-surface border border-border rounded-xl p-4 text-xs text-text-muted space-y-2">
           <div class="font-bold text-text-main flex items-center gap-1.5">
             <i class="pi pi-building text-primary"></i>
             Sekretariat Daerah Kab. Banggai Laut

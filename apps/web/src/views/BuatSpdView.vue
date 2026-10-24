@@ -58,7 +58,7 @@ interface PenandatanganOption {
 const currentYear = new Date().getFullYear();
 
 const getInitialForm = () => ({
-  nomorSpdMode: 'auto' as 'auto' | 'custom',
+  nomorSpdMode: 'custom' as 'auto' | 'custom',
   customPrefix: '',
   customSeq: '',
   tahunSpd: currentYear,
@@ -122,12 +122,13 @@ watch(
 );
 
 const previewNomorSpd = computed(() => {
+  const defaultPrefix = isKpa.value ? 'KPA' : '';
+  const prefix = form.nomorSpdMode === 'custom'
+    ? (form.customPrefix?.trim() || '')
+    : defaultPrefix;
   if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
-    const defaultPrefix = isKpa.value ? 'KPA' : '';
-    const prefix = form.customPrefix?.trim() ? form.customPrefix.trim() : defaultPrefix;
     return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
   }
-  const prefix = form.customPrefix ? form.customPrefix.trim() : '';
   const seqPart = form.customSeq.trim();
   return `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
 });
@@ -367,7 +368,6 @@ const validate = (): boolean => {
   if (form.alatAngkut.length === 0) errors.alatAngkut = 'Pilih minimal satu alat angkut.';
   if (!form.tempatBerangkat.trim()) errors.tempatBerangkat = 'Tempat berangkat wajib diisi.';
   if (!form.tempatTujuan.trim()) errors.tempatTujuan = 'Tempat tujuan wajib diisi.';
-  if (!form.tanggalBerangkat) errors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
   if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
   if (!form.penandatanganId) errors.penandatanganId = 'Pejabat Penandatangan SPD wajib dipilih.';
 
@@ -399,7 +399,10 @@ const handleSubmit = async () => {
   try {
     let finalNomorSpd: string | undefined = undefined;
     if (form.nomorSpdMode === 'custom' || isEditMode.value) {
-      const prefix = form.customPrefix ? form.customPrefix.trim() : '';
+      const defaultPrefix = isKpa.value ? 'KPA' : '';
+      const prefix = form.nomorSpdMode === 'custom'
+        ? (form.customPrefix?.trim() || '')
+        : defaultPrefix;
       finalNomorSpd = `${prefix}${form.customSeq.trim()}/SPD/${form.tahunSpd || currentYear}`;
     }
 
@@ -413,7 +416,7 @@ const handleSubmit = async () => {
       tempatBerangkat: form.tempatBerangkat.trim(),
       tempatTujuan: form.tempatTujuan.trim(),
       lamaHari: form.lamaHari ? Number(form.lamaHari) : undefined,
-      tanggalBerangkat: form.tanggalBerangkat!.toISOString(),
+      tanggalBerangkat: form.tanggalBerangkat ? form.tanggalBerangkat.toISOString() : undefined,
       kopSuratId: form.kopSuratId || undefined,
     };
 
@@ -795,7 +798,7 @@ const handleCancel = () => {
 
           <div class="space-y-2">
             <label class="block text-sm font-semibold text-text-main">
-              8. Tanggal Berangkat <span class="text-red-500">*</span>
+              8. Tanggal Berangkat (Opsional)
             </label>
             <GovDatePicker
               v-model="form.tanggalBerangkat"

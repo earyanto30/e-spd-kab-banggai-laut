@@ -106,6 +106,8 @@ export class SpdService {
 
     // Auto-generate nomor SPD if not supplied or handle dynamic format [Prefix][Number]/SPD/[Year]
     let nomorSpd = dto.nomorSpd?.trim();
+    const isKpa = (dto.pemberiPerintah || '').toLowerCase().includes('kuasa');
+
     if (!nomorSpd) {
       const year = new Date().getFullYear();
       const count = await this.prisma.spd.count({
@@ -118,7 +120,6 @@ export class SpdService {
       });
       const seq = String(count + 1).padStart(3, '0');
       // Format standard: [Number]/SPD/[Year] or KPA[Number]/SPD/[Year]
-      const isKpa = (dto.pemberiPerintah || '').toLowerCase().includes('kuasa');
       const prefix = isKpa ? 'KPA' : '';
       nomorSpd = `${prefix}${seq}/SPD/${year}`;
 
@@ -128,15 +129,16 @@ export class SpdService {
         nomorSpd = `${prefix}${String(count + 2).padStart(3, '0')}/SPD/${year}`;
       }
     } else {
+      // Manual / custom nomorSpd: respect user prefix (do not force KPA if user left prefix empty)
       const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
       if (existing) {
         throw new ConflictException(`Nomor SPD '${nomorSpd}' sudah digunakan`);
       }
     }
 
-    const tglBerangkat = new Date(dto.tanggalBerangkat);
+    const tglBerangkat = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
     let tglKembali: Date | null = dto.tanggalKembali ? new Date(dto.tanggalKembali) : null;
-    if (!tglKembali) {
+    if (tglBerangkat && !tglKembali) {
       if (dto.lamaHari && Number(dto.lamaHari) > 0) {
         tglKembali = new Date(tglBerangkat);
         tglKembali.setDate(tglKembali.getDate() + Math.max(0, Number(dto.lamaHari) - 1));
@@ -239,6 +241,12 @@ export class SpdService {
       ...(dto.tempatBerangkat && { tempatBerangkat: dto.tempatBerangkat.trim() }),
       ...(dto.tempatTujuan && { tempatTujuan: dto.tempatTujuan.trim() }),
       ...(dto.lamaHari !== undefined && { lamaHari: dto.lamaHari !== null ? Number(dto.lamaHari) : null }),
+      ...(dto.tanggalBerangkat !== undefined && {
+        tanggalBerangkat: dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null,
+      }),
+      ...(dto.tanggalKembali !== undefined && {
+        tanggalKembali: dto.tanggalKembali ? new Date(dto.tanggalKembali) : null,
+      }),
       ...(dto.skpd && { skpd: dto.skpd.trim() }),
       ...(dto.kodeRekening !== undefined && { kodeRekening: dto.kodeRekening?.trim() || null }),
       ...(dto.tingkatBiaya !== undefined && { tingkatBiaya: dto.tingkatBiaya?.trim() || null }),
@@ -283,7 +291,7 @@ export class SpdService {
       }
     }
 
-    return this.prisma.spd.update({
+    const updatedSpd = await this.prisma.spd.update({
       where: { id },
       data,
       include: {
@@ -293,6 +301,57 @@ export class SpdService {
         penandatangan: true,
       },
     });
+
+    // Mekanisme Sinkronisasi 2 Arah: Jika SPD terkait dengan Surat Tugas, sinkronkan data penugasan
+    if (existing.suratTugasId) {
+      const stUpdateData: any = {};
+      if (dto.dalamRangka) {
+        const cleanStLines = dto.dalamRangka
+          .split(/\r?\n/)
+          .map((l) => l.trim().replace(/^\d+[\.\)]\s*/, ''))
+          .filter(Boolean)
+          .join('\n');
+        stUpdateData.dalamRangka = cleanStLines || dto.dalamRangka.trim();
+      }
+      if (dto.tempatTujuan) stUpdateData.tempatTujuan = dto.tempatTujuan.trim();
+      if (dto.tempatBerangkat) stUpdateData.tempatDikeluarkan = dto.tempatBerangkat.trim();
+      if (dto.alatAngkut) stUpdateData.alatAngkut = dto.alatAngkut.trim();
+      if (dto.lamaHari !== undefined) stUpdateData.lamaHari = dto.lamaHari !== null ? Number(dto.lamaHari) : null;
+      if (dto.tanggalBerangkat !== undefined) {
+        stUpdateData.tanggalBerangkat = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
+      }
+
+      if (Object.keys(stUpdateData).length > 0) {
+        await this.prisma.suratTugas.update({
+          where: { id: existing.suratTugasId },
+          data: stUpdateData,
+        });
+
+        // Sinkronkan juga perubahan penugasan ke seluruh dokumen SPD turunan lainnya di bawah Surat Tugas ini
+        const siblingSpdSyncData: any = {};
+        if (dto.dalamRangka) siblingSpdSyncData.dalamRangka = dto.dalamRangka.trim();
+        if (dto.tempatTujuan) siblingSpdSyncData.tempatTujuan = dto.tempatTujuan.trim();
+        if (dto.tempatBerangkat) siblingSpdSyncData.tempatBerangkat = dto.tempatBerangkat.trim();
+        if (dto.alatAngkut) siblingSpdSyncData.alatAngkut = dto.alatAngkut.trim();
+        if (dto.lamaHari !== undefined) siblingSpdSyncData.lamaHari = dto.lamaHari !== null ? Number(dto.lamaHari) : null;
+        if (dto.tanggalBerangkat !== undefined) {
+          siblingSpdSyncData.tanggalBerangkat = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
+          siblingSpdSyncData.tanggalKembali = data.tanggalKembali;
+        }
+
+        if (Object.keys(siblingSpdSyncData).length > 0) {
+          await this.prisma.spd.updateMany({
+            where: {
+              suratTugasId: existing.suratTugasId,
+              NOT: { id },
+            },
+            data: siblingSpdSyncData,
+          });
+        }
+      }
+    }
+
+    return updatedSpd;
   }
 
   async delete(id: string) {

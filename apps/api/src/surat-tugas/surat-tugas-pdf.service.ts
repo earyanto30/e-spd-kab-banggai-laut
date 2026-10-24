@@ -162,7 +162,7 @@ export class SuratTugasPdfService {
     const black = rgb(0, 0, 0);
     const fontSize = 12;
     const lineHeight = 15;
-    const marginBottom = 25;
+    const marginBottom = 18;
 
     // Helper: Buat halaman baru jika konten teks panjang melampaui batas margin bawah
     const ensureSpaceOrNewPage = (neededHeight: number) => {
@@ -172,22 +172,22 @@ export class SuratTugasPdfService {
         const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
         currentPage.drawText(pageNumText, {
           x: (width - pageNumWidth) / 2,
-          y: height - 40,
+          y: height - 35,
           size: 10,
           font: fontRegular,
           color: rgb(0.3, 0.3, 0.3),
         });
-        currentY = height - 70;
+        currentY = height - 55;
       }
     };
 
-    // Margin setup
-    const leftMargin = 54; // ~0.75 in
-    const rightMargin = width - 54;
+    // Margin setup (Narrow: 36 pt / 0.5 in)
+    const leftMargin = 36;
+    const rightMargin = width - 36;
     const contentWidth = rightMargin - leftMargin;
 
-    // Start under Kop Surat header line (around Y = 864 on Legal or height - 145)
-    let currentY = height > 900 ? 864 : height - 145;
+    // Start under Kop Surat header line (+1 line space above SURAT TUGAS)
+    let currentY = (height > 900 ? 865 : height - 138) - lineHeight;
 
     // 1. JUDUL: SURAT TUGAS & NOMOR (Centered, Font 12, Bold)
     const titleText = 'SURAT TUGAS';
@@ -201,7 +201,7 @@ export class SuratTugasPdfService {
       color: black,
     });
 
-    currentY -= 15;
+    currentY -= 14;
     const nomorText = `Nomor : ${st.nomorSurat || '000.1.2.3/ / Bag.Umum/' + new Date().getFullYear()}`;
     const nomorWidth = fontRegular.widthOfTextAtSize(nomorText, fontSize);
     currentPage.drawText(nomorText, {
@@ -212,7 +212,8 @@ export class SuratTugasPdfService {
       color: black,
     });
 
-    currentY -= 24;
+    // 1 extra line space below Nomor before Dasar
+    currentY -= (18 + lineHeight);
 
     // 2. DASAR HUKUM (Dapat memilih lebih dari satu dasar hukum)
     currentPage.drawText('Dasar  :', { x: leftMargin, y: currentY, size: fontSize, font: fontRegular, color: black });
@@ -254,9 +255,8 @@ export class SuratTugasPdfService {
       currentY -= 4; // Spacing antar dasar hukum
     }
 
-    currentY -= 10;
-
-    // 3. MEMERINTAHKAN : (Centered Bold)
+    // 3. MEMERINTAHKAN : (Tepat 3 spasi baris sebelum, 2 spasi baris sesudah)
+    currentY -= 3 * lineHeight;
     ensureSpaceOrNewPage(20);
     const memText = 'MEMERINTAHKAN :';
     const memWidth = fontBold.widthOfTextAtSize(memText, fontSize);
@@ -268,7 +268,7 @@ export class SuratTugasPdfService {
       color: black,
     });
 
-    currentY -= 20;
+    currentY -= 2 * lineHeight;
 
     // 4. KEPADA : (Daftar Pegawai Pelaksana 1, 2, 3...)
     ensureSpaceOrNewPage(20);
@@ -352,8 +352,51 @@ export class SuratTugasPdfService {
       .filter(Boolean);
 
     const isMultiAgenda = agendaLines.length > 1;
+    const maksudHeader = (st.maksudHeader || '').trim();
 
-    if (!isMultiAgenda) {
+    if (maksudHeader) {
+      // Judul/pengantar tanpa nomor di samping "Untuk   :"
+      const textX = untukPrefixX;
+      const targetW = rightMargin - textX;
+      const hLines = this.splitTextToLines(maksudHeader, fontRegular, fontSize, targetW);
+      for (let i = 0; i < hLines.length; i++) {
+        ensureSpaceOrNewPage(lineHeight);
+        const isLast = i === hLines.length - 1;
+        this.drawJustifiedText(currentPage, hLines[i], textX, currentY, fontSize, fontRegular, black, targetW, isLast);
+        currentY -= lineHeight;
+      }
+      currentY -= 3;
+
+      // Rincian agenda bernomor di bawahnya
+      for (let idx = 0; idx < agendaLines.length; idx++) {
+        const numStr = `${idx + 1}.`;
+        const itemNumberX = untukPrefixX;
+        const itemTextX = itemNumberX + 16;
+        const itemWidth = rightMargin - itemTextX;
+        const subLines = this.splitTextToLines(agendaLines[idx], fontRegular, fontSize, itemWidth);
+
+        ensureSpaceOrNewPage(subLines.length * lineHeight + 5);
+
+        currentPage.drawText(numStr, { x: itemNumberX, y: currentY, size: fontSize, font: fontRegular, color: black });
+
+        for (let i = 0; i < subLines.length; i++) {
+          const isLast = i === subLines.length - 1;
+          this.drawJustifiedText(
+            currentPage,
+            subLines[i],
+            itemTextX,
+            currentY,
+            fontSize,
+            fontRegular,
+            black,
+            itemWidth,
+            isLast,
+          );
+          currentY -= lineHeight;
+        }
+        currentY -= 3;
+      }
+    } else if (!isMultiAgenda) {
       // Single paragraph
       const textX = untukPrefixX;
       const targetW = rightMargin - textX;
@@ -400,18 +443,34 @@ export class SuratTugasPdfService {
     const signLineSpacing = 16;
     const gapBeforeSign = 12;
 
-    // Format judul jabatan resmi 2 baris terpusat: KEPALA BAGIAN UMUM / SETDA KAB. BANGGAI LAUT
+    // Format judul jabatan resmi sesuai aturan UAT-2 (Sekda tanpa awalan PA, langsung jabatan daerah)
     let titleLines: string[] = [];
     const upperJabatan = (signerJabatan || '').toUpperCase().trim();
-    if (upperJabatan.includes('KEPALA BAGIAN UMUM') || upperJabatan.includes('KABAG UMUM') || !upperJabatan) {
+    const upperNama = (signerNama || '').toUpperCase().trim();
+    const isSekda =
+      upperJabatan.includes('SEKRETARIS DAERAH') ||
+      upperJabatan.includes('SEKDA') ||
+      upperNama.includes('SAIFUL');
+
+    if (isSekda) {
+      titleLines = [
+        'SEKRETARIS DAERAH',
+        'KABUPATEN BANGGAI LAUT',
+      ];
+    } else if (upperJabatan.includes('KEPALA BAGIAN UMUM') || upperJabatan.includes('KABAG UMUM') || !upperJabatan) {
       const prefix = upperJabatan.startsWith('PLT') ? 'Plt. ' : (upperJabatan.startsWith('PLH') ? 'Plh. ' : '');
       titleLines = [
         `${prefix}KEPALA BAGIAN UMUM`,
         'SETDA KAB. BANGGAI LAUT',
       ];
     } else {
-      titleLines = this.splitTextToLines(upperJabatan, fontBold, fontSize, signBlockWidth);
-      if (!upperJabatan.includes('BANGGAI LAUT')) {
+      let cleanJabatan = upperJabatan
+        .replace(/\(PA\)/gi, '')
+        .replace(/\bPA\b/gi, '')
+        .replace(/PENGGUNA\s+ANGGARAN/gi, '')
+        .trim();
+      titleLines = this.splitTextToLines(cleanJabatan, fontBold, fontSize, signBlockWidth);
+      if (!cleanJabatan.includes('BANGGAI LAUT')) {
         titleLines.push('SETDA KAB. BANGGAI LAUT');
       }
     }
@@ -421,7 +480,7 @@ export class SuratTugasPdfService {
       signLineSpacing +
       (signLineSpacing + 8) +
       titleLines.length * lineHeight +
-      55 +
+      70 +
       15 +
       (signerPangkat ? 15 : 0) +
       15;
@@ -436,13 +495,13 @@ export class SuratTugasPdfService {
       const pageNumWidth = fontRegular.widthOfTextAtSize(pageNumText, 10);
       currentPage.drawText(pageNumText, {
         x: (width - pageNumWidth) / 2,
-        y: height - 40,
+        y: height - 35,
         size: 10,
         font: fontRegular,
         color: rgb(0.3, 0.3, 0.3),
       });
 
-      currentY = height - 70;
+      currentY = height - 55;
     } else {
       currentY -= gapBeforeSign;
     }
@@ -489,8 +548,8 @@ export class SuratTugasPdfService {
       currentY -= lineHeight;
     }
 
-    // Space for physical signature / stempel
-    currentY -= (55 - lineHeight);
+    // Space for physical signature / stempel (+1 space above signer name)
+    currentY -= (70 - lineHeight);
 
     // Nama Pejabat (Center-aligned with underline)
     const sNamaWidth = fontBold.widthOfTextAtSize(signerNama, fontSize);

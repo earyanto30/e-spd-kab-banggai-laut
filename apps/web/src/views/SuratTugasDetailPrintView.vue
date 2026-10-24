@@ -169,7 +169,7 @@ const transportOptions = [...MODA_TRANSPORTASI_OPTIONS];
 const currentYear = new Date().getFullYear();
 
 const generateForm = reactive({
-  nomorSpdMode: 'auto' as 'auto' | 'custom',
+  nomorSpdMode: 'custom' as 'auto' | 'custom',
   customPrefix: '',
   customSeq: '',
   tahunSpd: currentYear,
@@ -184,12 +184,13 @@ const generateForm = reactive({
 const isKpa = computed(() => (generateForm.pemberiPerintah || '').toLowerCase().includes('kuasa'));
 
 const previewNomorSpd = computed(() => {
+  const defaultPrefix = isKpa.value ? 'KPA' : '';
+  const prefix = generateForm.nomorSpdMode === 'custom'
+    ? (generateForm.customPrefix?.trim() || '')
+    : defaultPrefix;
   if (generateForm.nomorSpdMode === 'auto') {
-    const defaultPrefix = isKpa.value ? 'KPA' : '';
-    const prefix = generateForm.customPrefix?.trim() ? generateForm.customPrefix.trim() : defaultPrefix;
     return `${prefix}[Otomatis]/SPD/${generateForm.tahunSpd || currentYear}`;
   }
-  const prefix = generateForm.customPrefix ? generateForm.customPrefix.trim() : '';
   const seqPart = generateForm.customSeq.trim();
   return `${prefix}${seqPart}/SPD/${generateForm.tahunSpd || currentYear}`;
 });
@@ -225,7 +226,7 @@ const calculatedTanggalKembali = computed(() => {
 const openGenerateSpdModal = () => {
   Object.keys(generateErrors).forEach((k) => delete generateErrors[k]);
 
-  generateForm.nomorSpdMode = 'auto';
+  generateForm.nomorSpdMode = 'custom';
   generateForm.customPrefix = '';
   generateForm.customSeq = '';
   generateForm.tahunSpd = currentYear;
@@ -268,12 +269,6 @@ const validateGenerate = (): boolean => {
   if (!generateForm.tempatTujuan.trim()) {
     generateErrors.tempatTujuan = 'Tempat tujuan wajib diisi.';
   }
-  if (!generateForm.lamaHari || generateForm.lamaHari < 1) {
-    generateErrors.lamaHari = 'Lama perjalanan dinas minimal 1 hari.';
-  }
-  if (!generateForm.tanggalBerangkat) {
-    generateErrors.tanggalBerangkat = 'Tanggal berangkat wajib dipilih.';
-  }
 
   return Object.keys(generateErrors).length === 0;
 };
@@ -286,17 +281,22 @@ const submitGenerateSpd = async () => {
 
   isGeneratingSpd.value = true;
   try {
+    const defaultPrefix = isKpa.value ? 'KPA' : '';
+    const customPrefix = generateForm.nomorSpdMode === 'custom'
+      ? (generateForm.customPrefix?.trim() || '')
+      : defaultPrefix;
+
     const payload = {
       nomorSpdMode: generateForm.nomorSpdMode,
-      customPrefix: generateForm.customPrefix,
+      customPrefix,
       customSeq: generateForm.customSeq,
       tahunSpd: generateForm.tahunSpd,
       pemberiPerintah: generateForm.pemberiPerintah,
       alatAngkut: generateForm.alatAngkut.join(', '),
       tempatBerangkat: generateForm.tempatBerangkat.trim(),
       tempatTujuan: generateForm.tempatTujuan.trim(),
-      lamaHari: Number(generateForm.lamaHari),
-      tanggalBerangkat: new Date(generateForm.tanggalBerangkat!).toISOString(),
+      lamaHari: generateForm.lamaHari ? Number(generateForm.lamaHari) : undefined,
+      tanggalBerangkat: generateForm.tanggalBerangkat ? new Date(generateForm.tanggalBerangkat).toISOString() : undefined,
     };
 
     const res = await apiFetch(`/api/surat-tugas/${suratTugasId}/generate-spd`, {
@@ -1167,7 +1167,7 @@ onMounted(() => {
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div class="space-y-1.5">
             <label class="block text-xs font-semibold text-text-main">
-              5. Lama Perjalanan Dinas <span class="text-red-500">*</span>
+              5. Lama Perjalanan Dinas (Opsional)
             </label>
             <GovInputNumber
               v-model="generateForm.lamaHari"
@@ -1187,7 +1187,7 @@ onMounted(() => {
 
           <div class="space-y-1.5">
             <label class="block text-xs font-semibold text-text-main">
-              6. Tanggal Berangkat <span class="text-red-500">*</span>
+              6. Tanggal Berangkat (Opsional)
             </label>
             <GovDatePicker
               v-model="generateForm.tanggalBerangkat"
