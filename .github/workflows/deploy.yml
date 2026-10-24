@@ -1,4 +1,4 @@
-name: Build & Push
+name: Build & Deploy
 
 on:
   push:
@@ -14,7 +14,7 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -55,3 +55,17 @@ jobs:
         with:
           keep-n-tagged: 1
           delete-untagged: true
+
+      - name: Trigger ShipFlare Deploy
+        env:
+          SHIPFLARE_SECRET: ${{ secrets.SHIPFLARE_SECRET }}
+        run: |
+          TS=$(date +%s)
+          BODY="{\"tag\":\"${GITHUB_SHA}\"}"
+          SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SHIPFLARE_SECRET" | awk '{print $2}')
+          curl -fsS -X POST "https://cd.aryanto.site/api/v1/webhooks/deploy?app=dev-espd-banggai-laut-aryanto-site" \
+            -H "X-ShipFlare-Timestamp: $TS" \
+            -H "X-ShipFlare-Signature: sha256=$SIG" \
+            -H "Content-Type: application/json" \
+            -d "$BODY"
+
