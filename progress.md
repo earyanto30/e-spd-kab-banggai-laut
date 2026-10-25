@@ -26,6 +26,7 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **Master Jabatan** | Pembuatan Tabel Jabatan, Relasi ASN (Pegawai), Seeding Master, & Integrasi Form ASN | ✅ **Selesai** | 25 Okt 2026 |
 | **Pembersihan Dashboard** | Pembersihan Widget & Komponen Anggaran pada Dashboard Home | ✅ **Selesai** | 25 Okt 2026 |
 | **Sistem Role & RBAC** | Implementasi Matriks Akses Ketat: Super Admin, Admin, Staff, User di Backend & Frontend | ✅ **Selesai** | 25 Okt 2026 |
+| **UAT-2 Surat Tugas & SPD** | Tata Letak Margin Narrow, Header & Directive Spacing, Maksud Header, Sekda Rule, Tanggal Berangkat Opsional, Sinkronisasi 2 Arah, & Kontrol Penomoran Manual | ✅ **Selesai** | 25 Okt 2026 |
 
 ---
 
@@ -466,6 +467,50 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
   - **`PengaturanPenggunaView.vue`, `PengaturanKopSuratView.vue`, `PengaturanDasarHukumView.vue`**: Tombol tambah/edit/hapus disembunyikan untuk `ADMIN`, dilengkapi banner informasi Read-Only yang ramah pengguna.
   - **`DaftarSuratTugasView.vue` & `DaftarSpdView.vue`**: Tombol Buat, Edit, Hapus, dan Aksi Massal disembunyikan untuk role `USER`.
   - **`SuratTugasDetailPrintView.vue`**: Gating tombol "Terbitkan SPD", "Ubah SPD", dan "Hapus Semua SPD" agar tidak dapat diakses oleh role `USER`.
+
+---
+
+### 📑 UAT-2: Penyempurnaan Format Dokumen, Tata Letak Narrow, Tanggal Opsional, Sekda Rule, Sinkronisasi 2 Arah, & Penomoran (Selesai)
+
+1. **Surat Tugas (ST):**
+   - **Margin Dokumen Narrow (`36 pt` / `0.5 in`):** Margin kiri dan kanan disempurnakan menjadi 36 pt pada kertas Legal ($612 \times 1008\text{ pt}$), memberikan ruang cetak efektif $540\text{ pt}$ untuk menampung konten padat tanpa melimpah ke halaman baru.
+   - **Header & Title Spacing:** Penambahan ruang vertikal ekstra di atas judul `SURAT TUGAS` (+1 spasi) dan di bawah nomor surat (+1 spasi).
+   - **Spasi Direktif (*Memerintahkan*):** Menambahkan 3 spasi baris sebelum tulisan `MEMERINTAHKAN :` dan 2 spasi baris sesudahnya sebelum baris `Kepada :`.
+   - **Maksud Tugas Bertitel (*Maksud Header*):**
+     - Kolom `maksudHeader` ditambahkan pada skema database (`SuratTugas.maksudHeader String?`) dan shared-types.
+     - Form `BuatSuratTugasView.vue` menyediakan input judul/pengantar opsional saat agenda tugas memiliki banyak butir.
+     - Pada cetakan PDF, teks pengantar dicetak sejajar di sebelah `Untuk :` tanpa nomor urut, diikuti daftar butir agenda bernomor di bawahnya.
+   - **Dasar Hukum Freetext & Master Selector:** Input dasar hukum di formulir Surat Tugas mendukung pengetikan langsung (*freetext / multiline*) maupun memilih dari master dasar hukum yang ada.
+   - **Aturan Penandatangan Sekda (*Sekda Rule*):**
+     - Jika penandatangan adalah Sekretaris Daerah atau Pengguna Anggaran (PA), teks awalan "PA" atau "PENGGUNA ANGGARAN" dihilangkan.
+     - Judul jabatan langsung dicetak resmi:
+       ```text
+       SEKRETARIS DAERAH
+       KABUPATEN BANGGAI LAUT
+       ```
+   - **Ruang Tanda Tangan:** Menambahkan 1 spasi baris ekstra (+15 pt, dari 55 pt ke 70 pt) di atas nama penandatangan dengan penjagaan tinggi blok tanda tangan atomik (`totalSignBlockHeight`) agar tidak terpotong pagination.
+   - **Penomoran Kustom / Manual:**
+     - Opsi default penomoran dibuat Kustom/Manual (`'custom'`).
+     - Menghilangkan masalah duplikasi slash `//` pada pratinjau nomor dengan fallback ke placeholder `[Nomor]`.
+
+2. **Surat Perjalanan Dinas (SPD):**
+   - **Margin Halaman Muka & Belakang Narrow (`36 pt` / `0.5 in`):**
+     - Halaman Depan: `tableX = 36`, lebar tabel $540\text{ pt}$ (`colWidths: [24, 190, 326]`).
+     - Halaman Belakang (Lembar Visum): `tableLeft = 36`, `tableRight = 576` (lebar $540\text{ pt}$ simetris dengan sumbu tengah $306\text{ pt}$).
+   - **Header Spacing:** Penambahan jarak vertikal di atas `SURAT PERJALANAN DINAS` dan di bawah nomor SPD sebelum tabel.
+   - **Tanggal Berangkat & Durasi Opsional:**
+     - Kolom `tanggalBerangkat` pada model `Spd` diubah menjadi nullable (`DateTime?`) pada Prisma dan shared-types.
+     - Poin 7 (Lama Perjalanan Dinas & Tanggal Berangkat/Kembali) menjadi opsional; jika tanggal keberangkatan dikosongkan, isi Poin 7 pada cetakan PDF otomatis dikosongkan secara rapi.
+   - **Penandatangan Sekda & Spasi Tanda Tangan:** Mengikuti aturan Sekda (langsung `SEKRETARIS DAERAH KABUPATEN BANGGAI LAUT`) serta penambahan 1 spasi baris di atas nama penandatangan pada halaman muka dan lembar visum belakang.
+   - **Penomoran Fleksibel Tanpa Pemaksaan Prefix KPA:**
+     - Mode Kustom / Manual menjadi pilihan default pada pembuatan SPD langsung maupun penerbitan SPD turunan Surat Tugas.
+     - Jika kolom prefix dikosongkan oleh pengguna, pratinjau dan nomor dokumen benar-benar bersih tanpa disisipkan paksa kode `KPA`.
+     - Mode Otomatis tetap secara cerdas menyematkan prefix `KPA` jika pemberi perintah adalah KPA.
+
+3. **Mekanisme Sinkronisasi 2 Arah (2-Way Sync):**
+   - **SPD -> Surat Tugas & Sibling SPDs:** Perubahan maksud perjalanan dinas (*dalam rangka*), tanggal keberangkatan, tujuan, tempat berangkat, moda transportasi, dan durasi hari pada dokumen SPD otomatis menyinkronkan data dokumen Surat Tugas induk dan seluruh dokumen SPD saudara (*siblings*) di bawah Surat Tugas tersebut.
+   - **Surat Tugas -> SPD:** Perubahan data penugasan pada Surat Tugas otomatis tersinkronisasi ke seluruh dokumen SPD turunan yang terhubung.
+
 
 
 
