@@ -166,7 +166,7 @@ export class SpdService {
       const p = await this.prisma.pegawai.findUnique({ where: { id: penandatanganId } });
       if (p) {
         penandatanganNama = p.nama;
-        penandatanganJabatan = p.jabatan;
+        penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
         penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
         penandatanganNip = p.nip;
       }
@@ -175,7 +175,7 @@ export class SpdService {
       if (st) {
         penandatanganId = st.penandatanganId || null;
         if (!penandatanganNama) penandatanganNama = st.penandatanganNama;
-        if (!penandatanganJabatan) penandatanganJabatan = st.penandatanganJabatan;
+        penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
         if (!penandatanganPangkat) penandatanganPangkat = st.penandatanganPangkat;
         if (!penandatanganNip) penandatanganNip = st.penandatanganNip;
       }
@@ -218,6 +218,7 @@ export class SpdService {
 
   async update(id: string, dto: UpdateSpdDto) {
     const existing = await this.findById(id);
+    const isKpa = (dto.pemberiPerintah || existing.pemberiPerintah || '').toLowerCase().includes('kuasa');
 
     if (dto.nomorSpd && dto.nomorSpd.trim() !== existing.nomorSpd) {
       const dup = await this.prisma.spd.findFirst({
@@ -275,14 +276,16 @@ export class SpdService {
         const p = await this.prisma.pegawai.findUnique({ where: { id: dto.penandatanganId } });
         if (p) {
           data.penandatanganNama = p.nama;
-          data.penandatanganJabatan = p.jabatan;
+          data.penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
           data.penandatanganPangkat = p.golongan ? `${p.pangkat}, ${p.golongan}` : p.pangkat;
           data.penandatanganNip = p.nip;
         }
       }
+    } else if (dto.pemberiPerintah) {
+      data.penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
     }
     if (dto.penandatanganNama !== undefined && !data.penandatanganNama) data.penandatanganNama = dto.penandatanganNama?.trim() || null;
-    if (dto.penandatanganJabatan !== undefined && !data.penandatanganJabatan) data.penandatanganJabatan = dto.penandatanganJabatan?.trim() || null;
+    if (dto.penandatanganJabatan !== undefined && !data.penandatanganJabatan) data.penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
     if (dto.penandatanganPangkat !== undefined && !data.penandatanganPangkat) data.penandatanganPangkat = dto.penandatanganPangkat?.trim() || null;
     if (dto.penandatanganNip !== undefined && !data.penandatanganNip) data.penandatanganNip = dto.penandatanganNip?.trim() || null;
 

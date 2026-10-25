@@ -579,30 +579,9 @@ export class SpdPdfService {
     const signLineSpacing = 15;
     const gapBeforeSign = 12;
 
-    // Strict Signatory Label sesuai aturan UAT-2 (Sekda tanpa awalan PA, langsung jabatan daerah)
-    const upperSignerJabatan = (customSigner?.jabatan || p?.jabatan || spd.penandatanganJabatan || spd.suratTugas?.penandatanganJabatan || '').toUpperCase().trim();
-    const upperSignerNama = (customSigner?.nama || p?.nama || spd.penandatanganNama || spd.suratTugas?.penandatanganNama || '').toUpperCase().trim();
-    const isSekda =
-      upperSignerJabatan.includes('SEKRETARIS DAERAH') ||
-      upperSignerJabatan.includes('SEKDA') ||
-      upperSignerNama.includes('SAIFUL');
-
-    let signTitleLines: string[] = [];
-    if (isSekda) {
-      signTitleLines = [
-        'SEKRETARIS DAERAH',
-        'KABUPATEN BANGGAI LAUT',
-      ];
-    } else if (isKpa) {
-      signTitleLines = this.splitTextToLines('KUASA PENGGUNA ANGGARAN', fontBold, 11, signBlockWidth);
-    } else {
-      let cleanTitle = upperSignerJabatan
-        .replace(/\(PA\)/gi, '')
-        .replace(/\bPA\b/gi, '')
-        .replace(/PENGGUNA\s+ANGGARAN/gi, '')
-        .trim() || 'PENGGUNA ANGGARAN';
-      signTitleLines = this.splitTextToLines(cleanTitle, fontBold, 11, signBlockWidth);
-    }
+    // Jabatan Penandatangan SPD: KUASA PENGGUNA ANGGARAN atau PENGGUNA ANGGARAN
+    const signTitle = isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
+    const signTitleLines = this.splitTextToLines(signTitle, fontBold, 11, signBlockWidth);
 
     // Hitung total ketinggian blok tanda tangan dari baris pertama sampai NIP
     const totalSignBlockHeight =
@@ -709,7 +688,6 @@ export class SpdPdfService {
       sPangkat,
       sNip,
       isKpa,
-      isSekda,
     });
 
     const pdfBytes = await pdfDoc.save();
@@ -736,10 +714,9 @@ export class SpdPdfService {
       sPangkat: string;
       sNip: string;
       isKpa: boolean;
-      isSekda: boolean;
     },
   ): void {
-    const { width, height, fontRegular, fontBold, sNama, sNip, isKpa, isSekda } = options;
+    const { width, height, fontRegular, fontBold, sNama, sPangkat, sNip, isKpa } = options;
     const backPage = pdfDoc.addPage([width, height]);
 
     const black = rgb(0, 0, 0);
@@ -748,12 +725,8 @@ export class SpdPdfService {
     const tableCenterX = 306; // half width = 270 pt (36 + 270 = 306)
     const borderWidth = 0.75;
 
-    const roleTitleUpper = isSekda
-      ? 'SEKRETARIS DAERAH KABUPATEN BANGGAI LAUT'
-      : (isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN');
-    const roleTitleProper = isSekda
-      ? 'Sekretaris Daerah'
-      : (isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran');
+    const roleTitleUpper = isKpa ? 'KUASA PENGGUNA ANGGARAN' : 'PENGGUNA ANGGARAN';
+    const roleTitleProper = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
 
     // Helper to draw horizontal line across table
     const drawHLine = (y: number) => {
@@ -986,13 +959,7 @@ export class SpdPdfService {
 
     // Signatory Title (Centered in sign block)
     let curSignY = r8Bottom - 24;
-    if (isSekda) {
-      drawCenteredText('SEKRETARIS DAERAH', fontBold, 10, signX, signBlockWidth, curSignY);
-      curSignY -= 12;
-      drawCenteredText('KABUPATEN BANGGAI LAUT', fontBold, 10, signX, signBlockWidth, curSignY);
-    } else {
-      drawCenteredText(roleTitleUpper, fontBold, 10, signX, signBlockWidth, curSignY);
-    }
+    drawCenteredText(roleTitleUpper, fontBold, 10, signX, signBlockWidth, curSignY);
 
     // Physical signature space (~70 pt, +1 space above signer name)
     curSignY -= 70;

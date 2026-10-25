@@ -26,6 +26,7 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **Master Jabatan** | Pembuatan Tabel Jabatan, Relasi ASN (Pegawai), Seeding Master, & Integrasi Form ASN | ✅ **Selesai** | 25 Okt 2026 |
 | **Pembersihan Dashboard** | Pembersihan Widget & Komponen Anggaran pada Dashboard Home | ✅ **Selesai** | 25 Okt 2026 |
 | **Sistem Role & RBAC** | Implementasi Matriks Akses Ketat: Super Admin, Admin, Staff, User di Backend & Frontend | ✅ **Selesai** | 25 Okt 2026 |
+| **Jabatan Penandatangan SPD** | Standardisasi Jabatan Penandatangan PA ("PENGGUNA ANGGARAN") & KPA ("KUASA PENGGUNA ANGGARAN") di Seluruh Ruang Tanda Tangan SPD | ✅ **Selesai** | 25 Okt 2026 |
 | **UAT-2 Surat Tugas & SPD** | Tata Letak Margin Narrow, Header & Directive Spacing, Maksud Header, Sekda Rule, Tanggal Berangkat Opsional, Sinkronisasi 2 Arah, & Kontrol Penomoran Manual | ✅ **Selesai** | 25 Okt 2026 |
 
 ---
@@ -467,6 +468,27 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
   - **`PengaturanPenggunaView.vue`, `PengaturanKopSuratView.vue`, `PengaturanDasarHukumView.vue`**: Tombol tambah/edit/hapus disembunyikan untuk `ADMIN`, dilengkapi banner informasi Read-Only yang ramah pengguna.
   - **`DaftarSuratTugasView.vue` & `DaftarSpdView.vue`**: Tombol Buat, Edit, Hapus, dan Aksi Massal disembunyikan untuk role `USER`.
   - **`SuratTugasDetailPrintView.vue`**: Gating tombol "Terbitkan SPD", "Ubah SPD", dan "Hapus Semua SPD" agar tidak dapat diakses oleh role `USER`.
+
+---
+
+### ✒️ Jabatan Penandatangan SPD: Standar PENGGUNA ANGGARAN & KUASA PENGGUNA ANGGARAN (Selesai)
+- **Standardisasi Otomatis Seluruh Ruang Tanda Tangan Dokumen SPD (`spd-pdf.service.ts`):**
+  - **Saat PA (Pengguna Anggaran) dipilih:**
+    - Blok tanda tangan bawah Halaman 1 (Muka): Dicetak sebagai **`PENGGUNA ANGGARAN`** (rata tengah, bold, di atas ruang tanda tangan dan nama pejabat).
+    - Baris I Halaman 2 (Lembar Visum - Keberangkatan): Dicetak sebagai **`Pengguna Anggaran`**.
+    - Baris VI Halaman 2 (Lembar Visum - Tiba Kembali): Dicetak sebagai **`Pengguna Anggaran`**.
+    - Blok tanda tangan bawah Halaman 2 (Lembar Visum): Dicetak sebagai **`PENGGUNA ANGGARAN`**.
+    - Menghilangkan penimpaan `SEKRETARIS DAERAH / KABUPATEN BANGGAI LAUT` agar pejabat yang bertindak atas nama PA dicetak sesuai kapasitas mandat anggarannya.
+  - **Saat KPA (Kuasa Pengguna Anggaran) dipilih:**
+    - Blok tanda tangan bawah Halaman 1 (Muka): Dicetak sebagai **`KUASA PENGGUNA ANGGARAN`**.
+    - Baris I Halaman 2 (Lembar Visum - Keberangkatan): Dicetak sebagai **`Kuasa Pengguna Anggaran`**.
+    - Baris VI Halaman 2 (Lembar Visum - Tiba Kembali): Dicetak sebagai **`Kuasa Pengguna Anggaran`**.
+    - Blok tanda tangan bawah Halaman 2 (Lembar Visum): Dicetak sebagai **`KUASA PENGGUNA ANGGARAN`**.
+- **Sinkronisasi Otomatis Persistence Data (`spd.service.ts` & `surat-tugas.service.ts`):**
+  - Penyimpanan `penandatanganJabatan` otomatis disesuaikan dengan nilai `isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran'` saat pembuatan SPD langsung maupun penerbitan dari Surat Tugas.
+- **Unit Testing Lengkap (`spd-pdf.service.spec.ts`):**
+  - Menambahkan pengujian otomatis verifikasi stream PDF untuk kedua opsi PA dan KPA.
+
 
 ---
 
