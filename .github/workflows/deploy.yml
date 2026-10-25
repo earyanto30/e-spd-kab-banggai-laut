@@ -35,15 +35,34 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run unit tests
-        run: pnpm test
+        run: npx vitest run --coverage --coverage.reporter=lcov
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v5
+      - name: Upload LCOV coverage artifact
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
+          name: javascript-coverage
+          path: coverage/lcov.info
+
+  deepsource:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download LCOV coverage artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: javascript-coverage
+          path: coverage
+
+      - name: Install DeepSource CLI
+        run: curl -fsSL https://cli.deepsource.com/install | BINDIR=./bin sh
+
+      - name: Send coverage to DeepSource
+        env:
+          DEEPSOURCE_DSN: ${{ secrets.DEEPSOURCE_DSN }}
+        run: ./bin/deepsource report --analyzer test-coverage --key javascript --value-file ./coverage/lcov.info
 
   build:
-    needs: test
+    needs: deepsource
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
