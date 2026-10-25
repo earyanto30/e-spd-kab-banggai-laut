@@ -9,6 +9,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './apps/web/src'),
       vue: path.resolve(__dirname, './apps/web/node_modules/vue'),
       primevue: path.resolve(__dirname, './apps/web/node_modules/primevue'),
+      '@si-setda/shared-types': path.resolve(__dirname, './packages/shared-types/src/index.ts'),
     },
   },
   test: {
