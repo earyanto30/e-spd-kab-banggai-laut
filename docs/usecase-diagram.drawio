@@ -1,0 +1,249 @@
+<mxfile host="app.diagrams.net" modified="2026-10-25T14:36:00.000Z" agent="Mozilla/5.0" version="24.0.0" type="device">
+  <diagram id="SI-SPD-UseCase-Diagram" name="Use Case Diagram SI-SPD Banggai Laut">
+    <mxGraphModel dx="1600" dy="1100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- SYSTEM BOUNDARY -->
+        <mxCell id="boundary" value="Sistem Informasi Surat Perjalanan Dinas (SI-SPD) SETDA Kab. Banggai Laut" style="swimlane;whiteSpace=wrap;html=1;startSize=32;fillColor=#f8fafc;strokeColor=#0f4c81;fontColor=#0f172a;fontSize=14;fontStyle=1;rounded=1;arcSize=2;strokeWidth=2;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="270" y="30" width="980" height="980" as="geometry" />
+        </mxCell>
+
+        <!-- ACTORS (LEFT SIDE) -->
+        <!-- Super Admin -->
+        <mxCell id="actor_super_admin" value="Super Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e2e8f0;strokeColor=#0f4c81;fontStyle=1;fontColor=#0f172a;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="160" width="50" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Admin -->
+        <mxCell id="actor_admin" value="Admin" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e2e8f0;strokeColor=#0f4c81;fontStyle=1;fontColor=#0f172a;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="360" width="50" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- Staff / Operator -->
+        <mxCell id="actor_staff" value="Staff / Operator" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e2e8f0;strokeColor=#0f4c81;fontStyle=1;fontColor=#0f172a;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="580" width="50" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- User / Pegawai -->
+        <mxCell id="actor_user" value="User / Pegawai" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#e2e8f0;strokeColor=#0f4c81;fontStyle=1;fontColor=#0f172a;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="60" y="820" width="50" height="85" as="geometry" />
+        </mxCell>
+
+        <!-- ACTOR (RIGHT SIDE) -->
+        <!-- Pejabat PA / KPA -->
+        <mxCell id="actor_pejabat" value="Pejabat PA / KPA&#xa;(Sekda / Kabag Umum)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#fef3c7;strokeColor=#d97706;fontStyle=1;fontColor=#78350f;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="520" width="55" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ACTOR GENERALIZATION EDGES -->
+        <!-- Super Admin -> Admin -->
+        <mxCell id="gen_super_admin" style="endArrow=block;endSize=12;endFill=0;html=1;rounded=0;strokeColor=#475569;strokeWidth=1.5;" edge="1" parent="1" source="actor_super_admin" target="actor_admin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Admin -> Staff -->
+        <mxCell id="gen_admin_staff" style="endArrow=block;endSize=12;endFill=0;html=1;rounded=0;strokeColor=#475569;strokeWidth=1.5;" edge="1" parent="1" source="actor_admin" target="actor_staff">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Staff -> User -->
+        <mxCell id="gen_staff_user" style="endArrow=block;endSize=12;endFill=0;html=1;rounded=0;strokeColor=#475569;strokeWidth=1.5;" edge="1" parent="1" source="actor_staff" target="actor_user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- USE CASES: COLUMN 1 (AUTH, MASTER DATA, DASHBOARD) -->
+        <mxCell id="uc_login" value="UC-01: Login Sistem&#xa;(Autentikasi JWT)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontColor=#0f172a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="50" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_dashboard" value="UC-02: Lihat Dashboard &amp;&#xa;Statistik Analitik" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontColor=#0f172a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="130" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_users" value="UC-03: Kelola Pengguna&#xa;(CRUD Akun &amp; Role)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a8a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="215" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_pegawai" value="UC-04: Kelola Data ASN&#xa;(Master Pegawai &amp; NIP)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a8a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="295" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_kop" value="UC-05: Kelola Kop Surat&#xa;(Upload PDF &amp; Set Default)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a8a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="375" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_dasar_hukum" value="UC-06: Kelola Dasar Hukum&#xa;(Master Peraturan Dinas)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontColor=#1e3a8a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="455" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_export_csv" value="UC-07: Ekspor Rekap Data&#xa;(Laporan Format CSV)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontColor=#0f172a;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="40" y="540" width="180" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- USE CASES: COLUMN 2 (SURAT TUGAS & SPD CREATION) -->
+        <mxCell id="uc_st_create" value="UC-08: Buat Surat Tugas&#xa;(Multi-ASN &amp; Header Maksud)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#78350f;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="60" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_st_manage" value="UC-09: Kelola Surat Tugas&#xa;(Edit, Filter, Bulk Delete)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#78350f;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="150" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_st_sync" value="UC-10: Sinkronisasi ST&#xa;ke Child SPD Terkait" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#78350f;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="240" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_st_print" value="UC-11: Pratinjau &amp; Cetak ST&#xa;(Narrow Margin &amp; Spacing)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontColor=#78350f;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="330" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_create_direct" value="UC-12: Buat SPD Mandiri&#xa;(PA / KPA Mode)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#059669;fontColor=#064e3b;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="440" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_generate_st" value="UC-13: Terbitkan SPD dari ST&#xa;(On-Demand Parameter Dialog)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#059669;fontColor=#064e3b;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="530" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_manage" value="UC-14: Kelola Dokumen SPD&#xa;(Edit, Filter, Bulk Delete)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#059669;fontColor=#064e3b;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="620" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_status" value="UC-15: Pengesahan &amp; Status&#xa;(DRAFT, DISETUJUI, SELESAI)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#059669;fontColor=#064e3b;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="710" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- USE CASES: COLUMN 3 (OUTPUT, PDF, VISUM & BATCH) -->
+        <mxCell id="uc_spd_number" value="UC-16: Auto Penomoran&#xa;(KPA Prefix / Custom Unit)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="440" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_preview" value="UC-17: Pratinjau Lembar SPD&#xa;(Continuous Multi-Page Flow)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="530" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_spd_pdf" value="UC-18: Unduh PDF Resmi&#xa;(Narrow Margin &amp; Centered Sign)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="620" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_visum_back" value="UC-19: Render Lembar Belakang&#xa;(Tabel Visum Dinas)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="710" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_batch_print" value="UC-20: Cetak Sekaligus Batch&#xa;(Non-Collate Duplex)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="800" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- INCLUDES & EXTENDS RELATIONS -->
+        <!-- UC-12 (Buat SPD) <<include>> UC-16 (Auto Penomoran) -->
+        <mxCell id="rel_inc_num1" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=10;" edge="1" parent="boundary" source="uc_spd_create_direct" target="uc_spd_number">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC-13 (Terbitkan SPD) <<include>> UC-16 (Auto Penomoran) -->
+        <mxCell id="rel_inc_num2" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=10;" edge="1" parent="boundary" source="uc_spd_generate_st" target="uc_spd_number">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC-09 (Kelola ST) <<extend>> UC-10 (Sinkronisasi ST) -->
+        <mxCell id="rel_ext_sync" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#d97706;fontColor=#78350f;fontSize=10;" edge="1" parent="boundary" source="uc_st_sync" target="uc_st_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC-18 (Unduh PDF) <<include>> UC-19 (Render Visum Belakang) -->
+        <mxCell id="rel_inc_visum" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=10;" edge="1" parent="boundary" source="uc_spd_pdf" target="uc_visum_back">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC-20 (Batch Print) <<include>> UC-19 (Render Visum Belakang) -->
+        <mxCell id="rel_inc_batch" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=10;" edge="1" parent="boundary" source="uc_batch_print" target="uc_visum_back">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ACTOR ASSOCIATIONS -->
+        <!-- User -> Login, Dashboard, ST Print, SPD Preview -->
+        <mxCell id="assoc_user_login" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_login">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_user_dash" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_dashboard">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_user_st_print" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_st_print">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_user_spd_prev" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_spd_preview">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Staff -> ST Create, ST Manage, SPD Create, SPD Generate, SPD Manage, Batch Print, Export CSV -->
+        <mxCell id="assoc_staff_st_create" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_st_create">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_st_manage" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_st_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_spd_create" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_spd_create_direct">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_spd_gen" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_spd_generate_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_spd_manage" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_spd_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_batch" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_batch_print">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_csv" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_export_csv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Admin -> Users, Pegawai, Kop, Dasar Hukum, Status -->
+        <mxCell id="assoc_admin_users" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_admin" target="uc_users">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_admin_pegawai" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_admin" target="uc_pegawai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_admin_kop" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_admin" target="uc_kop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_admin_dasar" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_admin" target="uc_dasar_hukum">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_admin_status" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_admin" target="uc_spd_status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Pejabat PA / KPA -> Status, Pratinjau SPD, Pratinjau ST -->
+        <mxCell id="assoc_pejabat_status" style="endArrow=none;html=1;rounded=0;strokeColor=#d97706;strokeWidth=1.5;" edge="1" parent="1" source="actor_pejabat" target="uc_spd_status">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_pejabat_preview_spd" style="endArrow=none;html=1;rounded=0;strokeColor=#d97706;strokeWidth=1.5;" edge="1" parent="1" source="actor_pejabat" target="uc_spd_preview">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_pejabat_st_print" style="endArrow=none;html=1;rounded=0;strokeColor=#d97706;strokeWidth=1.5;" edge="1" parent="1" source="actor_pejabat" target="uc_st_print">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

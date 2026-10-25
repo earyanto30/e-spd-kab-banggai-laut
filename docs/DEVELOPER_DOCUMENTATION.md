@@ -78,10 +78,6 @@ erDiagram
         String penandatanganNip
         String kopSuratId
         String pegawaiIds
-        String alatAngkut
-        String tempatTujuan
-        Int lamaHari
-        DateTime tanggalBerangkat
         String status
         DateTime createdAt
         DateTime updatedAt
@@ -206,10 +202,6 @@ Records official assignment orders authorizing official travel for one or multip
 | `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `kopSuratId` | String | Yes | `null` | None | Optional explicit letterhead reference ID |
 | `pegawaiIds` | String | Yes | `null` | None | Serialized JSON array of assigned `Pegawai.id`s |
-| `alatAngkut` | String | Yes | `null` | None | Transportation mode(s) |
-| `tempatTujuan` | String | Yes | `null` | None | Destination location |
-| `lamaHari` | Int | Yes | `1` | None | Duration in days (optional) |
-| `tanggalBerangkat` | DateTime | Yes | `null` | None | Scheduled departure date (optional) |
 | `status` | String | No | `'DRAFT'` | None | Lifecycle state (`DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL`) |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
@@ -323,26 +315,26 @@ PDF generation is implemented in the NestJS backend (`apps/api/src/spd/spd-pdf.s
 
 ```mermaid
 flowchart TD
-    Req[HTTP Request GET /api/spd/:id/pdf] --> Ctrl[SpdController.downloadPdf]
-    Ctrl --> Svc[SpdPdfService.generatePdf]
-    Svc --> FetchDB[Prisma Query: Spd with Relations]
-    FetchDB --> ResolveKop[Resolve KopSurat File on Disk]
-    ResolveKop --> LoadPDF[PDFDocument.load Kop Buffer]
-    LoadPDF --> EmbedFont[Embed Helvetica or Times-Roman Font]
-    EmbedFont --> DrawHeader[Draw Metadata and Document Title]
-    DrawHeader --> DrawTable[Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)]
-    DrawTable --> WrapAlg[splitTextToLines Word Boundary Wrapping]
-    WrapAlg --> JustAlg[drawJustifiedText Space Distribution]
+    Req["HTTP Request GET /api/spd/:id/pdf"] --> Ctrl["SpdController.downloadPdf"]
+    Ctrl --> Svc["SpdPdfService.generatePdf"]
+    Svc --> FetchDB["Prisma Query: Spd with Relations"]
+    FetchDB --> ResolveKop["Resolve KopSurat File on Disk"]
+    ResolveKop --> LoadPDF["PDFDocument.load Kop Buffer"]
+    LoadPDF --> EmbedFont["Embed Helvetica or Times-Roman Font"]
+    EmbedFont --> DrawHeader["Draw Metadata and Document Title"]
+    DrawHeader --> DrawTable["Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)"]
+    DrawTable --> WrapAlg["splitTextToLines Word Boundary Wrapping"]
+    WrapAlg --> JustAlg["drawJustifiedText Space Distribution"]
     JustAlg --> CheckPoint7{Is Tanggal Berangkat Present?}
-    CheckPoint7 -- Yes --> RenderPoint7[Render Dates & Duration]
-    CheckPoint7 -- No --> BlankPoint7[Leave Point 7 Blank]
+    CheckPoint7 -- Yes --> RenderPoint7["Render Dates & Duration"]
+    CheckPoint7 -- No --> BlankPoint7["Leave Point 7 Blank"]
     RenderPoint7 --> CheckSignSpace{Does Signature Block Fit?}
     BlankPoint7 --> CheckSignSpace
-    CheckSignSpace -- Fits --> DrawSign[Draw Atomic Signature Block]
-    CheckSignSpace -- Overflow --> NewPage[Add Page 2 Running Header] --> DrawSign
-    DrawSign --> DrawBackPage[Draw Page 2: Halaman Belakang Tabel Visum]
-    DrawBackPage --> SavePDF[pdfDoc.save to Uint8Array Buffer]
-    SavePDF --> StreamOut[Return Buffer and Stream application/pdf]
+    CheckSignSpace -- Fits --> DrawSign["Draw Atomic Signature Block"]
+    CheckSignSpace -- Overflow --> NewPage["Add Page 2 Running Header"] --> DrawSign
+    DrawSign --> DrawBackPage["Draw Page 2: Halaman Belakang Tabel Visum"]
+    DrawBackPage --> SavePDF["pdfDoc.save to Uint8Array Buffer"]
+    SavePDF --> StreamOut["Return Buffer and Stream application/pdf"]
 ```
 
 ### 3.2 Coordinate System and Dimensions
@@ -397,6 +389,8 @@ This facilitates direct duplex printing on standard office printers.
 ---
 
 ## 4. Application Workflow and Architecture
+
+> Detailed functional use case specifications and interaction mappings are documented in [`docs/usecase-specification.md`](usecase-specification.md). The visual Draw.io diagram file is available at [`docs/usecase-diagram.drawio`](usecase-diagram.drawio).
 
 ### 4.1 System Topology
 

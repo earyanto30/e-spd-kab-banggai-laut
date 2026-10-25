@@ -16,6 +16,7 @@ import {
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { MODA_TRANSPORTASI_OPTIONS } from '@si-setda/shared-types';
 
 interface AsnOption {
   id: string;
@@ -172,13 +173,7 @@ const pemberiPerintahOptions = [
   'Pengguna Anggaran (PA)',
 ];
 
-const transportOptions = [
-  'Mobil Dinas',
-  'Pesawat',
-  'Speedboat / Kapal Laut',
-  'Kendaraan Roda Dua',
-  'Angkutan Umum Darat',
-];
+const transportOptions = [...MODA_TRANSPORTASI_OPTIONS];
 
 // 2. Lazy ASN Search
 const asnSuggestions = ref<AsnOption[]>([]);

@@ -29,7 +29,9 @@ Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat
 │   ├── table-structure.md         # Database schema and ERD
 │   ├── ui-ux-standards.md         # Design system tokens and print layout
 │   ├── pdf-generation.md          # Vector drawing algorithms and coordinates
-│   └── application-flow.md        # Workflows, auth lifecycle, and state machine
+│   ├── application-flow.md        # Workflows, auth lifecycle, and state machine
+│   ├── usecase-specification.md   # Functional use cases and actor mappings
+│   └── usecase-diagram.drawio     # Draw.io XML Use Case Diagram
 ├── packages/
 │   └── shared-types/    # Shared DTOs, Zod schemas, and RBAC roles
 └── package.json         # Workspace root definitions and scripts
@@ -141,3 +143,5 @@ For comprehensive technical documentation, refer to the documents in `docs/`:
 - **[UI/UX Standards & Design System](ui-ux-standards.md):** Design tokens, theme presets, component standards, and print CSS.
 - **[PDF Generation Mechanics](pdf-generation.md):** Coordinate math, text justification, hanging indent, and vector drawing pipeline.
 - **[Application Workflow & System Architecture](application-flow.md):** Authentication lifecycles, on-demand SPD generation, and state transitions.
+- **[Use Case Specification](usecase-specification.md):** Functional actor mappings, detailed use cases, and interaction rules.
+- **[Use Case Diagram (Draw.io)](usecase-diagram.drawio):** Native Draw.io XML diagram file importable into diagrams.net.

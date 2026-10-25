@@ -107,10 +107,6 @@ model SuratTugas {
   penandatanganNip      String?
   kopSuratId      String?
   pegawaiIds      String?
-  alatAngkut      String?
-  tempatTujuan    String?
-  lamaHari        Int?     @default(1)
-  tanggalBerangkat DateTime?
   status          String   @default("DRAFT")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt

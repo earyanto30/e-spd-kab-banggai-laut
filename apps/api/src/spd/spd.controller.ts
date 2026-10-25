@@ -31,20 +31,18 @@ export class SpdController {
   @Get()
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findAll(
-    @Req() req: any,
     @Query('q') query?: string,
     @Query('status') status?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.spdService.findAll(query, status, startDate, endDate, req.user);
+    return this.spdService.findAll(query, status, startDate, endDate);
   }
 
   @Get(':id/pdf')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   async downloadPdf(
     @Param('id') id: string,
-    @Req() req: any,
     @Res() res: Response,
     @Query('signerNama') signerNama?: string,
     @Query('signerNip') signerNip?: string,
@@ -53,8 +51,7 @@ export class SpdController {
     @Query('signerJabatan') signerJabatan?: string,
     @Query('fontFamily') fontFamily?: string,
   ) {
-    // Verify signer access if user is penandatangan
-    await this.spdService.findById(id, req.user);
+    await this.spdService.findById(id);
 
     const signer = signerNama
       ? {
@@ -100,8 +97,8 @@ export class SpdController {
 
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
-  findById(@Param('id') id: string, @Req() req: any) {
-    return this.spdService.findById(id, req.user);
+  findById(@Param('id') id: string) {
+    return this.spdService.findById(id);
   }
 
   @Post()

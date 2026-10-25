@@ -11,7 +11,6 @@ export class SpdService {
     status?: string,
     startDate?: string,
     endDate?: string,
-    _currentUser?: any,
   ) {
     const where: any = {};
 
@@ -78,7 +77,7 @@ export class SpdService {
     });
   }
 
-  async findById(id: string, _currentUser?: any) {
+  async findById(id: string) {
     const item = await this.prisma.spd.findUnique({
       where: { id },
       include: {
@@ -313,13 +312,7 @@ export class SpdService {
           .join('\n');
         stUpdateData.dalamRangka = cleanStLines || dto.dalamRangka.trim();
       }
-      if (dto.tempatTujuan) stUpdateData.tempatTujuan = dto.tempatTujuan.trim();
       if (dto.tempatBerangkat) stUpdateData.tempatDikeluarkan = dto.tempatBerangkat.trim();
-      if (dto.alatAngkut) stUpdateData.alatAngkut = dto.alatAngkut.trim();
-      if (dto.lamaHari !== undefined) stUpdateData.lamaHari = dto.lamaHari !== null ? Number(dto.lamaHari) : null;
-      if (dto.tanggalBerangkat !== undefined) {
-        stUpdateData.tanggalBerangkat = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
-      }
 
       if (Object.keys(stUpdateData).length > 0) {
         await this.prisma.suratTugas.update({

@@ -11,7 +11,6 @@ export class SuratTugasService {
     status?: string,
     startDate?: string,
     endDate?: string,
-    _currentUser?: any,
   ) {
     const where: any = {};
 
@@ -122,7 +121,7 @@ export class SuratTugasService {
     });
   }
 
-  async findById(id: string, currentUser?: any) {
+  async findById(id: string) {
     const item = await this.prisma.suratTugas.findUnique({
       where: { id },
       include: {
@@ -267,10 +266,6 @@ export class SuratTugasService {
         kopSuratId: dto.kopSuratId || null,
         status: dto.status?.trim() || 'DRAFT',
         pegawaiIds: JSON.stringify(dto.pegawaiIds),
-        alatAngkut: dto.alatAngkut?.trim() || null,
-        tempatTujuan: dto.tempatTujuan?.trim() || null,
-        lamaHari: dto.lamaHari !== undefined ? Number(dto.lamaHari) : 1,
-        tanggalBerangkat: dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null,
       },
     });
 
@@ -310,12 +305,6 @@ export class SuratTugasService {
     if (dto.pegawaiIds && Array.isArray(dto.pegawaiIds)) {
       updateData.pegawaiIds = JSON.stringify(dto.pegawaiIds);
     }
-    if (dto.alatAngkut !== undefined) updateData.alatAngkut = dto.alatAngkut?.trim() || null;
-    if (dto.tempatTujuan !== undefined) updateData.tempatTujuan = dto.tempatTujuan?.trim() || null;
-    if (dto.lamaHari !== undefined) updateData.lamaHari = Number(dto.lamaHari);
-    if (dto.tanggalBerangkat !== undefined) {
-      updateData.tanggalBerangkat = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
-    }
 
     const updatedSt = await this.prisma.suratTugas.update({
       where: { id },
@@ -350,20 +339,6 @@ export class SuratTugasService {
         spdSyncData.dalamRangka = formattedSpdDalamRangka || dto.dalamRangka.trim();
       }
       if (dto.tempatDikeluarkan) spdSyncData.tempatBerangkat = dto.tempatDikeluarkan.trim();
-      if (dto.tempatTujuan) spdSyncData.tempatTujuan = dto.tempatTujuan.trim();
-      if (dto.alatAngkut) spdSyncData.alatAngkut = dto.alatAngkut.trim();
-      if (dto.lamaHari !== undefined) spdSyncData.lamaHari = dto.lamaHari !== null ? Number(dto.lamaHari) : null;
-      if (dto.tanggalBerangkat !== undefined) {
-        const newDate = dto.tanggalBerangkat ? new Date(dto.tanggalBerangkat) : null;
-        spdSyncData.tanggalBerangkat = newDate;
-        if (newDate && dto.lamaHari && Number(dto.lamaHari) > 0) {
-          const tglKembali = new Date(newDate);
-          tglKembali.setDate(tglKembali.getDate() + Math.max(0, Number(dto.lamaHari) - 1));
-          spdSyncData.tanggalKembali = tglKembali;
-        } else {
-          spdSyncData.tanggalKembali = newDate;
-        }
-      }
       if (dto.kopSuratId !== undefined) {
         spdSyncData.kopSuratId = dto.kopSuratId;
       }
@@ -465,19 +440,17 @@ export class SuratTugasService {
     let alatAngkutStr = 'Kendaraan Dinas / Umum';
     if (dto?.alatAngkut) {
       alatAngkutStr = Array.isArray(dto.alatAngkut) ? dto.alatAngkut.join(', ') : dto.alatAngkut.trim();
-    } else if (suratTugas.alatAngkut) {
-      alatAngkutStr = suratTugas.alatAngkut;
     }
 
     const tempatBerangkat = dto?.tempatBerangkat?.trim() || suratTugas.tempatDikeluarkan || 'Banggai';
-    const tempatTujuan = dto?.tempatTujuan?.trim() || suratTugas.tempatTujuan || 'Sesuai Penugasan';
+    const tempatTujuan = dto?.tempatTujuan?.trim() || 'Sesuai Penugasan';
     const lamaHari = dto?.lamaHari !== undefined && dto.lamaHari !== null
       ? Number(dto.lamaHari)
-      : (suratTugas.lamaHari ?? null);
+      : null;
 
     const tglBerangkat = dto?.tanggalBerangkat
       ? new Date(dto.tanggalBerangkat)
-      : (suratTugas.tanggalBerangkat ? new Date(suratTugas.tanggalBerangkat) : null);
+      : null;
 
     let tglKembali: Date | null = null;
     if (tglBerangkat) {
@@ -486,17 +459,6 @@ export class SuratTugasService {
         tglKembali.setDate(tglKembali.getDate() + Math.max(0, lamaHari - 1));
       }
     }
-
-    // Persist travel values to suratTugas if provided
-    await this.prisma.suratTugas.update({
-      where: { id },
-      data: {
-        alatAngkut: alatAngkutStr,
-        tempatTujuan,
-        lamaHari,
-        tanggalBerangkat: tglBerangkat,
-      },
-    });
 
     // Ambil daftar pegawai target dari suratTugas.pegawaiIds
     let targetPegawaiList: any[] = [];

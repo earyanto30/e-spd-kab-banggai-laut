@@ -81,10 +81,6 @@ erDiagram
         String penandatanganNip
         String kopSuratId
         String pegawaiIds
-        String alatAngkut
-        String tempatTujuan
-        Int lamaHari
-        DateTime tanggalBerangkat
         String status
         DateTime createdAt
         DateTime updatedAt
@@ -195,10 +191,6 @@ erDiagram
 | `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `kopSuratId` | String | Yes | `null` | None | Optional explicit letterhead ID |
 | `pegawaiIds` | String | Yes | `null` | None | Serialized JSON array of assigned employee CUIDs |
-| `alatAngkut` | String | Yes | `null` | None | Transportation mode selection |
-| `tempatTujuan` | String | Yes | `null` | None | Destination |
-| `lamaHari` | Int | Yes | `1` | None | Duration in days (optional) |
-| `tanggalBerangkat` | DateTime | Yes | `null` | None | Departure date (optional) |
 | `status` | String | No | `'DRAFT'` | None | Status: `DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL` |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |

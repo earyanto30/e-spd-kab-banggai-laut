@@ -10,26 +10,26 @@ The PDF generation engine runs directly in Node.js using `pdf-lib`. It performs 
 
 ```mermaid
 flowchart TD
-    Req[HTTP Request GET /api/spd/:id/pdf] --> Controller[SpdController.downloadPdf]
-    Controller --> Service[SpdPdfService.generatePdf]
-    Service --> FetchSpd[Query DB: Spd with Relations]
-    FetchSpd --> FindKop[Resolve KopSurat File on Disk]
-    FindKop --> LoadDoc[PDFDocument.load Kop Buffer]
-    LoadDoc --> EmbedFonts[Embed StandardFonts: TimesRoman or Helvetica]
-    EmbedFonts --> DrawTopMeta[Draw Right-Top Metadata]
-    DrawTopMeta --> DrawDocTitle[Draw Centered Document Title with Underline]
-    DrawDocTitle --> DrawGrid[Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)]
-    DrawGrid --> ProcessText[Text Wrap and Justification Algorithms]
+    Req["HTTP Request GET /api/spd/:id/pdf"] --> Controller["SpdController.downloadPdf"]
+    Controller --> Service["SpdPdfService.generatePdf"]
+    Service --> FetchSpd["Query DB: Spd with Relations"]
+    FetchSpd --> FindKop["Resolve KopSurat File on Disk"]
+    FindKop --> LoadDoc["PDFDocument.load Kop Buffer"]
+    LoadDoc --> EmbedFonts["Embed StandardFonts: TimesRoman or Helvetica"]
+    EmbedFonts --> DrawTopMeta["Draw Right-Top Metadata"]
+    DrawTopMeta --> DrawDocTitle["Draw Centered Document Title with Underline"]
+    DrawDocTitle --> DrawGrid["Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)"]
+    DrawGrid --> ProcessText["Text Wrap and Justification Algorithms"]
     ProcessText --> CheckPoint7{Is Tanggal Berangkat Present?}
-    CheckPoint7 -- Yes --> RenderPoint7[Render Duration, Departure, and Arrival Dates]
-    CheckPoint7 -- No --> BlankPoint7[Leave Point 7 Clean and Blank]
+    CheckPoint7 -- Yes --> RenderPoint7["Render Duration, Departure, and Arrival Dates"]
+    CheckPoint7 -- No --> BlankPoint7["Leave Point 7 Clean and Blank"]
     RenderPoint7 --> CheckPageSpace{Does Signature Block Fit on Page?}
     BlankPoint7 --> CheckPageSpace
-    CheckPageSpace -- Fits --> DrawSignBlock[Draw Atomic Signature Block on Current Page]
-    CheckPageSpace -- Overflow --> AddNewPage[Add New Page with Running Header] --> DrawSignBlock
-    DrawSignBlock --> DrawBackPage[Generate Page 2: Halaman Belakang Tabel Visum]
-    DrawBackPage --> SaveBytes[pdfDoc.save to Uint8Array Buffer]
-    SaveBytes --> SendStream[Express Response: application/pdf stream]
+    CheckPageSpace -- Fits --> DrawSignBlock["Draw Atomic Signature Block on Current Page"]
+    CheckPageSpace -- Overflow --> AddNewPage["Add New Page with Running Header"] --> DrawSignBlock
+    DrawSignBlock --> DrawBackPage["Generate Page 2: Halaman Belakang Tabel Visum"]
+    DrawBackPage --> SaveBytes["pdfDoc.save to Uint8Array Buffer"]
+    SaveBytes --> SendStream["Express Response: application/pdf stream"]
 ```
 
 ---

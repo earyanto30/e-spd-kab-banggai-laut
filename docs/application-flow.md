@@ -167,7 +167,7 @@ sequenceDiagram
 
 ### 4.3 Process 3: Parameter Synchronization on Surat Tugas Edit
 When an existing Surat Tugas is updated via `PUT /api/surat-tugas/:id`:
-1. If `dalamRangka`, `tempatTujuan`, `lamaHari`, `tanggalBerangkat`, or `alatAngkut` are modified, the service updates all active child SPD records linked to that `suratTugasId`.
+1. If `dalamRangka`, `tempatDikeluarkan`, `kopSuratId`, or signatory information are modified, the service updates all active child SPD records linked to that `suratTugasId`.
 2. If new personnel are added to `pegawaiIds` of a Surat Tugas that has active child SPDs, the system generates SPD records for the newly added personnel.
 3. If personnel are removed from `pegawaiIds`, the corresponding child SPD records are pruned.
 

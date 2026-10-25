@@ -166,10 +166,6 @@ export const SuratTugasSchema = z.object({
   penandatanganNip: z.string().nullable().optional(),
   kopSuratId: z.string().nullable().optional(),
   pegawaiIds: z.string().nullable().optional(),
-  alatAngkut: z.string().nullable().optional(),
-  tempatTujuan: z.string().nullable().optional(),
-  lamaHari: z.number().int().positive().nullable().optional(),
-  tanggalBerangkat: z.date().or(z.string()).nullable().optional(),
   status: z.string().default('DRAFT'),
   spdList: z.array(z.any()).optional(),
   createdAt: z.date().or(z.string()),
@@ -200,10 +196,6 @@ export const CreateSuratTugasSchema = z.object({
   penandatanganPangkat: z.string().optional(),
   penandatanganNip: z.string().optional(),
   kopSuratId: z.string().nullable().optional(),
-  alatAngkut: z.string().optional(),
-  tempatTujuan: z.string().optional(),
-  lamaHari: z.number().int().positive().nullable().optional(),
-  tanggalBerangkat: z.string().or(z.date()).nullable().optional().or(z.literal('')),
   status: z.string().optional(),
 });
 
