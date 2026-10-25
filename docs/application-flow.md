@@ -10,18 +10,18 @@ The application is structured as a monorepo managed by Turborepo and pnpm worksp
 
 ```mermaid
 flowchart TD
-    Browser[Single Page Application Vue 3 / Vite]
-    ReverseProxy[Nginx / Vite Proxy :5173]
-    BackendAPI[NestJS HTTP Server :3000]
-    Prisma[Prisma ORM Engine]
-    Database[(SQLite Database dev.db)]
-    FileStore[Filesystem Storage /uploads]
+    Browser["Single Page Application Vue 3 / Vite"]
+    ReverseProxy["Nginx / Vite Proxy :5173"]
+    BackendAPI["NestJS HTTP Server :3000"]
+    Prisma["Prisma ORM Engine"]
+    Database[("SQLite Database dev.db")]
+    FileStore["Filesystem Storage /uploads"]
 
-    Browser <-->|HTTP / WebSocket| ReverseProxy
-    ReverseProxy <-->|Proxy Pass /api| BackendAPI
-    BackendAPI <-->|SQL Queries| Prisma
-    Prisma <-->|File I/O| Database
-    BackendAPI <-->|File Read / Write| FileStore
+    Browser <-->|"HTTP / WebSocket"| ReverseProxy
+    ReverseProxy <-->|"Proxy Pass /api"| BackendAPI
+    BackendAPI <-->|"SQL Queries"| Prisma
+    Prisma <-->|"File I/O"| Database
+    BackendAPI <-->|"File Read / Write"| FileStore
 ```
 
 ---
@@ -106,9 +106,9 @@ sequenceDiagram
     participant Form as BuatSpdView.vue
     participant API as SpdController
     participant Svc as SpdService
-    participant DB as SQLite (via Prisma)
+    participant DB as "SQLite (via Prisma)"
 
-    Staff->>Form: Fill Form Inputs (Lama Hari & Tanggal Optional)
+    Staff->>Form: Fill Form Inputs (Lama Hari and Tanggal Optional)
     Staff->>Form: Submit Form
     Form->>API: POST /api/spd (CreateSpdDto)
     API->>Svc: create(dto)
@@ -138,7 +138,7 @@ sequenceDiagram
     participant API as SuratTugasController
     participant STSvc as SuratTugasService
     participant SPDSvc as SpdService
-    participant DB as SQLite (via Prisma)
+    participant DB as "SQLite (via Prisma)"
 
     Admin->>STForm: Enter Purpose, Optional Maksud Header & Select Multiple ASN
     STForm->>API: POST /api/surat-tugas

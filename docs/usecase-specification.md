@@ -25,52 +25,52 @@ This document details the functional Use Case specifications, Actor descriptions
 
 ```mermaid
 flowchart LR
-    subgraph Actors Left
-        SA[Super Admin]
-        ADM[Admin]
-        STF[Staff / Operator]
-        USR[User / Pegawai]
+    subgraph ActorsLeft ["Actors Left"]
+        SA["Super Admin"]
+        ADM["Admin"]
+        STF["Staff / Operator"]
+        USR["User / Pegawai"]
     end
 
-    subgraph System Boundary: SI-SPD SETDA Kab. Banggai Laut
-        subgraph Modul Autentikasi & Akun
-            UC01([UC-01: Login Sistem JWT])
-            UC02([UC-02: Kelola Pengguna & Role])
+    subgraph SystemBoundary ["System Boundary: SI-SPD SETDA Kab. Banggai Laut"]
+        subgraph ModulAuth ["Modul Autentikasi & Akun"]
+            UC01(["UC-01: Login Sistem JWT"])
+            UC02(["UC-02: Kelola Pengguna & Role"])
         end
 
-        subgraph Modul Master & Pengaturan
-            UC03([UC-03: Kelola Master ASN])
-            UC04([UC-04: Kelola Template Kop Surat])
-            UC05([UC-05: Kelola Dasar Hukum])
-            UC06([UC-06: Ekspor Rekap CSV])
-            UC07([UC-07: Lihat Dashboard Analitik])
+        subgraph ModulMaster ["Modul Master & Pengaturan"]
+            UC03(["UC-03: Kelola Master ASN"])
+            UC04(["UC-04: Kelola Template Kop Surat"])
+            UC05(["UC-05: Kelola Dasar Hukum"])
+            UC06(["UC-06: Ekspor Rekap CSV"])
+            UC07(["UC-07: Lihat Dashboard Analitik"])
         end
 
-        subgraph Modul Surat Tugas
-            UC08([UC-08: Buat Draft Surat Tugas])
-            UC09([UC-09: Kelola & Filter Surat Tugas])
-            UC10([UC-10: Sinkronisasi Parameter ST ke SPD])
-            UC11([UC-11: Pratinjau & Cetak Surat Tugas])
+        subgraph ModulSuratTugas ["Modul Surat Tugas"]
+            UC08(["UC-08: Buat Draft Surat Tugas"])
+            UC09(["UC-09: Kelola & Filter Surat Tugas"])
+            UC10(["UC-10: Sinkronisasi Parameter ST ke SPD"])
+            UC11(["UC-11: Pratinjau & Cetak Surat Tugas"])
         end
 
-        subgraph Modul Surat Perjalanan Dinas
-            UC12([UC-12: Buat SPD Mandiri])
-            UC13([UC-13: Terbitkan SPD dari ST])
-            UC14([UC-14: Kelola & Filter Dokumen SPD])
-            UC15([UC-15: Pengesahan & Ubah Status])
+        subgraph ModulSPD ["Modul Surat Perjalanan Dinas"]
+            UC12(["UC-12: Buat SPD Mandiri"])
+            UC13(["UC-13: Terbitkan SPD dari ST"])
+            UC14(["UC-14: Kelola & Filter Dokumen SPD"])
+            UC15(["UC-15: Pengesahan & Ubah Status"])
         end
 
-        subgraph Output, PDF & Visum
-            UC16([UC-16: Auto Penomoran SPD])
-            UC17([UC-17: Pratinjau Lembar Dokumen SPD])
-            UC18([UC-18: Unduh PDF Resmi Narrow Margin])
-            UC19([UC-19: Render Halaman Belakang Visum])
-            UC20([UC-20: Cetak Sekaligus Batch Non-Collate])
+        subgraph ModulOutput ["Output, PDF & Visum"]
+            UC16(["UC-16: Auto Penomoran SPD"])
+            UC17(["UC-17: Pratinjau Lembar Dokumen SPD"])
+            UC18(["UC-18: Unduh PDF Resmi Narrow Margin"])
+            UC19(["UC-19: Render Halaman Belakang Visum"])
+            UC20(["UC-20: Cetak Sekaligus Batch Non-Collate"])
         end
     end
 
-    subgraph Actors Right
-        PEJ[Pejabat PA / KPA]
+    subgraph ActorsRight ["Actors Right"]
+        PEJ["Pejabat PA / KPA"]
     end
 
     SA --> ADM
@@ -100,11 +100,11 @@ flowchart LR
     PEJ --- UC11
     PEJ --- UC17
 
-    UC12 -.->|<<include>>| UC16
-    UC13 -.->|<<include>>| UC16
-    UC10 -.->|<<extend>>| UC09
-    UC18 -.->|<<include>>| UC19
-    UC20 -.->|<<include>>| UC19
+    UC12 -.->|include| UC16
+    UC13 -.->|include| UC16
+    UC10 -.->|extend| UC09
+    UC18 -.->|include| UC19
+    UC20 -.->|include| UC19
 ```
 
 ---

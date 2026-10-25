@@ -124,11 +124,11 @@ The system separates administrative UI fonts from official government document f
 
 ```mermaid
 flowchart TD
-    Shell[App.vue Root Container] --> Header[GovHeader.vue (h-16, fixed/sticky)]
-    Shell --> Body[Main Workspace Area (flex)]
-    Body --> Sidebar[GovSidebar.vue (w-64 expanded / w-20 collapsed)]
-    Body --> Content[router-view Container (flex-1, p-6)]
-    Shell --> Toast[GovToast.vue (Fixed Overlay at top: 5rem)]
+    Shell["App.vue Root Container"] --> Header["GovHeader.vue (h-16, fixed/sticky)"]
+    Shell --> Body["Main Workspace Area (flex)"]
+    Body --> Sidebar["GovSidebar.vue (w-64 expanded / w-20 collapsed)"]
+    Body --> Content["router-view Container (flex-1, p-6)"]
+    Shell --> Toast["GovToast.vue (Fixed Overlay at top: 5rem)"]
 ```
 
 ### 4.1 Responsive Breakpoints

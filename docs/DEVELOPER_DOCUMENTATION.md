@@ -396,11 +396,11 @@ This facilitates direct duplex printing on standard office printers.
 
 ```mermaid
 flowchart LR
-    Client[Browser Client Vue 3 SPA] <-->|Reverse Proxy /api| Nginx[Nginx / Vite Dev Server]
-    Nginx <-->|Port 3000| NestAPI[NestJS Backend API]
-    NestAPI <--> Prisma[Prisma ORM Client]
-    Prisma <--> SQLite[(SQLite Database dev.db)]
-    NestAPI <--> DiskStorage[Local Disk File Storage uploads/]
+    Client["Browser Client Vue 3 SPA"] <-->|"Reverse Proxy /api"| Nginx["Nginx / Vite Dev Server"]
+    Nginx <-->|"Port 3000"| NestAPI["NestJS Backend API"]
+    NestAPI <--> Prisma["Prisma ORM Client"]
+    Prisma <--> SQLite[("SQLite Database dev.db")]
+    NestAPI <--> DiskStorage["Local Disk File Storage uploads/"]
 ```
 
 ### 4.2 Authentication and Authorization Lifecycle
@@ -409,11 +409,11 @@ flowchart LR
 sequenceDiagram
     autonumber
     actor User
-    participant Web as Vue 3 Client (apps/web)
-    participant AuthCtrl as AuthController (apps/api)
+    participant Web as "Vue 3 Client (apps/web)"
+    participant AuthCtrl as "AuthController (apps/api)"
     participant AuthService as AuthService
     participant Crypto as crypto.util.ts
-    participant DB as SQLite (via Prisma)
+    participant DB as "SQLite (via Prisma)"
 
     User->>Web: Enter Username/NIP and Password
     Web->>AuthCtrl: POST /api/auth/login { username, password }
