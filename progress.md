@@ -23,6 +23,9 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **UAT-1 Fase 2** | CRUD Dasar Hukum Dinamis & Integrasi Dropdown Surat Tugas | ✅ **Selesai** | 17 Okt 2026 |
 | **UAT-1 Fase 3** | Standardisasi Format Tanda Tangan Tengah & Tata Kelola Penandatangan PA/KPA | ✅ **Selesai** | 17 Okt 2026 |
 | **UAT-1 Fase 4** | Cetak Lembar Belakang SPD (Visum Perjalanan Dinas) & Sequencer Cetak Non-Kolasi | ✅ **Selesai** | 17 Okt 2026 |
+| **Master Jabatan** | Pembuatan Tabel Jabatan, Relasi ASN (Pegawai), Seeding Master, & Integrasi Form ASN | ✅ **Selesai** | 25 Okt 2026 |
+| **Pembersihan Dashboard** | Pembersihan Widget & Komponen Anggaran pada Dashboard Home | ✅ **Selesai** | 25 Okt 2026 |
+| **Sistem Role & RBAC** | Implementasi Matriks Akses Ketat: Super Admin, Admin, Staff, User di Backend & Frontend | ✅ **Selesai** | 25 Okt 2026 |
 
 ---
 
@@ -420,4 +423,49 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
   - Parameter `sequence: 'collate' | 'non-collate'` pada endpoint `POST /api/spd/bulk-pdf`.
   - Opsi *Non-Kolasi* mengurutkan seluruh Halaman 1 (Muka) terlebih dahulu, kemudian seluruh Halaman 2 (Belakang). Memudahkan cetak bolak-balik berkecepatan tinggi pada printer manual feed.
   - Selector opsi cetak interaktif pada banner seleksi massal di `DaftarSpdView.vue`.
+
+---
+
+### 🏛️ Master Jabatan: Tabel Jabatan, Relasi Pegawai ASN & Seeding Data Resmi (Selesai)
+- **Model Baru `Jabatan` & Relasi pada `Pegawai`:**
+  - Membuat tabel `Jabatan` di Prisma database dengan kolom `id`, `nama` (unique), `keterangan`, `urutan`, `createdAt`, dan `updatedAt`.
+  - Menambahkan foreign key `jabatanId` dan relasi `jabatanRef Jabatan?` pada model `Pegawai`.
+- **Database Seeder (`apps/api/prisma/seed.js`):**
+  - Mengisi 23 daftar jabatan resmi Sekretariat Daerah (Sekda, Staf Ahli, Para Asisten, Para Kabag, Kasubag, JF Ahli, Pengelola SPD, Pengadministrasi Umum, Bendahara).
+  - Mengaitkan seluruh data ASN awal maupun pegawai yang sudah tersimpan ke ID Jabatan yang bersesuaian.
+- **Backend Module (`apps/api/src/jabatan/`):**
+  - Implementasi CRUD REST API lengkap (`GET`, `POST`, `PUT`, `DELETE` di `/api/jabatan`).
+  - Pembaruan `PegawaiService` untuk selalu menyertakan relasi `jabatanRef` serta sinkronisasi otomatis nama jabatan saat `jabatanId` dipilih.
+- **Frontend Master Data & Form ASN (`apps/web`):**
+  - Pembaruan form Tambah/Ubah Pegawai pada `KepegawaianAsnView.vue` menggunakan `GovSelect` berbasis tabel `Jabatan` dengan fitur filter pencarian.
+  - Halaman manajemen master baru `KepegawaianJabatanView.vue` (`/kepegawaian/jabatan`) untuk mengelola master jabatan beserta jumlah pegawai terkait.
+  - Integrasi menu navigasi sidebar "Data Jabatan" di bawah menu Kepegawaian.
+
+---
+
+### 📊 Pembersihan Dashboard: Penghapusan Komponen Anggaran (Selesai)
+- Menghapus KPI card total anggaran SPD dan rekapitulasi alokasi anggaran belanja pada `HomeView.vue`.
+- Menyesuaikan tata letak grid ringkasan statistik berfokus pada volume penugasan resmi: Total Surat Tugas, Total SPD, SPD Selesai, dan ASN Aktif.
+
+---
+
+### 🛡️ Implementasi Sistem Hak Akses (Role-Based Access Control) (Selesai)
+- **Matriks Hak Akses Ketat:**
+  1. **`SUPER_ADMIN`**: Akses penuh ke seluruh fitur, modul, dan mutasi data dalam sistem.
+  2. **`ADMIN`**: Akses kelola operasional (ST, SPD, Kepegawaian ASN & Jabatan), **dibatasi read-only** untuk:
+     - Akun Pengguna Login (`User`): Tidak dapat menambah, mengedit, mengubah status aktif, atau menghapus pengguna.
+     - Kop Surat (`KopSurat`): Tidak dapat mengunggah berkas PDF, mengubah template default, atau menghapus berkas.
+     - Dasar Hukum (`DasarHukum`): Tidak dapat menambah referensi baru, menyunting redaksi regulasi, atau menghapus dasar hukum.
+  3. **`STAFF`**: Hanya diizinkan membuat, menyunting, mengubah status, mencetak, dan menghapus dokumen **Surat Tugas** dan **SPD**. Tidak memiliki akses ke Kepegawaian maupun Pengaturan sistem.
+  4. **`USER`**: Hanya diizinkan membaca dan mencetak (**Read-Only**) dokumen **Surat Tugas** dan **SPD**. Tidak diizinkan melakukan operasi create, edit, maupun delete.
+- **Backend API Gating (`apps/api`):**
+  - Pembatasan endpoint mutasi (`POST`, `PUT`, `PATCH`, `DELETE`) pada `UsersController`, `KopSuratController`, dan `DasarHukumController` khusus untuk `@Roles(Role.SUPER_ADMIN)`.
+  - Pembatasan endpoint mutasi pada `SuratTugasController` dan `SpdController` untuk `@Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)` (menolak mutasi dari `Role.USER`).
+- **Frontend UI & Router Gating (`apps/web`):**
+  - **`GovSidebar.vue`**: Menu disusun hierarkis sesuai role (`USER` hanya melihat Beranda, Daftar ST, Daftar SPD).
+  - **`PengaturanPenggunaView.vue`, `PengaturanKopSuratView.vue`, `PengaturanDasarHukumView.vue`**: Tombol tambah/edit/hapus disembunyikan untuk `ADMIN`, dilengkapi banner informasi Read-Only yang ramah pengguna.
+  - **`DaftarSuratTugasView.vue` & `DaftarSpdView.vue`**: Tombol Buat, Edit, Hapus, dan Aksi Massal disembunyikan untuk role `USER`.
+  - **`SuratTugasDetailPrintView.vue`**: Gating tombol "Terbitkan SPD", "Ubah SPD", dan "Hapus Semua SPD" agar tidak dapat diakses oleh role `USER`.
+
+
 

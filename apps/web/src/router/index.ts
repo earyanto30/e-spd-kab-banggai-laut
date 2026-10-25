@@ -167,6 +167,16 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/kepegawaian/jabatan',
+    name: 'KepegawaianJabatan',
+    component: () => import('../views/KepegawaianJabatanView.vue'),
+    meta: {
+      title: 'Data Master Jabatan',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN],
+    },
+  },
+  {
     path: '/pengaturan/pengguna',
     alias: ['/pengaturan/users', '/pengaturan'],
     name: 'PengaturanPengguna',

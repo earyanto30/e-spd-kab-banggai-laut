@@ -243,6 +243,66 @@ export const UpdateDasarHukumSchema = CreateDasarHukumSchema.partial();
 
 export type UpdateDasarHukumDto = z.infer<typeof UpdateDasarHukumSchema>;
 
+export const JabatanSchema = z.object({
+  id: z.string(),
+  nama: z.string(),
+  keterangan: z.string().nullable().optional(),
+  urutan: z.number().int().default(0),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type JabatanDto = z.infer<typeof JabatanSchema>;
+
+export const CreateJabatanSchema = z.object({
+  nama: z.string().min(1, 'Nama jabatan wajib diisi'),
+  keterangan: z.string().nullable().optional().or(z.literal('')),
+  urutan: z.number().int().optional().default(0),
+});
+
+export type CreateJabatanDto = z.infer<typeof CreateJabatanSchema>;
+
+export const UpdateJabatanSchema = CreateJabatanSchema.partial();
+
+export type UpdateJabatanDto = z.infer<typeof UpdateJabatanSchema>;
+
+export const PegawaiSchema = z.object({
+  id: z.string(),
+  nip: z.string(),
+  nama: z.string(),
+  pangkat: z.string(),
+  golongan: z.string(),
+  jabatan: z.string(),
+  jabatanId: z.string().nullable().optional(),
+  jabatanRef: JabatanSchema.nullable().optional(),
+  unitKerja: z.string(),
+  isASN: z.boolean().default(true),
+  isPenandatangan: z.boolean().default(false),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type PegawaiDto = z.infer<typeof PegawaiSchema>;
+
+export const CreatePegawaiSchema = z.object({
+  nip: z.string().min(1, 'NIP wajib diisi'),
+  nama: z.string().min(1, 'Nama pegawai wajib diisi'),
+  pangkat: z.string().min(1, 'Pangkat wajib diisi'),
+  golongan: z.string().min(1, 'Golongan ruang wajib diisi'),
+  jabatan: z.string().optional(),
+  jabatanId: z.string().nullable().optional(),
+  unitKerja: z.string().optional(),
+  isASN: z.boolean().optional(),
+  isPenandatangan: z.boolean().optional(),
+});
+
+export type CreatePegawaiDto = z.infer<typeof CreatePegawaiSchema>;
+
+export const UpdatePegawaiSchema = CreatePegawaiSchema.partial();
+
+export type UpdatePegawaiDto = z.infer<typeof UpdatePegawaiSchema>;
+
+
 
 
 

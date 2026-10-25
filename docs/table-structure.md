@@ -37,9 +37,19 @@ erDiagram
         String pangkat
         String golongan
         String jabatan
+        String jabatanId FK
         String unitKerja
         Boolean isASN
         Boolean isPenandatangan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Jabatan {
+        String id PK
+        String nama UK
+        String keterangan
+        Int urutan
         DateTime createdAt
         DateTime updatedAt
     }
@@ -116,6 +126,7 @@ erDiagram
     }
 
     User ||--o| Pegawai : "references pegawaiId"
+    Jabatan ||--o{ Pegawai : "pegawaiList (jabatanId)"
     Pegawai ||--o{ Spd : "spdList (pelaksana)"
     Pegawai ||--o{ Spd : "spdDitandatanganiList"
     Pegawai ||--o{ SuratTugas : "suratTugasDitandatanganiList"
@@ -151,12 +162,25 @@ erDiagram
 | `nama` | String | No | None | None | Complete legal name with academic degrees |
 | `pangkat` | String | No | None | None | Civil service rank (e.g. `Pembina Utama Muda`) |
 | `golongan` | String | No | None | None | Grade tier (e.g. `IV/c`) |
-| `jabatan` | String | No | None | None | Civil service job title |
+| `jabatan` | String | No | None | None | Civil service job title snapshot |
+| `jabatanId` | String | Yes | `null` | FK -> `Jabatan.id` | Reference to official Jabatan; `ON DELETE SET NULL` |
 | `unitKerja` | String | No | `'Sekretariat Daerah'` | None | Organizational sub-division |
 | `isASN` | Boolean | No | `true` | None | ASN employment type flag |
 | `isPenandatangan` | Boolean | No | `false` | None | Flag indicating authorized letter signatory |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
+
+### 3.3 Table `Jabatan`
+
+| Column | Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
+| `nama` | String | No | None | Unique | Official government position / job title |
+| `keterangan` | String | Yes | `null` | None | Scope description or echelon details |
+| `urutan` | Int | No | `0` | None | Display sort order in selection dropdowns |
+| `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
+
 
 ### 3.3 Table `KopSurat`
 

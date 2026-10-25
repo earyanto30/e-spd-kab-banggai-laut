@@ -125,7 +125,7 @@ export class SuratTugasController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   create(@Body() dto: CreateSuratTugasDto) {
     return this.suratTugasService.create(dto);
   }
@@ -137,7 +137,7 @@ export class SuratTugasController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   delete(@Param('id') id: string) {
     return this.suratTugasService.delete(id);
   }

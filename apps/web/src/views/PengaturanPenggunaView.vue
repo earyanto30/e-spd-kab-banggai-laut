@@ -64,6 +64,8 @@ const selectedUser = ref<UserItem | null>(null);
 const toast = useGovToast();
 
 const currentLoggedInUsername = localStorage.getItem('username') || '';
+const currentUserRole = localStorage.getItem('user_role') || '';
+const isSuperAdmin = computed(() => currentUserRole === 'SUPER_ADMIN');
 
 // Form state
 const form = ref<{
@@ -364,11 +366,24 @@ onMounted(async () => {
           @click="loadUsers"
         />
         <GovButton
+          v-if="isSuperAdmin"
           label="Tambah Pengguna"
           icon="pi pi-user-plus"
           severity="primary"
           @click="openCreateDialog"
         />
+      </div>
+    </div>
+
+    <!-- Read-Only Banner for Admin Role -->
+    <div
+      v-if="!isSuperAdmin"
+      class="p-4 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/25 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3 shadow-sm"
+    >
+      <i class="pi pi-shield text-amber-600 dark:text-amber-400 text-base flex-shrink-0"></i>
+      <div>
+        <strong class="font-semibold block">Akses Terbatas: Mode Lihat Pengguna (Read-Only)</strong>
+        <span>Role Admin tidak memiliki izin untuk menambah, mengubah, atau menghapus akun pengguna sistem. Modifikasi akun pengguna login sepenuhnya dikelola oleh Super Admin.</span>
       </div>
     </div>
 
@@ -584,7 +599,7 @@ onMounted(async () => {
           </Column>
 
           <!-- Column: Aksi -->
-          <Column header="Aksi" body-class="text-right" class="w-40">
+          <Column v-if="isSuperAdmin" header="Aksi" body-class="text-right" class="w-40">
             <template #body="{ data }">
               <div class="flex items-center justify-end gap-1">
                 <!-- Toggle Status Button -->

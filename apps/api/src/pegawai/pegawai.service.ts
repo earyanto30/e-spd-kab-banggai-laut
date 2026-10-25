@@ -6,7 +6,8 @@ export interface CreatePegawaiDto {
   nama: string;
   pangkat: string;
   golongan: string;
-  jabatan: string;
+  jabatan?: string;
+  jabatanId?: string | null;
   unitKerja?: string;
   isASN?: boolean;
   isPenandatangan?: boolean;
@@ -18,6 +19,7 @@ export interface UpdatePegawaiDto {
   pangkat?: string;
   golongan?: string;
   jabatan?: string;
+  jabatanId?: string | null;
   unitKerja?: string;
   isASN?: boolean;
   isPenandatangan?: boolean;
@@ -44,12 +46,16 @@ export class PegawaiService {
         { nama: { contains: q } },
         { nip: { contains: q } },
         { jabatan: { contains: q } },
+        { jabatanRef: { is: { nama: { contains: q } } } },
         { unitKerja: { contains: q } },
       ];
     }
 
     return this.prisma.pegawai.findMany({
       where,
+      include: {
+        jabatanRef: true,
+      },
       orderBy: [{ golongan: 'desc' }, { nama: 'asc' }],
     });
   }
@@ -57,6 +63,9 @@ export class PegawaiService {
   async findById(id: string) {
     const item = await this.prisma.pegawai.findUnique({
       where: { id },
+      include: {
+        jabatanRef: true,
+      },
     });
     if (!item) {
       throw new NotFoundException(`Pegawai dengan ID '${id}' tidak ditemukan`);
@@ -72,22 +81,48 @@ export class PegawaiService {
       throw new ConflictException(`Pegawai dengan NIP '${dto.nip}' sudah terdaftar`);
     }
 
+    let finalJabatan = dto.jabatan?.trim() || '';
+    let finalJabatanId = dto.jabatanId || null;
+
+    if (finalJabatanId) {
+      const jb = await this.prisma.jabatan.findUnique({
+        where: { id: finalJabatanId },
+      });
+      if (jb) {
+        if (!finalJabatan) finalJabatan = jb.nama;
+      } else {
+        finalJabatanId = null;
+      }
+    } else if (finalJabatan) {
+      // Auto-match by name if jabatanId not explicitly provided
+      const jb = await this.prisma.jabatan.findUnique({
+        where: { nama: finalJabatan },
+      });
+      if (jb) {
+        finalJabatanId = jb.id;
+      }
+    }
+
     return this.prisma.pegawai.create({
       data: {
         nip: dto.nip.trim(),
         nama: dto.nama.trim(),
         pangkat: dto.pangkat.trim(),
         golongan: dto.golongan.trim(),
-        jabatan: dto.jabatan.trim(),
+        jabatan: finalJabatan,
+        jabatanId: finalJabatanId,
         unitKerja: dto.unitKerja?.trim() || 'Sekretariat Daerah',
         isASN: dto.isASN !== undefined ? Boolean(dto.isASN) : true,
         isPenandatangan: dto.isPenandatangan !== undefined ? Boolean(dto.isPenandatangan) : false,
+      },
+      include: {
+        jabatanRef: true,
       },
     });
   }
 
   async update(id: string, dto: UpdatePegawaiDto) {
-    await this.findById(id);
+    const current = await this.findById(id);
 
     if (dto.nip) {
       const existing = await this.prisma.pegawai.findFirst({
@@ -101,6 +136,27 @@ export class PegawaiService {
       }
     }
 
+    let finalJabatan = dto.jabatan !== undefined ? dto.jabatan.trim() : undefined;
+    let finalJabatanId = dto.jabatanId !== undefined ? dto.jabatanId : undefined;
+
+    if (finalJabatanId) {
+      const jb = await this.prisma.jabatan.findUnique({
+        where: { id: finalJabatanId },
+      });
+      if (jb) {
+        if (finalJabatan === undefined) finalJabatan = jb.nama;
+      } else {
+        finalJabatanId = null;
+      }
+    } else if (finalJabatan && finalJabatanId === undefined) {
+      const jb = await this.prisma.jabatan.findUnique({
+        where: { nama: finalJabatan },
+      });
+      if (jb) {
+        finalJabatanId = jb.id;
+      }
+    }
+
     return this.prisma.pegawai.update({
       where: { id },
       data: {
@@ -108,10 +164,14 @@ export class PegawaiService {
         ...(dto.nama && { nama: dto.nama.trim() }),
         ...(dto.pangkat && { pangkat: dto.pangkat.trim() }),
         ...(dto.golongan && { golongan: dto.golongan.trim() }),
-        ...(dto.jabatan && { jabatan: dto.jabatan.trim() }),
+        ...(finalJabatan !== undefined && { jabatan: finalJabatan }),
+        ...(finalJabatanId !== undefined && { jabatanId: finalJabatanId }),
         ...(dto.unitKerja && { unitKerja: dto.unitKerja.trim() }),
         ...(dto.isASN !== undefined && { isASN: Boolean(dto.isASN) }),
         ...(dto.isPenandatangan !== undefined && { isPenandatangan: Boolean(dto.isPenandatangan) }),
+      },
+      include: {
+        jabatanRef: true,
       },
     });
   }

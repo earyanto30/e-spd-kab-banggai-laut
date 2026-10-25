@@ -7,6 +7,7 @@ import {
   GovButton,
   GovCard,
   GovInputText,
+  GovSelect,
   GovTable,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
@@ -19,6 +20,8 @@ export interface AsnPegawai {
   pangkat: string;
   golongan: string;
   jabatan: string;
+  jabatanId?: string | null;
+  jabatanRef?: { id: string; nama: string; keterangan?: string } | null;
   unitKerja: string;
   isASN: boolean;
   isPenandatangan?: boolean;
@@ -114,6 +117,8 @@ const isDetailDialogOpen = ref(false);
 const isEditing = ref(false);
 const selectedAsn = ref<AsnPegawai | null>(null);
 const toast = useGovToast();
+const jabatanList = ref<Array<{ id: string; nama: string; keterangan?: string }>>([]);
+
 const form = ref<AsnPegawai>({
   id: '',
   nip: '',
@@ -121,12 +126,34 @@ const form = ref<AsnPegawai>({
   pangkat: '',
   golongan: '',
   jabatan: '',
+  jabatanId: null,
   unitKerja: 'Sekretariat Daerah',
   isASN: true,
   isPenandatangan: false,
 });
 
+const loadJabatanList = async () => {
+  try {
+    const res = await apiFetch('/api/jabatan');
+    if (res.ok) {
+      jabatanList.value = await res.json();
+    }
+  } catch {
+    // ignore
+  }
+};
+
+const onJabatanChange = () => {
+  if (form.value.jabatanId) {
+    const found = jabatanList.value.find((j) => j.id === form.value.jabatanId);
+    if (found) {
+      form.value.jabatan = found.nama;
+    }
+  }
+};
+
 const loadData = async () => {
+  loadJabatanList();
   try {
     const res = await apiFetch('/api/pegawai');
     if (res.ok) {
@@ -189,6 +216,7 @@ const openCreateDialog = () => {
     pangkat: 'Penata Muda',
     golongan: 'III/a',
     jabatan: '',
+    jabatanId: null,
     unitKerja: 'Sekretariat Daerah',
     isASN: true,
     isPenandatangan: false,
@@ -198,8 +226,17 @@ const openCreateDialog = () => {
 
 const openEditDialog = (item: AsnPegawai) => {
   isEditing.value = true;
+  let jId = item.jabatanId || null;
+  if (!jId && item.jabatan) {
+    const matched = jabatanList.value.find(
+      (j) => j.nama.toLowerCase() === item.jabatan.trim().toLowerCase()
+    );
+    if (matched) jId = matched.id;
+  }
+
   form.value = {
     ...item,
+    jabatanId: jId,
     isPenandatangan: Boolean(item.isPenandatangan),
   };
   isFormDialogOpen.value = true;
@@ -211,7 +248,12 @@ const openDetailDialog = (item: AsnPegawai) => {
 };
 
 const handleSave = async () => {
-  if (!form.value.nip.trim() || !form.value.nama.trim() || !form.value.jabatan.trim()) {
+  if (form.value.jabatanId && !form.value.jabatan) {
+    const found = jabatanList.value.find((j) => j.id === form.value.jabatanId);
+    if (found) form.value.jabatan = found.nama;
+  }
+
+  if (!form.value.nip.trim() || !form.value.nama.trim() || (!form.value.jabatan.trim() && !form.value.jabatanId)) {
     toast.warn('NIP, Nama Lengkap, dan Jabatan wajib diisi.');
     return;
   }
@@ -616,16 +658,27 @@ onMounted(() => {
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div class="space-y-1">
-            <label for="asnJabatan" class="text-xs font-semibold text-text-main">
-              Jabatan
+            <label for="asnJabatan" class="text-xs font-semibold text-text-main flex items-center justify-between">
+              <span>Jabatan (Master Jabatan)</span>
+              <span v-if="jabatanList.length" class="text-[10px] text-primary font-normal">
+                {{ jabatanList.length }} Jabatan Tersedia
+              </span>
             </label>
-            <GovInputText
+            <GovSelect
               id="asnJabatan"
-              v-model="form.jabatan"
-              placeholder="Contoh: Kepala Bagian Umum"
-              block
-              required
+              v-model="form.jabatanId"
+              :options="jabatanList"
+              option-label="nama"
+              option-value="id"
+              placeholder="-- Pilih Jabatan Resmi --"
+              filter
+              class="w-full"
+              @change="onJabatanChange"
             />
+            <div v-if="form.jabatan" class="text-[11px] text-text-muted mt-0.5 flex items-center gap-1">
+              <i class="pi pi-check-circle text-emerald-500 text-[10px]"></i>
+              <span>Jabatan terpilih: <strong class="text-text-main">{{ form.jabatan }}</strong></span>
+            </div>
           </div>
 
           <div class="space-y-1">

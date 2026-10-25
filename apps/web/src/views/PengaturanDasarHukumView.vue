@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
 import {
@@ -15,6 +15,9 @@ import { useGovToast } from '../composables/useGovToast';
 import type { DasarHukumDto } from '@si-setda/shared-types';
 
 const toast = useGovToast();
+
+const currentUserRole = localStorage.getItem('user_role') || '';
+const isSuperAdmin = computed(() => currentUserRole === 'SUPER_ADMIN');
 
 const list = ref<DasarHukumDto[]>([]);
 const loading = ref(false);
@@ -153,11 +156,24 @@ onMounted(() => {
         </p>
       </div>
       <GovButton
+        v-if="isSuperAdmin"
         label="Tambah Dasar Hukum"
         icon="pi pi-plus"
         severity="primary"
         @click="openCreateDialog"
       />
+    </div>
+
+    <!-- Read-Only Banner for Admin Role -->
+    <div
+      v-if="!isSuperAdmin"
+      class="p-4 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/25 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3 shadow-sm"
+    >
+      <i class="pi pi-shield text-amber-600 dark:text-amber-400 text-base flex-shrink-0"></i>
+      <div>
+        <strong class="font-semibold block">Akses Terbatas: Mode Lihat Dasar Hukum (Read-Only)</strong>
+        <span>Role Admin tidak memiliki izin untuk menambah, menyunting, atau menghapus referensi dasar hukum. Modifikasi dasar hukum penugasan resmi hanya dapat dilakukan oleh Super Admin.</span>
+      </div>
     </div>
 
     <!-- Filter & Table Card -->
@@ -211,7 +227,7 @@ onMounted(() => {
             </template>
           </Column>
 
-          <Column header="Aksi" style="width: 120px">
+          <Column v-if="isSuperAdmin" header="Aksi" style="width: 120px">
             <template #body="{ data }">
               <div class="flex items-center gap-1">
                 <GovButton

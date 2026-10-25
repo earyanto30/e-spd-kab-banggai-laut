@@ -50,6 +50,8 @@ const toast = useGovToast();
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const selectedFile = ref<File | null>(null);
 const isSubmitting = ref(false);
+const currentUserRole = localStorage.getItem('user_role') || '';
+const isSuperAdmin = computed(() => currentUserRole === 'SUPER_ADMIN');
 
 const form = ref({
   nama: '',
@@ -314,11 +316,24 @@ onMounted(() => {
       </div>
 
       <GovButton
+        v-if="isSuperAdmin"
         label="Unggah Berkas PDF"
         icon="pi pi-upload"
         severity="primary"
         @click="openUploadDialog"
       />
+    </div>
+
+    <!-- Read-Only Banner for Admin Role -->
+    <div
+      v-if="!isSuperAdmin"
+      class="p-4 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/25 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-3 shadow-sm"
+    >
+      <i class="pi pi-shield text-amber-600 dark:text-amber-400 text-base flex-shrink-0"></i>
+      <div>
+        <strong class="font-semibold block">Akses Terbatas: Mode Lihat Kop Surat (Read-Only)</strong>
+        <span>Role Admin tidak memiliki izin untuk mengunggah, mengganti default, atau menghapus template kop surat dinas. Modifikasi template kop surat resmi hanya dapat dilakukan oleh Super Admin.</span>
+      </div>
     </div>
 
     <!-- Table of Stored PDF Kop Surat -->
@@ -407,7 +422,7 @@ onMounted(() => {
                   @click="handlePreview(data)"
                 />
                 <GovButton
-                  v-if="!data.isDefault"
+                  v-if="isSuperAdmin && !data.isDefault"
                   icon="pi pi-check"
                   size="small"
                   severity="success"
@@ -417,7 +432,7 @@ onMounted(() => {
                   @click="handleSetDefault(data)"
                 />
                 <GovButton
-                  v-if="list.length > 1"
+                  v-if="isSuperAdmin && list.length > 1"
                   icon="pi pi-trash"
                   size="small"
                   severity="danger"

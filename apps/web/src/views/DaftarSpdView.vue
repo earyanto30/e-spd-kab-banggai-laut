@@ -65,7 +65,7 @@ const toast = useGovToast();
 
 const userRole = localStorage.getItem('user_role') || '';
 const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN', 'STAFF'].includes(userRole));
-const canDelete = computed(() => ['SUPER_ADMIN', 'ADMIN'].includes(userRole));
+const canDelete = computed(() => ['SUPER_ADMIN', 'ADMIN', 'STAFF'].includes(userRole));
 
 const formatDateParam = (d: Date | null | undefined): string => {
   if (!d) return '';

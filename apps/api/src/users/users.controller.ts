@@ -46,6 +46,7 @@ export class UsersController {
   }
 
   @Post()
+  @Roles(Role.SUPER_ADMIN)
   create(@Body() body: unknown) {
     const parseResult = CreateUserSchema.safeParse(body);
     if (!parseResult.success) {
@@ -57,6 +58,7 @@ export class UsersController {
   }
 
   @Put(':id')
+  @Roles(Role.SUPER_ADMIN)
   update(@Param('id') id: string, @Body() body: unknown) {
     const parseResult = UpdateUserSchema.safeParse(body);
     if (!parseResult.success) {
@@ -68,11 +70,13 @@ export class UsersController {
   }
 
   @Patch(':id/toggle-status')
+  @Roles(Role.SUPER_ADMIN)
   toggleStatus(@Param('id') id: string) {
     return this.usersService.toggleStatus(id);
   }
 
   @Delete(':id')
+  @Roles(Role.SUPER_ADMIN)
   delete(@Param('id') id: string) {
     return this.usersService.delete(id);
   }

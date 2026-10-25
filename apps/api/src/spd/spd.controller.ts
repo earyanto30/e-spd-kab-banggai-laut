@@ -102,7 +102,7 @@ export class SpdController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   create(@Body() dto: CreateSpdDto) {
     return this.spdService.create(dto);
   }
@@ -123,7 +123,7 @@ export class SpdController {
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   delete(@Param('id') id: string) {
     return this.spdService.delete(id);
   }

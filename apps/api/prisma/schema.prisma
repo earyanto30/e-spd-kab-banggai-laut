@@ -39,13 +39,15 @@ model KopSurat {
 }
 
 model Pegawai {
-  id        String   @id @default(cuid())
-  nip       String   @unique
-  nama      String
-  pangkat   String
-  golongan  String
-  jabatan   String
-  unitKerja String   @default("Sekretariat Daerah")
+  id              String   @id @default(cuid())
+  nip             String   @unique
+  nama            String
+  pangkat         String
+  golongan        String
+  jabatan         String
+  jabatanId       String?
+  jabatanRef      Jabatan? @relation(fields: [jabatanId], references: [id], onDelete: SetNull)
+  unitKerja       String   @default("Sekretariat Daerah")
   isASN           Boolean  @default(true)
   isPenandatangan Boolean  @default(false)
 
@@ -56,6 +58,17 @@ model Pegawai {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Jabatan {
+  id         String    @id @default(cuid())
+  nama       String    @unique
+  keterangan String?
+  urutan     Int       @default(0)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  pegawaiList Pegawai[]
 }
 
 model Spd {

@@ -22,19 +22,19 @@ export class DasarHukumController {
   }
 
   @Post()
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   async create(@Body() dto: CreateDasarHukumDto) {
     return this.dasarHukumService.create(dto);
   }
 
   @Put(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   async update(@Param('id') id: string, @Body() dto: UpdateDasarHukumDto) {
     return this.dasarHukumService.update(id, dto);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   async remove(@Param('id') id: string) {
     return this.dasarHukumService.remove(id);
   }

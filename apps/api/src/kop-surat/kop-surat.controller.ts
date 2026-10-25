@@ -31,7 +31,7 @@ export class KopSuratController {
   }
 
   @Post('upload')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   @UseInterceptors(FileInterceptor('file'))
   async uploadPdf(
     @UploadedFile() file: any,
@@ -57,13 +57,13 @@ export class KopSuratController {
   }
 
   @Patch(':id/default')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   async setDefault(@Param('id') id: string) {
     return this.kopSuratService.setDefault(id);
   }
 
   @Delete(':id')
-  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  @Roles(Role.SUPER_ADMIN)
   async delete(@Param('id') id: string) {
     await this.kopSuratService.delete(id);
     return { success: true, message: 'Kop surat berhasil dihapus' };

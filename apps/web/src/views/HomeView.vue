@@ -13,6 +13,8 @@ const authToken = ref<string | null>(null);
 const userName = ref<string | null>(null);
 const currentUsername = ref<string | null>(null);
 const userRole = ref<string>('USER');
+const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN', 'STAFF'].includes(userRole.value));
+const canAccessSettings = computed(() => ['SUPER_ADMIN', 'ADMIN'].includes(userRole.value));
 
 const checkAuth = () => {
   authToken.value = localStorage.getItem('auth_token');
@@ -388,7 +390,7 @@ onMounted(async () => {
 
         <!-- Quick Top Action Buttons -->
         <div class="flex items-center gap-2.5 flex-wrap">
-          <router-link to="/surat-tugas/buat">
+          <router-link v-if="canManage" to="/surat-tugas/buat">
             <GovButton
               label="Buat Surat Tugas"
               icon="pi pi-file-plus"
@@ -396,7 +398,7 @@ onMounted(async () => {
               class="!bg-white/15 !text-white hover:!bg-white/25 !border-white/20 shadow-sm"
             />
           </router-link>
-          <router-link to="/spd/buat">
+          <router-link v-if="canManage" to="/spd/buat">
             <GovButton
               label="Buat SPD Baru"
               icon="pi pi-plus"
@@ -408,6 +410,14 @@ onMounted(async () => {
             <GovButton
               label="Lihat Semua SPD"
               icon="pi pi-list"
+              severity="secondary"
+              class="!bg-white/15 !text-white hover:!bg-white/25 !border-white/20 shadow-sm"
+            />
+          </router-link>
+          <router-link to="/surat-tugas">
+            <GovButton
+              label="Lihat Surat Tugas"
+              icon="pi pi-file"
               severity="secondary"
               class="!bg-white/15 !text-white hover:!bg-white/25 !border-white/20 shadow-sm"
             />
@@ -629,6 +639,7 @@ onMounted(async () => {
           </h2>
           <div class="space-y-2">
             <router-link
+              v-if="canManage"
               to="/surat-tugas/buat"
               class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
@@ -640,6 +651,7 @@ onMounted(async () => {
             </router-link>
 
             <router-link
+              v-if="canManage"
               to="/spd/buat"
               class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
@@ -651,6 +663,29 @@ onMounted(async () => {
             </router-link>
 
             <router-link
+              to="/surat-tugas"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
+            >
+              <div class="flex items-center gap-2.5">
+                <i class="pi pi-list text-primary text-sm"></i>
+                <span>Daftar Surat Tugas</span>
+              </div>
+              <i class="pi pi-chevron-right text-text-muted text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+            </router-link>
+
+            <router-link
+              to="/spd"
+              class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
+            >
+              <div class="flex items-center gap-2.5">
+                <i class="pi pi-briefcase text-primary text-sm"></i>
+                <span>Daftar Dokumen SPD</span>
+              </div>
+              <i class="pi pi-chevron-right text-text-muted text-[10px] group-hover:translate-x-0.5 transition-transform"></i>
+            </router-link>
+
+            <router-link
+              v-if="canAccessSettings"
               to="/pengaturan/kop-surat"
               class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
@@ -662,6 +697,7 @@ onMounted(async () => {
             </router-link>
 
             <router-link
+              v-if="canAccessSettings"
               to="/kepegawaian/asn"
               class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >
@@ -673,6 +709,7 @@ onMounted(async () => {
             </router-link>
 
             <router-link
+              v-if="canAccessSettings"
               to="/pengaturan/pengguna"
               class="flex items-center justify-between p-2.5 rounded-lg border border-border/80 hover:border-primary/50 hover:bg-canvas transition-all text-xs font-semibold text-text-main group"
             >

@@ -33,14 +33,72 @@ function hashPassword(password) {
 async function main() {
   console.log('==> Starting Prisma Database Seeder...');
 
-  // 1. Initial ASN / Pegawai Master Data
+  // 1. Initial Jabatan Master Data
+  const defaultJabatanList = [
+    { nama: 'Sekretaris Daerah', keterangan: 'Pimpinan Tinggi Pratama Sekretariat Daerah', urutan: 1 },
+    { nama: 'Staf Ahli Sekretariat Daerah', keterangan: 'Staf Ahli Bupati / Sekretariat Daerah', urutan: 2 },
+    { nama: 'Asisten Pemerintahan dan Kesra', keterangan: 'Asisten I Bidang Pemerintahan dan Kesejahteraan Rakyat', urutan: 3 },
+    { nama: 'Asisten Perekonomian dan Pembangunan', keterangan: 'Asisten II Bidang Perekonomian dan Pembangunan', urutan: 4 },
+    { nama: 'Asisten Administrasi Umum', keterangan: 'Asisten III Bidang Administrasi Umum', urutan: 5 },
+    { nama: 'Kepala Bagian Umum', keterangan: 'Kepala Bagian Umum Sekretariat Daerah (KPA)', urutan: 6 },
+    { nama: 'Kepala Bagian Umum dan Protokol', keterangan: 'Kepala Bagian Umum dan Protokol Sekretariat Daerah', urutan: 7 },
+    { nama: 'Kepala Bagian Hukum', keterangan: 'Kepala Bagian Hukum Sekretariat Daerah', urutan: 8 },
+    { nama: 'Kepala Bagian Organisasi', keterangan: 'Kepala Bagian Organisasi Sekretariat Daerah', urutan: 9 },
+    { nama: 'Kepala Bagian Protokol dan Komunikasi Pimpinan', keterangan: 'Kepala Bagian Prokopim Sekretariat Daerah', urutan: 10 },
+    { nama: 'Kepala Bagian Perekonomian dan SDA', keterangan: 'Kepala Bagian Perekonomian dan Sumber Daya Alam', urutan: 11 },
+    { nama: 'Kepala Bagian Pengadaan Barang dan Jasa', keterangan: 'Kepala Bagian Pengadaan Barang dan Jasa (PBJ)', urutan: 12 },
+    { nama: 'Kepala Bagian Tata Pemerintahan', keterangan: 'Kepala Bagian Tata Pemerintahan Sekretariat Daerah', urutan: 13 },
+    { nama: 'Kepala Bagian Kesejahteraan Rakyat', keterangan: 'Kepala Bagian Kesra Sekretariat Daerah', urutan: 14 },
+    { nama: 'Kepala Bagian Perencanaan dan Keuangan', keterangan: 'Kepala Bagian Perencanaan dan Keuangan Sekretariat Daerah', urutan: 15 },
+    { nama: 'Kepala Sub Bagian Tata Usaha dan Kepegawaian', keterangan: 'Kasubag TU dan Kepegawaian Bagian Umum', urutan: 16 },
+    { nama: 'Kepala Sub Bagian Rumah Tangga dan Perlengkapan', keterangan: 'Kasubag Rumah Tangga Bagian Umum', urutan: 17 },
+    { nama: 'Pranata Komputer Ahli Muda', keterangan: 'Jabatan Fungsional Pranata Komputer Ahli Muda', urutan: 18 },
+    { nama: 'Pengelola Administrasi Perjalanan Dinas', keterangan: 'Pelaksana Pengelola Administrasi SPD', urutan: 19 },
+    { nama: 'Analis Kebijakan', keterangan: 'Jabatan Fungsional Analis Kebijakan', urutan: 20 },
+    { nama: 'Analis Keuangan Pusat dan Daerah', keterangan: 'Jabatan Fungsional Analis Keuangan Pusat dan Daerah', urutan: 21 },
+    { nama: 'Pengadministrasi Umum', keterangan: 'Staf Pelaksana Pengadministrasi Umum', urutan: 22 },
+    { nama: 'Bendahara Pengeluaran', keterangan: 'Bendahara Pengeluaran Bagian Umum', urutan: 23 },
+  ];
+
+  const jabatanMap = new Map();
+  for (const j of defaultJabatanList) {
+    const savedJabatan = await prisma.jabatan.upsert({
+      where: { nama: j.nama },
+      update: {
+        keterangan: j.keterangan,
+        urutan: j.urutan,
+      },
+      create: j,
+    });
+    jabatanMap.set(savedJabatan.nama, savedJabatan);
+  }
+  console.log(`[Seed] Seeded ${defaultJabatanList.length} master Jabatan records.`);
+
+  // Helper function to resolve best matching Jabatan
+  function resolveJabatan(title) {
+    if (!title) return null;
+    const lower = title.toLowerCase();
+    if (lower.includes('sekretaris daerah') || lower.includes('super admin')) return jabatanMap.get('Sekretaris Daerah') || null;
+    if (lower.includes('staf ahli')) return jabatanMap.get('Staf Ahli Sekretariat Daerah') || null;
+    if (lower.includes('asisten')) return jabatanMap.get('Asisten Pemerintahan dan Kesra') || null;
+    if (lower.includes('umum dan protokol')) return jabatanMap.get('Kepala Bagian Umum dan Protokol') || null;
+    if (lower.includes('bagian umum')) return jabatanMap.get('Kepala Bagian Umum') || null;
+    if (lower.includes('bagian hukum')) return jabatanMap.get('Kepala Bagian Hukum') || null;
+    if (lower.includes('organisasi')) return jabatanMap.get('Kepala Bagian Organisasi') || null;
+    if (lower.includes('pranata komputer')) return jabatanMap.get('Pranata Komputer Ahli Muda') || null;
+    if (lower.includes('perjalanan dinas') || lower.includes('administrasi perjalanan')) return jabatanMap.get('Pengelola Administrasi Perjalanan Dinas') || null;
+    if (lower.includes('analis kebijakan')) return jabatanMap.get('Analis Kebijakan') || null;
+    return jabatanMap.get('Pengadministrasi Umum') || null;
+  }
+
+  // 2. Initial ASN / Pegawai Master Data
   const defaultAsnList = [
     {
       nip: process.env.INITIAL_ADMIN_NIP || '198801152010011002',
       nama: process.env.INITIAL_ADMIN_NAME || 'Fadli A. Arsad',
       pangkat: 'Pembina Utama Muda',
       golongan: 'IV/c',
-      jabatan: 'Sekretaris Daerah / Super Admin',
+      jabatan: 'Sekretaris Daerah',
       unitKerja: 'Sekretariat Daerah Kab. Banggai Laut',
       isASN: true,
       isPenandatangan: true,
@@ -50,7 +108,7 @@ async function main() {
       nama: 'ARSID HAMIDI, SH',
       pangkat: 'Pembina',
       golongan: 'IV/a',
-      jabatan: 'Kepala Bagian Umum (KPA)',
+      jabatan: 'Kepala Bagian Umum',
       unitKerja: 'Bagian Umum Sekretariat Daerah',
       isASN: true,
       isPenandatangan: true,
@@ -60,7 +118,7 @@ async function main() {
       nama: 'Saiful U. Usuria, SE., M.Si',
       pangkat: 'Pembina Utama Muda',
       golongan: 'IV/c',
-      jabatan: 'Sekretaris Daerah (PA)',
+      jabatan: 'Sekretaris Daerah',
       unitKerja: 'Sekretariat Daerah',
       isASN: true,
       isPenandatangan: true,
@@ -138,21 +196,47 @@ async function main() {
   ];
 
   for (const pegawaiData of defaultAsnList) {
+    const matchedJabatan = resolveJabatan(pegawaiData.jabatan);
+    const jabatanId = matchedJabatan ? matchedJabatan.id : null;
+    const finalJabatan = matchedJabatan ? matchedJabatan.nama : pegawaiData.jabatan;
+
     await prisma.pegawai.upsert({
       where: { nip: pegawaiData.nip },
       update: {
         nama: pegawaiData.nama,
         pangkat: pegawaiData.pangkat,
         golongan: pegawaiData.golongan,
-        jabatan: pegawaiData.jabatan,
+        jabatan: finalJabatan,
+        jabatanId: jabatanId,
         unitKerja: pegawaiData.unitKerja,
         isASN: pegawaiData.isASN,
         isPenandatangan: pegawaiData.isPenandatangan,
       },
-      create: pegawaiData,
+      create: {
+        ...pegawaiData,
+        jabatan: finalJabatan,
+        jabatanId: jabatanId,
+      },
     });
   }
-  console.log(`[Seed] Seeded ${defaultAsnList.length} ASN Pegawai records.`);
+
+  // Also link any existing Pegawai in database whose jabatanId is still null
+  const unlinkedPegawai = await prisma.pegawai.findMany({
+    where: { jabatanId: null },
+  });
+  for (const p of unlinkedPegawai) {
+    const matched = resolveJabatan(p.jabatan);
+    if (matched) {
+      await prisma.pegawai.update({
+        where: { id: p.id },
+        data: {
+          jabatanId: matched.id,
+          jabatan: matched.nama,
+        },
+      });
+    }
+  }
+  console.log(`[Seed] Seeded and linked ASN Pegawai records with master Jabatan.`);
 
   // 2. Initial Super Admin User Account
   const adminNip = process.env.INITIAL_ADMIN_NIP || '198801152010011002';

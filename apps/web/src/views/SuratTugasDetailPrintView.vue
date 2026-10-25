@@ -101,6 +101,8 @@ const fontOptions = [
 const activePdfUrl = ref<string | null>(null);
 const isLoadingPdfPreview = ref(false);
 const isDownloadingPdf = ref(false);
+const userRole = localStorage.getItem('user_role') || '';
+const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN', 'STAFF'].includes(userRole));
 
 const buildPdfQuery = () => {
   const params = new URLSearchParams();
@@ -581,6 +583,7 @@ onMounted(() => {
             title="Cetak langsung dokumen PDF resmi"
           />
           <GovButton
+            v-if="canManage"
             :label="data?.spdList && data.spdList.length > 0 ? 'Daftar SPD' : 'Terbitkan SPD'"
             :icon="data?.spdList && data.spdList.length > 0 ? 'pi pi-list' : 'pi pi-file-import'"
             severity="success"
@@ -702,6 +705,7 @@ onMounted(() => {
 
             <div class="flex items-center gap-2">
               <GovButton
+                v-if="canManage"
                 label="Terbitkan / Ubah SPD"
                 icon="pi pi-sync"
                 severity="secondary"
@@ -711,6 +715,7 @@ onMounted(() => {
                 title="Terbitkan atau ubah parameter SPD dengan rincian perjalanan dinas baru"
               />
               <GovButton
+                v-if="canManage"
                 label="Hapus Semua SPD"
                 icon="pi pi-trash"
                 severity="danger"
@@ -783,6 +788,7 @@ onMounted(() => {
                   @click="handleOpenSpdPrint(spd.id)"
                 />
                 <GovButton
+                  v-if="canManage"
                   label="Edit"
                   icon="pi pi-pencil"
                   severity="secondary"
@@ -792,6 +798,7 @@ onMounted(() => {
                   title="Edit rincian dokumen SPD ini"
                 />
                 <GovButton
+                  v-if="canManage"
                   icon="pi pi-trash"
                   severity="danger"
                   variant="outlined"
@@ -824,6 +831,7 @@ onMounted(() => {
           </div>
 
           <GovButton
+            v-if="canManage"
             label="Terbitkan SPD Sekarang"
             icon="pi pi-file-import"
             severity="success"
@@ -876,6 +884,7 @@ onMounted(() => {
                 @click="handleOpenSpdPrint(spd.id)"
               />
               <GovButton
+                v-if="canManage"
                 icon="pi pi-trash"
                 severity="danger"
                 variant="outlined"
@@ -890,6 +899,7 @@ onMounted(() => {
         <div class="flex items-center justify-between pt-2 border-t border-border">
           <div class="flex items-center gap-2">
             <GovButton
+              v-if="canManage"
               label="Hapus Semua SPD"
               icon="pi pi-trash"
               severity="danger"
@@ -898,6 +908,7 @@ onMounted(() => {
               @click="showDeleteAllSpdConfirm = true"
             />
             <GovButton
+              v-if="canManage"
               label="Terbitkan Ulang SPD"
               icon="pi pi-refresh"
               severity="secondary"

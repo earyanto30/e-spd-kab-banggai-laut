@@ -9,3 +9,6 @@ uat-1 phase 1 removed tandaTangan digital signature, opened login to Non-ASN emp
 uat-1 phase 2 implemented dynamic DasarHukum CRUD master table and integrated selection into Surat Tugas workflow
 uat-1 phase 3 centered official bottom signatures, standardized two-line Surat Tugas title, and strictly enforced PA vs KPA signatory rules
 uat-1 phase 4 implemented Page 2 SPD Back Page Visum Perjalanan Dinas with Permendagri standards and non-collate batch printing sequencer
+master jabatan implemented table Jabatan with Prisma relation to Pegawai (ASN), seeded 23 official positions, linked existing pegawai, added backend CRUD /api/jabatan, and updated ASN form with GovSelect dropdown
+dashboard cleanup removed anggaran widgets and budget summary cards, aligning dashboard strictly to official assignment volumes
+role system implemented strict RBAC matrix across backend controllers and frontend UI (SUPER_ADMIN full access; ADMIN read-only for users, kop surat, and dasar hukum; STAFF modify only for SPD and ST; USER read-only for SPD and ST)

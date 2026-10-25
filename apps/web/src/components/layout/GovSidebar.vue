@@ -91,6 +91,13 @@ const allMenuItems = [
         route: '/kepegawaian/asn',
         roles: [Role.ADMIN, Role.SUPER_ADMIN],
       },
+      {
+        key: 'kepegawaian-jabatan',
+        label: 'Data Jabatan',
+        icon: 'pi pi-briefcase',
+        route: '/kepegawaian/jabatan',
+        roles: [Role.ADMIN, Role.SUPER_ADMIN],
+      },
     ],
   },
   {

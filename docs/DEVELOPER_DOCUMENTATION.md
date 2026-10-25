@@ -34,9 +34,19 @@ erDiagram
         String pangkat
         String golongan
         String jabatan
+        String jabatanId FK
         String unitKerja
         Boolean isASN
         Boolean isPenandatangan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
+    Jabatan {
+        String id PK
+        String nama UK
+        String keterangan
+        Int urutan
         DateTime createdAt
         DateTime updatedAt
     }
@@ -113,6 +123,7 @@ erDiagram
     }
 
     User ||--o| Pegawai : "references pegawaiId"
+    Jabatan ||--o{ Pegawai : "pegawaiList (jabatanId)"
     Pegawai ||--o{ Spd : "spdList (pelaksana)"
     Pegawai ||--o{ Spd : "spdDitandatanganiList"
     Pegawai ||--o{ SuratTugas : "suratTugasDitandatanganiList"
@@ -148,14 +159,27 @@ Master record of civil servants (ASN) and official signatories within the Region
 | `nama` | String | No | None | None | Full legal name including academic degrees |
 | `pangkat` | String | No | None | None | Official rank (e.g., `Pembina Utama Muda`, `Penata`) |
 | `golongan` | String | No | None | None | Civil service grade (e.g., `IV/c`, `III/a`) |
-| `jabatan` | String | No | None | None | Official government position |
+| `jabatan` | String | No | None | None | Official government position snapshot |
+| `jabatanId` | String | Yes | `null` | FK -> `Jabatan.id` | Relation to master Jabatan; `ON DELETE SET NULL` |
 | `unitKerja` | String | No | `'Sekretariat Daerah'` | None | Organizational administrative unit |
 | `isASN` | Boolean | No | `true` | None | ASN status indicator |
 | `isPenandatangan` | Boolean | No | `false` | None | Flag indicating official signatory authorization |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.3 Table `DasarHukum`
+#### 1.3.3 Table `Jabatan`
+Master table of government positions and job titles within the Regional Secretariat.
+
+| Column | Data Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
+| `nama` | String | No | None | Unique | Official government job title |
+| `keterangan` | String | Yes | `null` | None | Echelon or scope description |
+| `urutan` | Int | No | `0` | None | Sorting priority for display and selection |
+| `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
+
+#### 1.3.4 Table `DasarHukum`
 Stores reusable statutory bases and legal foundations for official travel assignments.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -167,7 +191,7 @@ Stores reusable statutory bases and legal foundations for official travel assign
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.4 Table `KopSurat`
+#### 1.3.5 Table `KopSurat`
 Stores metadata and file locations for official letterhead PDF templates.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -183,7 +207,7 @@ Stores metadata and file locations for official letterhead PDF templates.
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.5 Table `SuratTugas`
+#### 1.3.6 Table `SuratTugas`
 Records official assignment orders authorizing official travel for one or multiple civil servants.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
@@ -206,7 +230,7 @@ Records official assignment orders authorizing official travel for one or multip
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
-#### 1.3.6 Table `Spd`
+#### 1.3.7 Table `Spd`
 Stores individual Surat Perjalanan Dinas records formatted to standard official specifications.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
