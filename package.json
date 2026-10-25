@@ -3,11 +3,15 @@
   "private": true,
   "scripts": {
     "build": "turbo build",
-    "dev": "turbo dev"
+    "dev": "turbo dev",
+    "test": "turbo test",
+    "test:coverage": "turbo test:coverage"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^5.0.5",
     "turbo": "^2.4.4",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "vitest": "^5.0.5"
   },
   "packageManager": "pnpm@12.4.2"
 }
