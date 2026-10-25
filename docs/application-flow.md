@@ -60,8 +60,13 @@ All client network requests route through `apps/web/src/utils/api.ts`:
 2. Injects `Authorization: Bearer <token>` from `localStorage`.
 3. Intercepts HTTP 401 Unauthorized responses to purge session storage and route to `/login`.
 
-### 2.2 Backend Guards
+### 2.2 Backend Guards and Role Hierarchy
 - `AuthGuard` (`apps/api/src/auth/auth.guard.ts`): Parses the Authorization Bearer header, validates JWT integrity via HMAC-SHA256, sets `req.user`, and verifies role permissions against `@Roles(...)` metadata.
+- **RBAC Roles:**
+  1. `SUPER_ADMIN` (Weight: 4): Full administrative and system management privileges.
+  2. `ADMIN` (Weight: 3): User management, master data, and document operations.
+  3. `STAFF` (Weight: 2): Operational data entry, drafting, and document updates.
+  4. `USER` (Weight: 1): Standard read-only access for assigned personnel.
 
 ---
 
@@ -84,7 +89,7 @@ stateDiagram-v2
 
 ### 3.2 State Definitions
 - `DRAFT`: Initial editable state. Document can be altered, removed, or reviewed.
-- `DISETUJUI`: Document has been formally approved and signed. In this state, the PDF engine renders the signatory's transparent digital signature image.
+- `DISETUJUI`: Document has been formally approved and issued. In this state, official signatory titles render according to institutional governance rules.
 - `SELESAI`: Assigned travel has occurred and reporting obligations are fulfilled.
 - `BATAL`: Document was cancelled or revoked.
 
@@ -103,18 +108,21 @@ sequenceDiagram
     participant Svc as SpdService
     participant DB as SQLite (via Prisma)
 
-    Staff->>Form: Fill 9 Required Inputs
+    Staff->>Form: Fill Form Inputs (Lama Hari & Tanggal Optional)
     Staff->>Form: Submit Form
     Form->>API: POST /api/spd (CreateSpdDto)
     API->>Svc: create(dto)
-    Svc->>DB: Check Pegawai exists
-    Svc->>Svc: Auto-generate nomorSpd (00X/SPD/SETDA/YYYY)
-    Svc->>Svc: Compute tanggalKembali = tanggalBerangkat + (lamaHari - 1)
+    Svc->>DB: Verify Pegawai exists
+    Svc->>Svc: Determine Prefix (KPA for Kuasa Pengguna Anggaran)
+    Svc->>Svc: Auto-generate nomorSpd ([Prefix][Seq]/SPD/YYYY)
+    opt tanggalBerangkat and lamaHari are provided
+        Svc->>Svc: Compute tanggalKembali = tanggalBerangkat + (lamaHari - 1)
+    end
     Svc->>DB: Insert Spd record (status: DRAFT)
     DB-->>Svc: Created Spd
     Svc-->>API: Created Spd
     API-->>Form: HTTP 201 Created
-    Form->>Form: Display Success Toast with Issue Number
+    Form->>Form: Display Success Toast with Issued Number
     Form->>Form: Offer Navigation to Preview & Print View
 ```
 
@@ -132,15 +140,15 @@ sequenceDiagram
     participant SPDSvc as SpdService
     participant DB as SQLite (via Prisma)
 
-    Admin->>STForm: Enter Assignment Scope and Select Multiple ASN
+    Admin->>STForm: Enter Purpose, Optional Maksud Header & Select Multiple ASN
     STForm->>API: POST /api/surat-tugas
     API->>STSvc: create(dto)
-    STSvc->>DB: Insert SuratTugas (without creating SPDs)
+    STSvc->>DB: Insert SuratTugas (without creating child SPDs)
     DB-->>STForm: Return Created SuratTugas
     STForm->>STView: Navigate to Preview (/surat-tugas/cetak/:id)
     Admin->>STView: Click "Terbitkan / Ubah SPD"
     STView->>Modal: Open Parameter Dialog
-    Admin->>Modal: Specify Transportation, Duration, Dates
+    Admin->>Modal: Configure Mode, Unit Prefix, Duration, Dates (Optional)
     Admin->>Modal: Confirm
     Modal->>API: POST /api/surat-tugas/:id/generate-spd (dto)
     API->>STSvc: generateSpd(id, dto)
@@ -163,14 +171,50 @@ When an existing Surat Tugas is updated via `PUT /api/surat-tugas/:id`:
 2. If new personnel are added to `pegawaiIds` of a Surat Tugas that has active child SPDs, the system generates SPD records for the newly added personnel.
 3. If personnel are removed from `pegawaiIds`, the corresponding child SPD records are pruned.
 
-### 4.4 Process 4: Signatory-Based Row-Level Access (`PENANDATANGAN`)
-When a user logs in with role `PENANDATANGAN`:
-1. `SpdService.findAll` and `SuratTugasService.findAll` inject conditional query filters matching the user's `pegawaiId`, NIP digits, full name substrings, or position strings.
-2. In `findById`, `verifySignerAccess` checks if the requesting signatory matches the document's assigned signatory. Unmatched requests throw an immediate `ForbiddenException` (HTTP 403).
+### 4.4 Process 4: Dashboard Analytics & Statistics (`DashboardModule`)
 
-### 4.5 Process 5: Client-Side Tabular Data Export (CSV)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Authenticated User
+    participant Home as HomeView.vue
+    participant Ctrl as DashboardController
+    participant Svc as DashboardService
+    participant DB as Prisma / SQLite
+
+    User->>Home: Navigate to Beranda / Dashboard
+    Home->>Ctrl: GET /api/dashboard/stats
+    Ctrl->>Svc: getStats()
+    par Query Metrics
+        Svc->>DB: Count total and active SPDs
+        Svc->>DB: Count Surat Tugas & registered ASN
+        Svc->>DB: Aggregate month-over-month differences
+        Svc->>DB: Aggregate 6-month destination trends (Dalam vs Luar Daerah)
+        Svc->>DB: Aggregate transportation mode counts
+        Svc->>DB: Query Top 5 Destinations & Recent 5 SPDs
+    end
+    Svc-->>Ctrl: Formatted DashboardStats payload
+    Ctrl-->>Home: HTTP 200 JSON
+    Home->>Home: Render KPI Cards and Chart.js Visualizations
+```
+
+- **KPI Cards:** Total SPD, Active SPD, Pelaksana ASN, and Total Surat Tugas. Budget metrics are excluded.
+- **Geographic Classification:** Travel destinations containing local terms (*Banggai, Banggai Laut, Bokan, Labobo, Bangkurung*) are grouped as *Dalam Wilayah*; all others are grouped as *Luar Daerah*.
+- **Transportation Breakdown:** Aggregates records into Pesawat Udara, Kapal Laut / Feri, Speedboat Pemda, and Kendaraan Darat.
+
+### 4.5 Process 5: Non-Collate Batch Printing Pipeline
+1. In `DaftarSpdView.vue`, the user selects multiple documents using row checkboxes.
+2. The user selects **Cetak Terpilih (Batch Non-Collate)**.
+3. The frontend requests `POST /api/spd/bulk/pdf` with payload `{ ids: string[], sequence: 'non-collate' }`.
+4. `SpdPdfService.generateBulkPdf`:
+   - Loads all target documents into memory.
+   - Appends all Front Sheets (Page 1 of Document 1..N) sequentially.
+   - Appends all Back Sheets (Page 2 of Document 1..N) sequentially.
+5. The unified PDF stream returns to the browser for duplex printing.
+
+### 4.6 Process 6: Client-Side Tabular Data Export (CSV)
 1. User clicks "Ekspor CSV" on `DaftarSpdView.vue` or `DaftarSuratTugasView.vue`.
-2. The current filtered data set is collected from reactive state.
+2. Filtered data set is collected from reactive table state.
 3. Fields are converted to RFC 4180-compliant comma-separated rows.
-4. Output is encoded with UTF-8 BOM (`\uFEFF`) to prevent character distortion in Microsoft Excel.
-5. An anchor element triggers an instant download with format `Rekap_SPD_Banggai_Laut_[YYYY-MM-DD].csv`.
+4. Output is encoded with UTF-8 BOM (`\uFEFF`) to prevent character distortion in spreadsheet software.
+5. Automated anchor element triggers download as `Rekap_SPD_Banggai_Laut_[YYYY-MM-DD].csv`.

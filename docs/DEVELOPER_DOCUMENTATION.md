@@ -1,6 +1,6 @@
 # Developer Documentation: SI-SPD Banggai Laut
 
-This document provides technical reference for the Sistem Informasi Surat Perjalanan Dinas (SI-SPD) of the Regional Secretariat of Banggai Laut Regency (Sulawesi Tengah). It covers the database schema, UI/UX standards, PDF generation mechanics, and end-to-end application workflows.
+This document provides a consolidated technical reference for the Sistem Informasi Surat Perjalanan Dinas (SI-SPD) of the Regional Secretariat of Banggai Laut Regency (Sulawesi Tengah). It covers the database schema, UI/UX standards, PDF generation mechanics, and end-to-end application workflows.
 
 ---
 
@@ -68,6 +68,7 @@ erDiagram
         String nomorSurat UK
         String dasarHukum
         String dalamRangka
+        String maksudHeader
         String tempatDikeluarkan
         DateTime tanggalSurat
         String penandatanganId FK
@@ -134,7 +135,7 @@ Manages system authentication and role-based permissions.
 | `username` | String | No | None | Unique | Login identifier (NIP or alphanumeric username) |
 | `email` | String | Yes | `null` | Unique | User email address |
 | `name` | String | No | None | None | Display name of the user |
-| `role` | String | No | `'USER'` | Enum Check | Values: `SUPER_ADMIN`, `ADMIN`, `PENANDATANGAN`, `STAFF`, `USER` |
+| `role` | String | No | `'USER'` | Enum Check | Values: `SUPER_ADMIN`, `ADMIN`, `STAFF`, `USER` |
 | `password` | String | No | None | None | Scrypt-hashed password string (`salt:derivedKey`) |
 | `isActive` | Boolean | No | `true` | None | Account activity toggle |
 | `pegawaiId` | String | Yes | `null` | Unique, FK -> `Pegawai.id` | Relation to employee record; `ON DELETE SET NULL` |
@@ -159,14 +160,14 @@ Master record of civil servants (ASN) and official signatories within the Region
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
 #### 1.3.3 Table `DasarHukum`
-Stores reusable statutory references and legal bases for official assignment letters (Surat Tugas).
+Stores reusable statutory bases and legal foundations for official travel assignments.
 
 | Column | Data Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
-| `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
-| `judul` | String | No | None | None | Short title or regulation header |
-| `isi` | String | No | None | None | Complete statutory text body |
-| `urutan` | Int | No | `0` | None | Sorting priority for display and letter inclusion |
+| `id` | String | No | `cuid()` | Primary Key | Unique statutory reference identifier |
+| `judul` | String | No | None | None | Short title or label of statutory basis |
+| `isi` | String | No | None | None | Complete statutory reference text |
+| `urutan` | Int | No | `0` | None | Display sort order index |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
@@ -192,22 +193,23 @@ Records official assignment orders authorizing official travel for one or multip
 | Column | Data Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
-| `nomorSurat` | String | No | None | Unique | Formal letter reference code (e.g., `090/001/ST-SETDA/2026`) |
-| `dasarHukum` | String | No | Default Statute | None | Statutory reference empowering the assignment |
-| `dalamRangka` | String | No | None | None | Purpose and task description |
+| `nomorSurat` | String | No | None | Unique | Formal letter reference code (`000.1.2.3/[Number]/[UnitCode]/[Year]`) |
+| `dasarHukum` | String | No | `""` | None | Statutory reference empowering the assignment |
+| `dalamRangka` | String | No | None | None | Purpose and task description (newline-separated multi-agenda) |
+| `maksudHeader` | String | Yes | `null` | None | Optional unnumbered title or header for multi-agenda tasks |
 | `tempatDikeluarkan` | String | No | `'Banggai'` | None | Issuing geographic location |
 | `tanggalSurat` | DateTime | No | `now()` | None | Official letter issuance date |
 | `penandatanganId` | String | Yes | `null` | FK -> `Pegawai.id` | Foreign key to signatory ASN; `ON DELETE SET NULL` |
-| `penandatanganNama` | String | No | `'ARSID HAMIDI, SH'` | None | Signatory name snapshot |
-| `penandatanganJabatan` | String | No | String | None | Signatory position title snapshot |
-| `penandatanganPangkat` | String | No | `'Pembina, IV/a'` | None | Signatory rank snapshot |
-| `penandatanganNip` | String | No | String | None | Signatory NIP snapshot |
+| `penandatanganNama` | String | Yes | `null` | None | Signatory name snapshot |
+| `penandatanganJabatan` | String | Yes | `null` | None | Signatory position title snapshot |
+| `penandatanganPangkat` | String | Yes | `null` | None | Signatory rank snapshot |
+| `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `kopSuratId` | String | Yes | `null` | None | Optional explicit letterhead reference ID |
 | `pegawaiIds` | String | Yes | `null` | None | Serialized JSON array of assigned `Pegawai.id`s |
 | `alatAngkut` | String | Yes | `null` | None | Transportation mode(s) |
 | `tempatTujuan` | String | Yes | `null` | None | Destination location |
-| `lamaHari` | Int | Yes | `1` | None | Duration in days |
-| `tanggalBerangkat` | DateTime | Yes | `null` | None | Scheduled departure date |
+| `lamaHari` | Int | Yes | `1` | None | Duration in days (optional) |
+| `tanggalBerangkat` | DateTime | Yes | `null` | None | Scheduled departure date (optional) |
 | `status` | String | No | `'DRAFT'` | None | Lifecycle state (`DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL`) |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
@@ -218,16 +220,16 @@ Stores individual Surat Perjalanan Dinas records formatted to standard official 
 | Column | Data Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | `id` | String | No | `cuid()` | Primary Key | Unique record identifier |
-| `nomorSpd` | String | No | None | Unique | Formal SPD reference (format: `XXX/SPD/SETDA/YYYY`) |
-| `pemberiPerintah` | String | No | None | None | Authorizing authority (`Pengguna Anggaran (PA)` or `Kuasa Pengguna Anggaran (KPA)`) |
+| `nomorSpd` | String | No | None | Unique | Formal reference (`[Prefix][Number]/SPD/[Year]`) |
+| `pemberiPerintah` | String | No | None | None | Authorizing authority (`PA` or `KPA`) |
 | `pegawaiId` | String | No | None | FK -> `Pegawai.id` | Relation to assigned traveling employee |
 | `dalamRangka` | String | No | None | None | Travel purpose; supports newline-delimited multi-agenda |
 | `alatAngkut` | String | No | None | None | Comma-delimited list of transportation modes |
 | `tempatBerangkat` | String | No | None | None | Point of departure (default: `'Banggai'`) |
 | `tempatTujuan` | String | No | None | None | Destination point |
-| `lamaHari` | Int | Yes | `null` | Positive Int | Duration in days (optional / auto-calculated) |
-| `tanggalBerangkat` | DateTime | No | None | None | Departure timestamp |
-| `tanggalKembali` | DateTime | No | None | None | Return timestamp (auto-calculated if omitted) |
+| `lamaHari` | Int | Yes | `null` | Positive Int | Duration in days (optional) |
+| `tanggalBerangkat` | DateTime | Yes | `null` | None | Departure timestamp (optional; if blank, Point 7 is left empty) |
+| `tanggalKembali` | DateTime | Yes | `null` | None | Return timestamp (optional) |
 | `skpd` | String | No | Bagian Umum SETDA | None | Regional work unit funding the travel |
 | `kodeRekening` | String | Yes | `null` | None | Budget account classification code |
 | `tingkatBiaya` | String | Yes | `null` | None | Budgetary allowance tier classification |
@@ -275,74 +277,6 @@ The application enforces a Civic palette designed for institutional administrati
 | `--color-border` | `#E2E8F0` (Slate 200) | `#1E293B` (Slate 800) | Container outlines, table borders, dividers |
 | `--color-primary-contrast` | `#FFFFFF` | `#0F172A` | Text rendered on top of `--color-primary` |
 
-#### 2.2.2 PrimeVue Theme Preset (`apps/web/src/main.ts`)
-
-```typescript
-const BanggaiLautCivicPreset = definePreset(Aura, {
-  semantic: {
-    primary: {
-      50: '#f0f6fa',
-      100: '#dce8f3',
-      200: '#bdd5e8',
-      300: '#8eb9d8',
-      400: '#5695c3',
-      500: '#0F4C81',
-      600: '#0d4373',
-      700: '#0a365c',
-      800: '#082a48',
-      900: '#061f35',
-      950: '#03111e',
-    },
-    colorScheme: {
-      light: {
-        primary: {
-          color: '#0F4C81',
-          contrastColor: '#FFFFFF',
-          hoverColor: '#0d4373',
-          activeColor: '#0a365c',
-        },
-        surface: {
-          0: '#FFFFFF',
-          50: '#F8FAFC',
-          100: '#F1F5F9',
-          200: '#E2E8F0',
-          300: '#CBD5E1',
-          400: '#94A3B8',
-          500: '#64748B',
-          600: '#475569',
-          700: '#334155',
-          800: '#1E293B',
-          900: '#0F172A',
-          950: '#020617',
-        },
-      },
-      dark: {
-        primary: {
-          color: '#38BDF8',
-          contrastColor: '#0F172A',
-          hoverColor: '#7dd3fc',
-          activeColor: '#0284c7',
-        },
-        surface: {
-          0: '#162238',
-          50: '#1A2740',
-          100: '#1E293B',
-          200: '#263859',
-          300: '#334870',
-          400: '#64748B',
-          500: '#94A3B8',
-          600: '#CBD5E1',
-          700: '#E2E8F0',
-          800: '#F1F5F9',
-          900: '#F8FAFC',
-          950: '#FFFFFF',
-        },
-      },
-    },
-  },
-});
-```
-
 ### 2.3 Typography Standards
 
 The system maintains a separation between administrative UI typography and formal document typography:
@@ -352,70 +286,32 @@ The system maintains a separation between administrative UI typography and forma
    - Font Feature Settings: `'cv02', 'cv03', 'cv04', 'cv11'` for enhanced numeral and glyph clarity
    - Body Line Height: 1.5
 
-2. **Official Government Document Typography (`SpdDetailPrintView.vue`):**
-   - Font Family: Strict Serif stack (`'Times New Roman', Times, Georgia, serif !important`)
-   - Document Text Color: Strict `#000000 !important` (completely isolated from UI dark mode)
+2. **Official Government Document Typography (`SpdDocument.vue` & `SpdBackDocument.vue`):**
+   - Font Family: Strict Serif stack (`'Times New Roman', Times, Georgia, serif !important`) with selectable Arial / Helvetica option
+   - Document Text Color: Strict `#000000 !important` (isolated from UI dark mode)
    - Paper Background: Strict `#FFFFFF !important`
    - Document Base Sizing: 12pt (`16px @ 96 DPI`) with `1.35` line-height
 
-### 2.4 Component Primitives (`apps/web/src/components/core/`)
+### 2.4 Physical Document Layout & Print Media Standard
 
-All raw PrimeVue components are wrapped by custom governance primitives to ensure design uniformity:
+The document renderers conform to Indonesian Ministry of Home Affairs (Permendagri) and Regional Regulations (Perbup Banggai Laut):
 
-- `GovButton`: Normalizes `severity`, `variant` (`outlined` / `text`), and `size` (`small` / `large`).
-- `GovCard`: Enforces rounded corners (`0.75rem`), subtle borders, and background surface variables.
-- `GovTable`: Custom-styled data table wrapper with fixed header, uppercase column descriptors, and responsive layout.
-- `GovDatePicker`: Date picker with custom dark mode panel overrides, single/range mode, and Indonesian localization.
-- `GovAutoComplete`: Async search input with debounce and chip-based selection for ASN profiles.
-- `GovMultiSelect`: Chip-based selection input for multi-item arrays (e.g., transportation modes).
-- `GovInputNumber`: Formatted integer input with automated verbal Indonesian number transformation (*angka terbilang*).
-- `GovTextarea`: Auto-resizing textarea with integrated reactive character counter and limit enforcement.
-- `GovToast`: Fixed overlay notification container.
-
-### 2.5 Toast Notification and Feedback System
-
-The application uses an overlay toast system via `GovToast.vue` and `useGovToast.ts`.
-
-#### 2.5.1 Layout and Viewport Adaptability
-The toast container is mounted at the root (`App.vue`) and styled via fixed positioning:
-- **Navbar Offset:** Set to `top: 5rem !important` (`80px`) on desktop to prevent visual collision with the 64px (`h-16`) header bar.
-- **Desktop (Viewport >= 769px):** Fixed width of `26rem` (`416px`) positioned at `right: 1.5rem`.
-- **Tablet (Viewport <= 768px):** Auto width with boundaries `left: 1rem; right: 1rem; max-width: calc(100vw - 2rem)`.
-- **Mobile (Viewport <= 480px):** Auto width with boundaries `left: 0.75rem; right: 0.75rem; max-width: calc(100vw - 1.5rem)`.
-
-#### 2.5.2 Lifecycle Durations
-- `toast.success(message, summary?, 4000)`
-- `toast.info(message, summary?, 4000)`
-- `toast.warn(message, summary?, 4500)`
-- `toast.error(message, summary?, 5000)`
-
-### 2.6 Physical Document Layout & Print Media Standard
-
-The document renderer (`apps/web/src/views/SpdDetailPrintView.vue`) conforms to Indonesian Ministry of Home Affairs (Permendagri) and Regional Regulations (Perbup Banggai Laut):
-
-#### 2.6.1 Paper Dimensions
+#### 2.4.1 Paper Dimensions
 - **Legal / F4 (Primary):** `215.9mm` x `355.6mm` (`8.5in x 14in` / `612pt x 1008pt`)
 - **A4 (Secondary):** `210.0mm` x `297.0mm` (`595.28pt x 841.89pt`)
 
-#### 2.6.2 Physical Margins
-- **Left Margin:** `16mm` (`60px` / `45.35pt`)
-- **Right Margin:** `16mm` (`60px` / `45.35pt`)
-- **Top Margin (With Letterhead):** `12mm` (`45px` / `34.0pt`)
-- **Top Margin (Without Letterhead, for pre-printed blanks):** `48mm` (`181px` / `136.0pt`)
-- **Bottom Margin:** `20mm` (`75px` / `56.7pt`)
+#### 2.4.2 Narrow Margins Standard
+- **Left Margin:** `12.7mm` (`36pt` / `48px`)
+- **Right Margin:** `12.7mm` (`36pt` / `48px`)
+- **Top Margin (with letterhead):** `12mm` (`45px`)
+- **Top Margin (without letterhead, for physical stationery):** `48mm` (`181px`)
+- **Bottom Margin:** `15mm` (`56.7pt`)
 
-#### 2.6.3 10-Point Table Proportions
-Total Table Width: `690px` (or `522pt` in PDF generator)
-- **Column 1 (Item Number):** `36px` (~5.2%), centered text, right border omitted.
-- **Column 2 (Description):** `287px` (~41.6%), left border omitted.
-- **Column 3 (Value):** `367px` (~53.2%), text justified.
-
-#### 2.6.4 Print Isolation Rules (`@media print`)
-When invoking `window.print()`:
-- Navigation bars, sidebars, buttons, alerts, and breadcrumbs are hidden via `.no-print` and `display: none !important`.
-- Background elements are forced transparent (`background: transparent !important`).
-- Document containers drop shadows and margins (`box-shadow: none !important; margin: 0 !important`).
-- Page breaks inside the document sheet are suppressed (`page-break-inside: avoid; page-break-after: avoid`).
+#### 2.4.3 Multi-Page Document Architecture
+The SPD document interface embeds both front and back pages in a continuous flow:
+- Front Page: `SpdDocument.vue` (10-Point official table, width $540\text{ pt}$).
+- Back Page: `SpdBackDocument.vue` (Tabel Visum Perjalanan Dinas, width $540\text{ pt}$).
+- Page Break: Enforced via CSS `@media print { .page-break { break-before: page; page-break-before: always; } }`.
 
 ---
 
@@ -423,26 +319,30 @@ When invoking `window.print()`:
 
 ### 3.1 Architecture Overview
 
-PDF generation is implemented in the NestJS backend (`apps/api/src/spd/spd-pdf.service.ts` and `apps/api/src/surat-tugas/surat-tugas-pdf.service.ts`). The system uses `pdf-lib` to perform vector and raster canvas operations directly on the PDF binary buffer, avoiding the memory overhead of headless Chromium processes.
+PDF generation is implemented in the NestJS backend (`apps/api/src/spd/spd-pdf.service.ts` and `apps/api/src/surat-tugas/surat-tugas-pdf.service.ts`) using `pdf-lib` direct binary canvas drawing.
 
 ```mermaid
 flowchart TD
-    Req[Client Request GET /api/spd/:id/pdf] --> Ctrl[SpdController.downloadPdf]
+    Req[HTTP Request GET /api/spd/:id/pdf] --> Ctrl[SpdController.downloadPdf]
     Ctrl --> Svc[SpdPdfService.generatePdf]
     Svc --> FetchDB[Prisma Query: Spd with Relations]
-    FetchDB --> ResolveKop[Resolve KopSurat File Path]
-    ResolveKop --> LoadPDF[PDFDocument.load existing Kop PDF]
+    FetchDB --> ResolveKop[Resolve KopSurat File on Disk]
+    ResolveKop --> LoadPDF[PDFDocument.load Kop Buffer]
     LoadPDF --> EmbedFont[Embed Helvetica or Times-Roman Font]
     EmbedFont --> DrawHeader[Draw Metadata and Document Title]
-    DrawHeader --> DrawTable[Iterate and Draw 10-Point Table Rows]
+    DrawHeader --> DrawTable[Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)]
     DrawTable --> WrapAlg[splitTextToLines Word Boundary Wrapping]
     WrapAlg --> JustAlg[drawJustifiedText Space Distribution]
-    JustAlg --> DrawSign[Draw Signatory Block and Date]
-    DrawSign --> CheckSig{Status DISETUJUI and Signature Exists?}
-    CheckSig -- Yes --> EmbedSig[Embed Transparent PNG Signature with scaleToFit]
-    CheckSig -- No --> SavePDF[pdfDoc.save to Uint8Array]
-    EmbedSig --> SavePDF
-    SavePDF --> StreamOut[Return Buffer and Stream with application/pdf]
+    JustAlg --> CheckPoint7{Is Tanggal Berangkat Present?}
+    CheckPoint7 -- Yes --> RenderPoint7[Render Dates & Duration]
+    CheckPoint7 -- No --> BlankPoint7[Leave Point 7 Blank]
+    RenderPoint7 --> CheckSignSpace{Does Signature Block Fit?}
+    BlankPoint7 --> CheckSignSpace
+    CheckSignSpace -- Fits --> DrawSign[Draw Atomic Signature Block]
+    CheckSignSpace -- Overflow --> NewPage[Add Page 2 Running Header] --> DrawSign
+    DrawSign --> DrawBackPage[Draw Page 2: Halaman Belakang Tabel Visum]
+    DrawBackPage --> SavePDF[pdfDoc.save to Uint8Array Buffer]
+    SavePDF --> StreamOut[Return Buffer and Stream application/pdf]
 ```
 
 ### 3.2 Coordinate System and Dimensions
@@ -451,190 +351,48 @@ flowchart TD
 $$\text{1 point} = \frac{1}{72} \text{ inch} \approx 0.352778 \text{ mm}$$
 
 Origin $(0, 0)$ is situated at the bottom-left corner of the page. Y-coordinates increase upwards.
-- **Legal Page Size:** Width = `612 pt`, Height = `1008 pt`
-- **A4 Page Size:** Width = `595.28 pt`, Height = `841.89 pt`
+- **Legal Canvas:** Width = `612 pt`, Height = `1008 pt`
+- **Narrow Margins:** Left = `36 pt`, Right = `576 pt`, Content Width = `540 pt`
 
-### 3.3 Dynamic Paper Size Detection
+### 3.3 Vector Drawing Pipeline & Calculations
 
-The utility `detectPdfPaperSize` (`apps/api/src/kop-surat/pdf-size.util.ts`) evaluates the binary buffer of uploaded PDF letterheads:
+#### 3.3.1 Table Coordinates (SPD Front Page)
+Total table width: $540\text{ pt}$ starting at $X = 36\text{ pt}$ and ending at $X = 576\text{ pt}$.
+- Column 1 (Item Index): $24\text{ pt}$
+- Column 2 (Description): $190\text{ pt}$
+- Column 3 (Value / Details): $326\text{ pt}$
 
-1. Scans ASCII string representation for `/MediaBox [ x1 y1 x2 y2 ]`.
-2. If missing (compressed object stream), parses deflate streams with `zlib.inflateSync` to extract the inflated MediaBox.
-3. Computes width and height in points and matches against standard tolerances ($\pm 6\text{ pt}$):
-   - Legal: $612 \times 1008\text{ pt}$
-   - A4: $595.28 \times 841.89\text{ pt}$
-   - F4 / Folio: $595.28 \times 935.43\text{ pt}$ or $612 \times 936\text{ pt}$
+#### 3.3.2 Point 7 Optional Departure Date Handling
+When `tanggalBerangkat` is null, all three sub-items under Point 7 are set to empty strings (`['', '', '']`), leaving the value column clean and blank.
 
-### 3.4 Vector Drawing Pipeline
+#### 3.3.3 Surat Tugas Specific Spacing Rules
+- **Header Spacing:** Extra line space above `SURAT TUGAS` (+1 line space) and below the letter number before `Dasar :` (+1 line space).
+- **Directive Spacing:** Exactly 3 line spaces before `MEMERINTAHKAN:` and 2 line spaces after `MEMERINTAHKAN:`.
+- **Unnumbered Header (`maksudHeader`):** Renders an introductory header next to `Untuk :` without a number prefix, followed by numbered sub-agenda items below.
 
-#### 3.4.1 Baseline Calculation Under Letterhead
-The official double-border line of the letterhead ends at approximately $Y = 879\text{ pt}$ on a Legal sheet. The dynamic start position is calculated as:
-```typescript
-const startY = height > 900 ? 864 : height - 140;
-```
-
-#### 3.4.2 Text Wrapping Algorithm (`splitTextToLines`)
-Wraps strings on word boundaries against maximum column widths:
-```typescript
-private splitTextToLines(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
-  if (!text) return [];
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word;
-    const width = font.widthOfTextAtSize(testLine, fontSize);
-    if (width <= maxWidth) {
-      currentLine = testLine;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  return lines;
-}
-```
-
-#### 3.4.3 Justified Text Algorithm (`drawJustifiedText`)
-Distributes additional whitespace evenly across words in a line to produce justified text:
-```typescript
-private drawJustifiedText(
-  page: PDFPage,
-  line: string,
-  x: number,
-  y: number,
-  fontSize: number,
-  font: PDFFont,
-  color: any,
-  targetWidth: number,
-  isLastLine: boolean = false,
-): void {
-  const trimmed = line.trim();
-  const words = trimmed.split(/\s+/);
-
-  if (isLastLine || words.length <= 1) {
-    page.drawText(trimmed, { x, y, size: fontSize, font, color });
-    return;
-  }
-
-  const wordsTotalWidth = words.reduce((acc, w) => acc + font.widthOfTextAtSize(w, fontSize), 0);
-  const spaceToDistribute = targetWidth - wordsTotalWidth;
-  const gapWidth = spaceToDistribute / (words.length - 1);
-  const normalSpaceWidth = font.widthOfTextAtSize(' ', fontSize);
-
-  // Fallback if spacing produces distortion
-  if (gapWidth > normalSpaceWidth * 3.5 || gapWidth < normalSpaceWidth * 0.5) {
-    page.drawText(trimmed, { x, y, size: fontSize, font, color });
-    return;
-  }
-
-  let curX = x;
-  for (let i = 0; i < words.length; i++) {
-    page.drawText(words[i], { x: curX, y, size: fontSize, font, color });
-    curX += font.widthOfTextAtSize(words[i], fontSize) + gapWidth;
-  }
-}
-```
-
-#### 3.4.4 Hanging Indent Implementation (Multi-Agenda Items)
-In Point 4 (*Maksud Perjalanan Dinas*), when multiple agenda items are present:
-1. The colon `:` is rendered at fixed coordinate $X = \text{col3X} + \text{cellPaddingX}$.
-2. Item prefix index (e.g. `1. `, `2. `) occupies $16\text{ pt}$ width at $X = \text{colonX} + 10\text{ pt}$.
-3. Text body wraps with width offset by $16\text{ pt}$, keeping wrapped subsequent lines vertically aligned with the first line of text rather than the index number.
-
-#### 3.4.5 Companion Sub-Table Rendering (Point 8)
-Row 8 (*Nama Pengikut*) is rendered with a fixed height of $96\text{ pt}$:
-- Title banner height: $21\text{ pt}$
-- Sub-header row height: $19\text{ pt}$ (`No`, `Nama`, `Umur`, `Keterangan`)
-- Body space: $56\text{ pt}$ providing 3 numbered sub-rows ($15\text{ pt}$ each) with bottom boundary clearance.
-- Vertical separator divides `Umur` and `Keterangan` down the middle of Column 3 ($X = \text{col3X} + \frac{\text{colWidths}[2]}{2}$).
-
-### 3.5 Signatory Alignment and Governance Rules
-
-Bottom signature blocks for official documents are aligned using calculated center positioning and strictly governed signatory rules:
-
-#### 3.5.1 Centered Signature Blocks
-Both Surat Tugas and SPD calculate horizontal text positions within a $230\text{ pt}$ bounding box positioned at the right table margin:
-```typescript
-const signBlockWidth = 230;
-const signX = tableRightX - signBlockWidth;
-
-const textWidth = font.widthOfTextAtSize(text, fontSize);
-const textX = signX + (signBlockWidth - textWidth) / 2;
-```
-- **Official Name:** Underlined with exact text width boundaries matching `textX` and `textX + textWidth`.
-- **Surat Tugas Signatory Title:** Formatted explicitly into two centered uppercase lines:
+#### 3.3.4 Signatory Rules & Governance
+- **Sekda Rule:** When signed by the *Sekretaris Daerah* (or acting Sekda), the prefix label `PENGGUNA ANGGARAN` or `PA` is omitted, rendering directly as:
   ```text
-  KEPALA BAGIAN UMUM
-  SETDA KAB. BANGGAI LAUT
+  SEKRETARIS DAERAH
+  KABUPATEN BANGGAI LAUT
   ```
-- **SPD Signatory Label & Governance:**
-  - Strictly governed as `KUASA PENGGUNA ANGGARAN` or `PENGGUNA ANGGARAN`.
-  - When **KPA** is selected, the signatory defaults and locks strictly to the Kepala Bagian Umum SETDA.
-  - When **PA** is selected, the signatory defaults to the Sekretaris Daerah with flexible selection for Plt./Plh. officials.
+- **KPA Rule:** When issued by *Kuasa Pengguna Anggaran*, signatory locks to *Kepala Bagian Umum SETDA*, and the SPD number retains the `KPA` code prefix.
+- **Atomic Signature Block:** If the complete signature block cannot fit above the bottom margin ($18\text{ pt}$), the entire block shifts to a new page as an atomic unit with a `- 2 -` running header.
 
-### 3.6 Page 2: Halaman Belakang (Tabel Visum Perjalanan Dinas)
+### 3.4 Page 2: Halaman Belakang (Tabel Visum Perjalanan Dinas)
 
-Every generated SPD PDF automatically includes Page 2 (Lembar Visum) formatted according to official Permendagri / Perbup standards:
+Every generated SPD PDF automatically appends Page 2 (Lembar Visum) formatted with Narrow margins:
+- Left: $X = 36\text{ pt}$, Right: $X = 576\text{ pt}$ (Table Width: $540\text{ pt}$)
+- Center Vertical Divider: $X = 306\text{ pt}$ (Half Width: $270\text{ pt}$)
+- Includes Row I (Keberangkatan), Rows II-V (Transit / Kedatangan / Keberangkatan), Row VI (Kepulangan & Pemeriksaan), Row VII (Catatan Lain-lain), Row VIII (Perhatian), and Bottom Signatory Block.
 
-```text
-Table Boundaries:
-Left: X = 40 pt, Right: X = 572 pt (Width: 532 pt), Center Divider: X = 306 pt
-```
+### 3.5 Non-Collate Batch Printing Sequencer
 
-#### 3.6.1 Section Breakdown
-1. **Row I (Keberangkatan Awal):**
-   - Left quadrant: Empty whitespace with no borders on top, left, or center divider.
-   - Right quadrant: `I. Berangkat dari (Tempat Kedudukan)`, `Ke`, `Pada Tanggal`, and the PA/KPA signatory with underlined name and NIP.
-2. **Rows II s/d V (Catatan Tempat Transit / Tujuan Visum):**
-   - Divided down the center ($X = 306\text{ pt}$).
-   - Left: `Tiba di`, `Pada Tanggal`, centered dotted signature line `(....................................................................)`.
-   - Right: `Berangkat dari`, `Ke`, `Pada Tanggal`, centered dotted signature line.
-3. **Row VI (Kepulangan & Pemeriksaan):**
-   - Left: Return arrival to home base (`Banggai`), return date, and PA/KPA signatory.
-   - Right: Multi-line statutory inspection statement:
-     > *"Telah diperiksa, dengan keterangan bahwa perjalanan Dinas tersebut diatas benar dilakukan atas perintahnya dan semata mata untuk kepentingan jabatan dalam waktu yang sesingkat - singkatnya."*
-4. **Row VII (Catatan Lain-lain):**
-   - Full width row across table ($532\text{ pt}$).
-5. **Row VIII (Perhatian):**
-   - Full width row with statutory financial liability warning for PPK, traveler, and certifying officials.
-6. **Bottom Signature Block:**
-   - Positioned below the table on the right side ($X = 342\text{ pt}$, width $230\text{ pt}$).
-   - Centered uppercase title (`KUASA PENGGUNA ANGGARAN` / `PENGGUNA ANGGARAN`), physical signature clearance, underlined official name, and NIP.
+When multiple SPDs are selected for printing or downloading simultaneously, `SpdPdfService.generateBulkPdf` supports non-collate ordering:
+1. Group 1: Sequentially appends Front Sheets (Page 1) of all selected documents.
+2. Group 2: Sequentially appends Back Sheets (Page 2) of all selected documents.
 
-### 3.7 Non-Collate Batch Printing Sequencer
-
-When multiple SPDs are selected for printing or downloading simultaneously, `SpdPdfService.generateBulkPdf` supports both `collate` and `non-collate` sequencing:
-
-```typescript
-if (sequence === 'non-collate') {
-  // Group 1: All Front Sheets (Page 1 of Doc A, Doc B, Doc C...)
-  for (const doc of loadedDocs) {
-    const [front] = await mergedDoc.copyPages(doc, [0]);
-    mergedDoc.addPage(front);
-  }
-  // Group 2: All Back Sheets (Page 2 of Doc A, Doc B, Doc C...)
-  for (const doc of loadedDocs) {
-    if (doc.getPageCount() > 1) {
-      const [back] = await mergedDoc.copyPages(doc, [1]);
-      mergedDoc.addPage(back);
-    }
-  }
-}
-```
-
-This enables administrative staff to perform high-volume duplex printing on standard office printers: print all front pages in batch, place the printed stack back into the input tray, and print all back pages on the reverse side.
-
-### 3.8 HTTP Streaming Output
-
-The controller serves generated buffers with standard binary streaming headers:
-```typescript
-res.setHeader('Content-Type', 'application/pdf');
-res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
-res.send(buffer);
-```
+This facilitates direct duplex printing on standard office printers.
 
 ---
 
@@ -679,24 +437,23 @@ sequenceDiagram
 ```
 
 #### 4.2.1 Cryptographic Implementations (`apps/api/src/auth/crypto.util.ts`)
-- **Password Hashing:** Implemented with Node.js standard library `scryptSync` using a 16-byte random salt and 64-byte key length. Stored format: `${salt}:${hash}`.
-- **Password Verification:** Uses `timingSafeEqual` between derived key buffer and stored hash buffer to prevent timing attacks.
-- **JWT Generation & Verification:** Custom implementation using Node.js `createHmac('sha256', secret)` with Base64URL encoding. Avoids external dependencies while ensuring HMAC-SHA256 integrity. Secret length minimum of 32 characters enforced in production.
+- **Password Hashing:** Node.js standard library `scryptSync` with 16-byte random salt and 64-byte key length (`${salt}:${hash}`).
+- **Password Verification:** Constant-time comparison via `timingSafeEqual`.
+- **JWT Generation & Verification:** Custom implementation using Node.js `createHmac('sha256', secret)` with Base64URL encoding. Secret minimum length of 32 characters enforced in production.
 
 #### 4.2.2 Role Hierarchy and Access Levels
 Roles defined in `@si-setda/shared-types`:
-1. `SUPER_ADMIN` (Weight: 5): Unrestricted administrative access across all modules.
-2. `ADMIN` (Weight: 4): System administration, master data, user accounts, and letters.
-3. `PENANDATANGAN` (Weight: 3): Signatory authority; access restricted to documents assigned to their NIP/name/title.
-4. `STAFF` (Weight: 2): Operational data entry, document draft creation, and updates.
-5. `USER` (Weight: 1): Read-only document viewing for assigned civil servants.
+1. `SUPER_ADMIN` (Weight: 4): Full administrative and system management privileges.
+2. `ADMIN` (Weight: 3): User management, master data, and document operations.
+3. `STAFF` (Weight: 2): Operational data entry, drafting, and document updates.
+4. `USER` (Weight: 1): Standard read-only access for assigned personnel.
 
 ### 4.3 Document Lifecycle: Surat Tugas and SPD
 
 ```mermaid
 stateDiagram-v2
     [*] --> DRAFT : Create Surat Tugas / SPD
-    DRAFT --> DISETUJUI : Sign / Approve (PA / KPA)
+    DRAFT --> DISETUJUI : PA / KPA Signs Document
     DISETUJUI --> SELESAI : Official Travel Completed
     DRAFT --> BATAL : Cancelled by Admin
     DISETUJUI --> BATAL : Cancelled by Admin
@@ -704,74 +461,43 @@ stateDiagram-v2
     BATAL --> [*]
 ```
 
-### 4.4 Flow: Surat Tugas to On-Demand SPD Generation
+### 4.4 Dashboard Analytics Module (`DashboardModule`)
+
+The dashboard analytics service (`apps/api/src/dashboard/dashboard.service.ts`) provides realtime statistics for `HomeView.vue` via `GET /api/dashboard/stats`:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Admin as Staff / Admin
-    participant STView as SuratTugasDetailPrintView.vue
-    participant Modal as Modal Parameter Dialog
-    participant STCtrl as SuratTugasController
-    participant STSvc as SuratTugasService
-    participant SPDSvc as SpdService
+    actor User as Authenticated User
+    participant Home as HomeView.vue
+    participant Ctrl as DashboardController
+    participant Svc as DashboardService
     participant DB as Prisma / SQLite
 
-    Admin->>STView: Click "Terbitkan / Ubah SPD"
-    STView->>Modal: Open Dialog (prefilled with ST parameters)
-    Admin->>Modal: Adjust Transportation, Duration, Departure Date
-    Admin->>Modal: Click "Konfirmasi & Terbitkan SPD"
-    Modal->>STCtrl: POST /api/surat-tugas/:id/generate-spd (DTO)
-    STCtrl->>STSvc: generateSpd(suratTugasId, dto)
-    STSvc->>DB: Query SuratTugas with assigned pegawaiIds
-    loop For each assigned Pegawai
-        alt SPD already exists for Pegawai
-            STSvc->>DB: Update existing SPD fields (sync parameters)
-        else SPD does not exist
-            STSvc->>SPDSvc: create(SpdDto)
-            SPDSvc->>SPDSvc: Auto-generate Nomor SPD (001/SPD/SETDA/YYYY)
-            SPDSvc->>DB: Insert new Spd record
-        end
+    User->>Home: Navigate to Beranda / Dashboard
+    Home->>Ctrl: GET /api/dashboard/stats
+    Ctrl->>Svc: getStats()
+    par Query Metrics
+        Svc->>DB: Count total and active SPDs
+        Svc->>DB: Count Surat Tugas & registered ASN
+        Svc->>DB: Aggregate month-over-month differences
+        Svc->>DB: Aggregate 6-month destination trends (Dalam vs Luar Daerah)
+        Svc->>DB: Aggregate transportation mode counts
+        Svc->>DB: Query Top 5 Destinations & Recent 5 SPDs
     end
-    STSvc->>DB: Update SuratTugas travel metadata
-    STSvc-->>STCtrl: Return updated SuratTugas with spdList
-    STCtrl-->>STView: HTTP 200 OK
-    STView->>STView: Re-render assigned personnel cards with generated SPD links
+    Svc-->>Ctrl: Formatted DashboardStats payload
+    Ctrl-->>Home: HTTP 200 JSON
+    Home->>Home: Render KPI Cards and Chart.js Visualizations
 ```
 
-#### 4.4.1 Dynamic Numbering Algorithm
-When `nomorSpd` is not manually supplied, `SpdService.create` evaluates the current calendar year sequence:
-```typescript
-const year = new Date().getFullYear();
-const count = await this.prisma.spd.count({
-  where: {
-    createdAt: {
-      gte: new Date(`${year}-01-01T00:00:00.000Z`),
-      lte: new Date(`${year}-12-31T23:59:59.999Z`),
-    },
-  },
-});
-const seq = String(count + 1).padStart(3, '0');
-let nomorSpd = `${seq}/SPD/SETDA/${year}`;
+- **KPI Cards:** Total SPD, Active SPD, Pelaksana ASN, and Total Surat Tugas (budget metrics excluded).
+- **Geographic Classification:** Travel destinations containing local keywords (*Banggai, Banggai Laut, Bokan, Labobo, Bangkurung*) are automatically grouped as *Dalam Wilayah*; all others as *Luar Daerah*.
+- **Transportation Modes:** Automatically categorized into Pesawat Udara, Kapal Laut / Feri, Speedboat Pemda, and Kendaraan Darat.
 
-// Collision prevention check
-const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
-if (existing) {
-  nomorSpd = `${String(count + 2).padStart(3, '0')}/SPD/SETDA/${year}`;
-}
-```
+### 4.5 Reporting and CSV Export Pipeline
 
-### 4.5 Row-Level Security for Signatories (`PENANDATANGAN`)
-
-When an authenticated user has the `PENANDATANGAN` role:
-1. `SpdService.findAll` and `SuratTugasService.findAll` inject conditional `where` clauses (`buildSignerOrConditions`).
-2. Evaluates equality against `penandatanganId`, clean numerical NIP match against `penandatanganNip`, substring match on `penandatanganNama`, and position substring on `penandatanganJabatan`.
-3. `findById` executes `verifySignerAccess`; attempts to read unassigned documents trigger an immediate `ForbiddenException` (HTTP 403).
-
-### 4.6 Reporting and CSV Export Pipeline
-
-Exporting data to CSV (`DaftarSpdView.vue` and `DaftarSuratTugasView.vue`) is executed entirely client-side to minimize server load:
+Exporting data to CSV (`DaftarSpdView.vue` and `DaftarSuratTugasView.vue`) is executed client-side:
 1. Fetches filtered dataset from REST API.
-2. Maps entity objects into standardized tabular columns with comma and quote escaping.
+2. Converts data into RFC 4180-compliant comma-separated rows.
 3. Prepends Unicode Byte Order Mark (`\uFEFF`) to enforce UTF-8 parsing in Microsoft Excel.
-4. Generates an in-memory `Blob` and triggers automated download via temporary anchor element (`<a download="Rekap_SPD_Banggai_Laut_[DATE].csv">`).
+4. Generates an in-memory `Blob` and triggers automated download as `Rekap_SPD_Banggai_Laut_[DATE].csv`.

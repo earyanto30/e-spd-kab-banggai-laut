@@ -10,7 +10,7 @@ Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat
 - **Backend Service (`apps/api`):** NestJS, Prisma ORM, SQLite, pdf-lib
 - **Frontend Client (`apps/web`):** Vue 3 (Composition API), Vite, PrimeVue 4, Tailwind CSS 3
 - **Shared Types Package (`packages/shared-types`):** TypeScript interfaces, DTOs, Enums, Zod validation schemas
-- **Storage Subsystem:** Local filesystem storage for official letterhead templates (`uploads/kop-surat`) and digital signatures (`uploads/signatures`)
+- **Storage Subsystem:** Local filesystem storage for official letterhead templates (`uploads/kop-surat`)
 
 ---
 

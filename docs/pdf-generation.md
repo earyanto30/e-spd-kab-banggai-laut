@@ -18,13 +18,17 @@ flowchart TD
     LoadDoc --> EmbedFonts[Embed StandardFonts: TimesRoman or Helvetica]
     EmbedFonts --> DrawTopMeta[Draw Right-Top Metadata]
     DrawTopMeta --> DrawDocTitle[Draw Centered Document Title with Underline]
-    DrawDocTitle --> DrawGrid[Iterate and Draw 10-Point Table Rows]
+    DrawDocTitle --> DrawGrid[Iterate and Draw 10-Point Table Rows (Narrow 36pt Margins)]
     DrawGrid --> ProcessText[Text Wrap and Justification Algorithms]
-    ProcessText --> DrawSignBlock[Draw Signatory Block and Issue Date]
-    DrawSignBlock --> CheckSignature{Is Status DISETUJUI and PNG Signature Exists?}
-    CheckSignature -- Yes --> EmbedSigImg[Embed PNG via pdfDoc.embedPng and scaleToFit]
-    CheckSignature -- No --> SaveBytes[pdfDoc.save to Uint8Array Buffer]
-    EmbedSigImg --> SaveBytes
+    ProcessText --> CheckPoint7{Is Tanggal Berangkat Present?}
+    CheckPoint7 -- Yes --> RenderPoint7[Render Duration, Departure, and Arrival Dates]
+    CheckPoint7 -- No --> BlankPoint7[Leave Point 7 Clean and Blank]
+    RenderPoint7 --> CheckPageSpace{Does Signature Block Fit on Page?}
+    BlankPoint7 --> CheckPageSpace
+    CheckPageSpace -- Fits --> DrawSignBlock[Draw Atomic Signature Block on Current Page]
+    CheckPageSpace -- Overflow --> AddNewPage[Add New Page with Running Header] --> DrawSignBlock
+    DrawSignBlock --> DrawBackPage[Generate Page 2: Halaman Belakang Tabel Visum]
+    DrawBackPage --> SaveBytes[pdfDoc.save to Uint8Array Buffer]
     SaveBytes --> SendStream[Express Response: application/pdf stream]
 ```
 
@@ -69,12 +73,18 @@ const { width, height } = page.getSize();
 ## 4. Layout Math and Drawing Algorithms
 
 ### 4.1 Header Positioning
-On a standard Legal sheet ($1008\text{ pt}$ height), the bottom line of the official letterhead sits at $Y \approx 879\text{ pt}$. To guarantee a $15\text{ pt}$ safety buffer beneath the border, vertical coordinates begin at:
+On a standard Legal sheet ($1008\text{ pt}$ height), the bottom line of the official letterhead sits at $Y \approx 879\text{ pt}$. Vertical coordinates begin at:
 ```typescript
-const startY = height > 900 ? 864 : height - 140;
+const startY = height > 900 ? 865 : height - 138;
 ```
 
-### 4.2 Text Wrapping (`splitTextToLines`)
+### 4.2 Document Margins (Narrow Standard)
+Both Surat Tugas and Surat Perjalanan Dinas implement the **Narrow Margin Standard** ($36\text{ pt}$ / $0.5\text{ in}$ / $12.7\text{ mm}$):
+- `leftMargin = 36 pt`
+- `rightMargin = width - 36 pt` ($576\text{ pt}$ on Legal $612\text{ pt}$)
+- `contentWidth = 540 pt`
+
+### 4.3 Text Wrapping (`splitTextToLines`)
 Breaks arbitrary text strings into lines based on font width measurements:
 ```typescript
 private splitTextToLines(text: string, font: PDFFont, fontSize: number, maxWidth: number): string[] {
@@ -98,7 +108,7 @@ private splitTextToLines(text: string, font: PDFFont, fontSize: number, maxWidth
 }
 ```
 
-### 4.3 Text Justification (`drawJustifiedText`)
+### 4.4 Text Justification (`drawJustifiedText`)
 Distributes inter-word spacing across a line to achieve flush left and right margins:
 ```typescript
 private drawJustifiedText(
@@ -115,7 +125,6 @@ private drawJustifiedText(
   const trimmed = line.trim();
   const words = trimmed.split(/\s+/);
 
-  // Do not justify single-word lines or terminal lines of a paragraph
   if (isLastLine || words.length <= 1) {
     page.drawText(trimmed, { x, y, size: fontSize, font, color });
     return;
@@ -140,63 +149,108 @@ private drawJustifiedText(
 }
 ```
 
-### 4.4 Table Structure and Coordinates
-Total table width: $522\text{ pt}$ starting at $X = 45\text{ pt}$.
+### 4.5 Table Structure and Coordinates (SPD Front Page)
+Total table width: $540\text{ pt}$ starting at $X = 36\text{ pt}$ and ending at $X = 576\text{ pt}$.
 - Column 1 Width: $24\text{ pt}$ (Item Index)
-- Column 2 Width: $184\text{ pt}$ (Description)
-- Column 3 Width: $314\text{ pt}$ (Value / Details)
+- Column 2 Width: $190\text{ pt}$ (Description)
+- Column 3 Width: $326\text{ pt}$ (Value / Details)
 
 Vertical grid borders:
-- Left table boundary: $X = 45\text{ pt}$
-- Vertical line dividing Column 2 and Column 3: $X = 45 + 24 + 184 = 253\text{ pt}$
-- Right table boundary: $X = 253 + 314 = 567\text{ pt}$
+- Left table boundary: $X = 36\text{ pt}$
+- Vertical line dividing Column 2 and Column 3: $X = 36 + 24 + 190 = 250\text{ pt}$
+- Right table boundary: $X = 250 + 326 = 576\text{ pt}$
 *(The vertical border between Column 1 and Column 2 is omitted across all rows to format the number and description within a continuous visual block).*
 
-### 4.5 Multi-Agenda Hanging Indent (Point 4)
-When Point 4 contains multiple activities:
-1. The colon `:` occupies coordinate $X = \text{col3X} + \text{cellPaddingX}$.
-2. Item numbers (`1. `, `2. `) occupy a reserved width of $16\text{ pt}$ starting at $X = \text{colonX} + 10\text{ pt}$.
-3. Text body wraps with available width $\text{colWidths}[2] - \text{cellPaddingX} \times 2 - 10 - 16\text{ pt}$.
-4. Subsequent lines of the same item render at $X = \text{textStartX} + 16\text{ pt}$, vertically aligned beneath the text body of the first line.
+### 4.6 Multi-Agenda Hanging Indent & Unnumbered Headers
+1. **Surat Perjalanan Dinas (Point 4):**
+   - The colon `:` occupies coordinate $X = \text{col3X} + \text{cellPaddingX}$.
+   - Number prefixes (`1. `, `2. `) occupy a reserved width of $16\text{ pt}$ starting at $X = \text{colonX} + 10\text{ pt}$.
+   - Subsequent lines of each item render at $X = \text{textStartX} + 16\text{ pt}$, vertically aligned beneath the text body of the first line.
+2. **Surat Tugas (`maksudHeader`):**
+   - If an unnumbered introductory title is defined (`maksudHeader`), it renders flush next to `Untuk :` without a number prefix.
+   - Numbered sub-items (`1.`, `2.`, etc.) are rendered underneath with indented hanging paragraphs.
 
-### 4.6 Companion Sub-Table Partitioning (Point 8)
+### 4.7 Surat Tugas Specific Spacing Rules
+- **Header Spacing:** Includes extra line clearance above `SURAT TUGAS` (+1 line space) and below the letter number before `Dasar :` (+1 line space).
+- **Directive Spacing:** Enforces exactly 3 line spaces before `MEMERINTAHKAN:` and 2 line spaces after `MEMERINTAHKAN:` before `Kepada :`:
+  ```typescript
+  currentY -= 3 * lineHeight; // Before MEMERINTAHKAN:
+  // [Render MEMERINTAHKAN:]
+  currentY -= 2 * lineHeight; // After MEMERINTAHKAN:
+  ```
+
+### 4.8 Point 7 Optional Departure Date Handling (SPD)
+When `tanggalBerangkat` is not supplied:
+- All three sub-items under Point 7 (*Lamanya perjalanan dinas*, *Tanggal berangkat*, *Tanggal harus kembali*) are rendered completely blank (`['', '', '']`), preventing partial or erroneous zero-day outputs.
+- If `tanggalBerangkat` is provided, but `lamaHari` is null or zero, `a.` renders cleanly without duration values.
+
+### 4.9 Companion Sub-Table Partitioning (SPD Point 8)
 Row 8 (*Nama Pengikut*) contains an internal sub-grid ($96\text{ pt}$ total height):
 - Row title banner: $21\text{ pt}$
 - Sub-header row: $19\text{ pt}$ (`No`, `Nama`, `Umur`, `Keterangan`)
 - Body area: $56\text{ pt}$ providing 3 numbered sub-rows ($15\text{ pt}$ line height each) with bottom boundary clearance
-- Internal vertical border: divides Column 3 into equal halves ($157\text{ pt}$ each) between `Umur` and `Keterangan`
+- Internal vertical border: divides Column 3 into equal halves ($163\text{ pt}$ each) between `Umur` and `Keterangan`
 
 ---
 
 ## 5. Signatory Alignment and Governance Rules
 
 ### 5.1 Centered Signature Blocks
-Bottom signatures for both Surat Tugas and SPD use measured text widths to achieve exact center alignment across all lines:
+Bottom signatures for both Surat Tugas and SPD use measured text widths within a $230\text{ pt}$ bounding box anchored to the right margin:
 ```typescript
 const signBlockWidth = 230;
-const signX = tableRightX - signBlockWidth;
+const signX = rightMargin - signBlockWidth;
 
 // Centering calculation for each element
 const textWidth = font.widthOfTextAtSize(text, fontSize);
 const textX = signX + (signBlockWidth - textWidth) / 2;
 ```
-- **Official Name:** Rendered with an underline whose start and end match `textX` and `textX + textWidth`.
-- **Surat Tugas Signatory Title:** Formatted explicitly into two centered lines:
+
+### 5.2 Sekda Rule (No "PA" Prefix)
+When signed by the *Sekretaris Daerah* (or acting Sekda):
+- The prefix text `PA` or `PENGGUNA ANGGARAN` is stripped.
+- The signatory title renders directly as:
+  ```text
+  SEKRETARIS DAERAH
+  KABUPATEN BANGGAI LAUT
+  ```
+
+### 5.3 Surat Tugas Signatory Title
+- Default title renders in two centered lines:
   ```text
   KEPALA BAGIAN UMUM
   SETDA KAB. BANGGAI LAUT
   ```
-- **SPD Signatory Label:** Strictly governed as `KUASA PENGGUNA ANGGARAN` or `PENGGUNA ANGGARAN`.
+
+### 5.4 SPD Signatory Label & Governance
+- Strictly labeled as `KUASA PENGGUNA ANGGARAN` or `PENGGUNA ANGGARAN`.
+- When **KPA** is selected:
+  - Signatory locks strictly to the *Kepala Bagian Umum SETDA*.
+  - SPD numbering retains the `KPA` code prefix (e.g. `KPA001/SPD/SETDA/2026`).
+- When **PA** is selected:
+  - Signatory defaults to *Sekretaris Daerah* with support for acting officials.
+
+### 5.5 Atomic Signature Block (Page Overflow Protection)
+To prevent the signature block from breaking across pages or orphan elements, the system calculates the entire vertical height of the signature block:
+```typescript
+if (currentY - gapBeforeSign - totalSignBlockHeight < marginBottom) {
+  currentPage = pdfDoc.addPage([width, height]);
+  // Add running page number header: "- 2 -"
+  currentY = height - 55;
+}
+```
+If vertical clearance is insufficient, the entire signature block shifts to a new page as an atomic unit.
 
 ---
 
 ## 6. Page 2: Halaman Belakang (Tabel Visum Perjalanan Dinas)
 
-Every generated SPD PDF automatically includes Page 2 (Lembar Visum) formatted according to official Permendagri / Perbup standards:
+Every generated SPD PDF automatically includes Page 2 (Lembar Visum) formatted according to official Permendagri / Perbup standards using Narrow margins:
 
 ```text
-Table Boundaries:
-Left: X = 40 pt, Right: X = 572 pt (Width: 532 pt), Center Divider: X = 306 pt
+Table Boundaries (Narrow Margins):
+Left: X = 36 pt, Right: X = 576 pt (Table Width: 540 pt)
+Center Vertical Divider: X = 306 pt (Half Width: 270 pt)
 ```
 
 ### 6.1 Section Breakdown
@@ -212,12 +266,12 @@ Left: X = 40 pt, Right: X = 572 pt (Width: 532 pt), Center Divider: X = 306 pt
    - Right: Multi-line statutory inspection statement:
      > *"Telah diperiksa, dengan keterangan bahwa perjalanan Dinas tersebut diatas benar dilakukan atas perintahnya dan semata mata untuk kepentingan jabatan dalam waktu yang sesingkat - singkatnya."*
 4. **Row VII (Catatan Lain-lain):**
-   - Full width row across table ($532\text{ pt}$).
+   - Full width row across table ($540\text{ pt}$).
 5. **Row VIII (Perhatian):**
    - Full width row with statutory financial liability warning for PPK, traveler, and certifying officials.
 6. **Bottom Signature Block:**
-   - Positioned below the table on the right side ($X = 342\text{ pt}$, width $230\text{ pt}$).
-   - Centered uppercase title (`KUASA PENGGUNA ANGGARAN` / `PENGGUNA ANGGARAN`), physical signature clearance, underlined official name, and NIP.
+   - Positioned below the table on the right side ($X = 346\text{ pt}$, width $230\text{ pt}$).
+   - Centered uppercase title (`KUASA PENGGUNA ANGGARAN` or `SEKRETARIS DAERAH KABUPATEN BANGGAI LAUT`), physical signature clearance, underlined official name, and NIP.
 
 ---
 

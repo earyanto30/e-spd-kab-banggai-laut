@@ -71,6 +71,7 @@ erDiagram
         String nomorSurat UK
         String dasarHukum
         String dalamRangka
+        String maksudHeader
         String tempatDikeluarkan
         DateTime tanggalSurat
         String penandatanganId FK
@@ -138,7 +139,7 @@ erDiagram
 | `username` | String | No | None | Unique | Login username or NIP |
 | `email` | String | Yes | `null` | Unique | User email address |
 | `name` | String | No | None | None | User legal or display name |
-| `role` | String | No | `'USER'` | Enum Check | Values: `SUPER_ADMIN`, `ADMIN`, `PENANDATANGAN`, `STAFF`, `USER` |
+| `role` | String | No | `'USER'` | Enum Check | Values: `SUPER_ADMIN`, `ADMIN`, `STAFF`, `USER` |
 | `password` | String | No | None | None | Salted Scrypt hash formatted as `${salt}:${hash}` |
 | `isActive` | Boolean | No | `true` | None | Account status |
 | `pegawaiId` | String | Yes | `null` | Unique, FK -> `Pegawai.id` | Reference to employee profile; `ON DELETE SET NULL` |
@@ -181,22 +182,23 @@ erDiagram
 | Column | Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | `id` | String | No | `cuid()` | Primary Key | Unique assignment order identifier |
-| `nomorSurat` | String | No | None | Unique | Official letter code |
-| `dasarHukum` | String | No | Statutory text | None | Legal statutory basis for assignment |
-| `dalamRangka` | String | No | None | None | Purpose and scope of duty |
+| `nomorSurat` | String | No | None | Unique | Official letter code (`000.1.2.3/[Number]/[UnitCode]/[Year]`) |
+| `dasarHukum` | String | No | `""` | None | Legal statutory basis for assignment (newline-separated items) |
+| `dalamRangka` | String | No | None | None | Purpose and scope of duty (newline-separated multi-agenda) |
+| `maksudHeader` | String | Yes | `null` | None | Optional unnumbered title or introductory header for multi-agenda tasks |
 | `tempatDikeluarkan` | String | No | `'Banggai'` | None | Geographic issuance location |
 | `tanggalSurat` | DateTime | No | `now()` | None | Issuance date |
 | `penandatanganId` | String | Yes | `null` | FK -> `Pegawai.id` | Signatory employee reference; `ON DELETE SET NULL` |
-| `penandatanganNama` | String | No | `'ARSID HAMIDI, SH'` | None | Signatory name snapshot |
-| `penandatanganJabatan` | String | No | Standard string | None | Signatory job title snapshot |
-| `penandatanganPangkat` | String | No | `'Pembina, IV/a'` | None | Signatory rank snapshot |
-| `penandatanganNip` | String | No | Standard string | None | Signatory NIP snapshot |
+| `penandatanganNama` | String | Yes | `null` | None | Signatory name snapshot |
+| `penandatanganJabatan` | String | Yes | `null` | None | Signatory job title snapshot |
+| `penandatanganPangkat` | String | Yes | `null` | None | Signatory rank snapshot |
+| `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `kopSuratId` | String | Yes | `null` | None | Optional explicit letterhead ID |
 | `pegawaiIds` | String | Yes | `null` | None | Serialized JSON array of assigned employee CUIDs |
 | `alatAngkut` | String | Yes | `null` | None | Transportation mode selection |
 | `tempatTujuan` | String | Yes | `null` | None | Destination |
-| `lamaHari` | Int | Yes | `null` | None | Duration in days |
-| `tanggalBerangkat` | DateTime | Yes | `null` | None | Departure date |
+| `lamaHari` | Int | Yes | `1` | None | Duration in days (optional) |
+| `tanggalBerangkat` | DateTime | Yes | `null` | None | Departure date (optional) |
 | `status` | String | No | `'DRAFT'` | None | Status: `DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL` |
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
@@ -206,16 +208,16 @@ erDiagram
 | Column | Type | Nullable | Default | Constraints | Description |
 |---|---|---|---|---|---|
 | `id` | String | No | `cuid()` | Primary Key | Unique SPD identifier |
-| `nomorSpd` | String | No | None | Unique | Standardized reference (`XXX/SPD/SETDA/YYYY`) |
-| `pemberiPerintah` | String | No | None | None | Issuing authority classification |
+| `nomorSpd` | String | No | None | Unique | Standardized reference (`[Prefix][Number]/SPD/[Year]`) |
+| `pemberiPerintah` | String | No | None | None | Issuing authority classification (`PA` or `KPA`) |
 | `pegawaiId` | String | No | None | FK -> `Pegawai.id` | Traveling employee reference |
 | `dalamRangka` | String | No | None | None | Purpose text or numbered multi-agenda |
 | `alatAngkut` | String | No | None | None | Chosen mode(s) of transit |
 | `tempatBerangkat` | String | No | None | None | Origin location |
 | `tempatTujuan` | String | No | None | None | Destination location |
 | `lamaHari` | Int | Yes | `null` | Positive Int | Duration in days (optional) |
-| `tanggalBerangkat` | DateTime | No | None | None | Scheduled departure date |
-| `tanggalKembali` | DateTime | Yes | `null` | None | Scheduled return date |
+| `tanggalBerangkat` | DateTime | Yes | `null` | None | Scheduled departure date (optional; if blank, Point 7 is left empty) |
+| `tanggalKembali` | DateTime | Yes | `null` | None | Scheduled return date (optional) |
 | `skpd` | String | No | Bagian Umum SETDA | None | Regional work unit funding travel |
 | `kodeRekening` | String | Yes | `null` | None | Budget accounting line |
 | `tingkatBiaya` | String | Yes | `null` | None | Allowance level tier |

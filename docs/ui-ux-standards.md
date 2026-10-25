@@ -112,8 +112,8 @@ The system separates administrative UI fonts from official government document f
 - OpenType Features: `'cv02', 'cv03', 'cv04', 'cv11'` for enhanced tabular figure clarity and character disambiguation
 - Contrast: Complies with WCAG 2.1 AA text contrast ratio ($\ge 4.5:1$ for normal body text)
 
-### 3.2 Official Document Font Stack (`SpdDetailPrintView.vue`)
-- Font Family: `'Times New Roman', Times, Georgia, serif !important`
+### 3.2 Official Document Font Stack (`SpdDocument.vue` & `SpdBackDocument.vue`)
+- Font Family: `'Times New Roman', Times, Georgia, serif !important` (with selectable Arial / Helvetica option)
 - Color: Strict `#000000 !important`
 - Background: Strict `#FFFFFF !important`
 - Document Base Sizing: 12pt (`16px @ 96 DPI`) with `1.35` line-height
@@ -148,9 +148,11 @@ When collapsed (`w-20`):
 
 ### 5.1 Real-time Feedback Principles
 1. **Multi-Agenda Input:** Point 4 (*Dalam Rangka*) supports dynamic multi-item lists (`form.maksudList: string[]`). An item counter displays aggregate character quota against the 700-character maximum.
-2. **Dynamic Number Words (*Angka Terbilang*):** `GovInputNumber` automatically computes and renders Indonesian verbal integers (e.g. `3` -> `Tiga Hari`) in real time to prevent clerical entry errors.
-3. **Automated Return Date Derivation:** Selecting a departure date and duration automatically computes the estimated return date ($T_{\text{kembali}} = T_{\text{berangkat}} + (\text{lamaHari} - 1)$) with manual override capabilities.
-4. **Form Reset Isolation:** Multi-route components shared between create and edit modes (e.g. `/spd/buat` and `/spd/edit/:id`) bind `:key="$route.fullPath"` on `<router-view>` and run reactive watchers to flush form models upon route transitions.
+2. **Unnumbered Purpose Header:** `BuatSuratTugasView.vue` includes an optional introductory header input (`maksudHeader`) allowing unnumbered preamble text before numbered task lists.
+3. **Optional Travel Duration & Dates:** Travel duration (`lamaHari`) and departure date (`tanggalBerangkat`) are optional across both forms. If left empty, Point 7 renders cleanly blank.
+4. **Dynamic Number Words (*Angka Terbilang*):** `GovInputNumber` automatically computes and renders Indonesian verbal integers (e.g. `3` -> `Tiga Hari`) in real time to prevent clerical entry errors.
+5. **KPA Numbering Enforcement:** When issuing an SPD as `Kuasa Pengguna Anggaran (KPA)`, the system automatically prefixes the letter number with `KPA` (e.g., `KPA001/SPD/SETDA/2026`).
+6. **Bulk Action Controls:** `DaftarSpdView.vue` and `DaftarSuratTugasView.vue` provide multi-select checkboxes for batch actions: bulk delete with confirmation modal, and batch non-collate printing.
 
 ---
 
@@ -202,20 +204,26 @@ When collapsed (`w-20`):
 ## 7. Official Document Sheet and Print Specifications
 
 ### 7.1 Physical Dimensions
-- **Legal Sheet:** Width `215.9mm` x Height `355.6mm` (`8.5in x 14in`)
+- **Legal Sheet:** Width `215.9mm` x Height `355.6mm` (`8.5in x 14in` / `612pt x 1008pt`)
 - **A4 Sheet:** Width `210.0mm` x Height `297.0mm`
 
-### 7.2 Margins
-- **Left Margin:** `16mm` (`60px`)
-- **Right Margin:** `16mm` (`60px`)
+### 7.2 Margins (Narrow Standard)
+- **Left Margin:** `12.7mm` (`36pt` / `48px`)
+- **Right Margin:** `12.7mm` (`36pt` / `48px`)
 - **Top Margin (with letterhead):** `12mm` (`45px`)
 - **Top Margin (without letterhead, for physical official stationery):** `48mm` (`181px`)
-- **Bottom Margin:** `20mm` (`75px`)
+- **Bottom Margin:** `15mm` (`56.7pt`)
 
-### 7.3 Print CSS Rules (`@media print`)
+### 7.3 Combined Multi-Page Document Architecture
+The SPD document interface embeds both front and back pages in a continuous flow:
+- Front Page: `SpdDocument.vue` (10-Point official table).
+- Back Page: `SpdBackDocument.vue` (Tabel Visum Perjalanan Dinas).
+- Inter-page separation: Handled via `@media print { .page-break { break-before: page; page-break-before: always; } }`.
+
+### 7.4 Print CSS Rules (`@media print`)
 - Page size directive: `@page { size: 215.9mm 355.6mm; margin: 0; }`
 - Body background: forced to `transparent !important`
 - Body margins and padding: zeroed (`margin: 0 !important; padding: 0 !important`)
 - Interface elements: `.no-print` classes set to `display: none !important`
 - Sheet shadow: `box-shadow: none !important`
-- Page breaks: suppressed within table cells and signature blocks (`page-break-inside: avoid; page-break-after: avoid`)
+- Page breaks: suppressed within individual table cells and signature blocks (`page-break-inside: avoid; page-break-after: avoid`)
