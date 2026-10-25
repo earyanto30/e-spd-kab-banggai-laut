@@ -1,5 +1,6 @@
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { codecovVitePlugin } from '@codecov/vite-plugin';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
@@ -9,7 +10,14 @@ export default defineConfig(({ mode }) => {
 
   return {
     envDir: rootDir,
-    plugins: [vue()],
+    plugins: [
+      vue(),
+      codecovVitePlugin({
+        enableBundleAnalysis: process.env.CODECOV_TOKEN !== undefined,
+        bundleName: 'si-spd-web',
+        uploadToken: process.env.CODECOV_TOKEN,
+      }),
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
