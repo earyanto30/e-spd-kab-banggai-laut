@@ -206,7 +206,9 @@ export class SpdPdfService {
 
     currentPage.drawText('Nomor', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
-    currentPage.drawText(spd.nomorSpd || '-', { x: metaX + 70, y: currentY, size: metaFontSize, font: fontBold, color: black });
+    const displayNomorSpd = (spd.nomorSpd || '-')
+      .replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/');
+    currentPage.drawText(displayNomorSpd, { x: metaX + 70, y: currentY, size: metaFontSize, font: fontBold, color: black });
 
     // 2. Judul Dokumen (SURAT PERJALANAN DINAS)
     currentY -= 18;
@@ -711,7 +713,7 @@ export class SpdPdfService {
     });
 
     const pdfBytes = await pdfDoc.save();
-    const cleanNum = (spd.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
+    const cleanNum = (spd.nomorSpd || 'SPD').replace(/[\/\\]/g, '_').trim();
     return {
       buffer: Buffer.from(pdfBytes),
       fileName: `SPD_${cleanNum}.pdf`,

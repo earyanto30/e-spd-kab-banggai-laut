@@ -498,7 +498,7 @@ export class SuratTugasService {
     const getCustomNomorSpd = (index: number) => {
       const rawSeq = dto?.customSeq ? dto.customSeq.trim() : '';
       if (!rawSeq) {
-        return index === 0 ? `${prefix}/SPD/${targetYear}` : `${prefix}${index + 1}/SPD/${targetYear}`;
+        return index === 0 ? `${prefix}    /SPD/${targetYear}` : `${prefix}${index + 1}/SPD/${targetYear}`;
       }
       const parsed = parseInt(rawSeq, 10);
       if (!isNaN(parsed)) {

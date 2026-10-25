@@ -193,7 +193,7 @@ const previewNomorSpd = computed(() => {
   if (generateForm.nomorSpdMode === 'auto') {
     return `${prefix}[Otomatis]/SPD/${generateForm.tahunSpd || currentYear}`;
   }
-  const seqPart = generateForm.customSeq.trim();
+  const seqPart = generateForm.customSeq.trim() || '    ';
   return `${prefix}${seqPart}/SPD/${generateForm.tahunSpd || currentYear}`;
 });
 
@@ -291,7 +291,7 @@ const submitGenerateSpd = async () => {
     const payload = {
       nomorSpdMode: generateForm.nomorSpdMode,
       customPrefix,
-      customSeq: generateForm.customSeq,
+      customSeq: generateForm.customSeq?.trim() || (generateForm.nomorSpdMode === 'custom' ? '    ' : ''),
       tahunSpd: generateForm.tahunSpd,
       pemberiPerintah: generateForm.pemberiPerintah,
       alatAngkut: generateForm.alatAngkut.join(', '),
@@ -1103,7 +1103,7 @@ onMounted(() => {
 
           <div class="text-[11px] text-text-muted pt-1 flex items-center gap-2">
             <span>Pratinjau Nomor SPD:</span>
-            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border whitespace-pre">
               {{ previewNomorSpd }}
             </span>
           </div>

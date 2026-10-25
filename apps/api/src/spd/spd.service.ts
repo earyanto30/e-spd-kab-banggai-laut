@@ -104,7 +104,17 @@ export class SpdService {
     }
 
     // Auto-generate nomor SPD if not supplied or handle dynamic format [Prefix][Number]/SPD/[Year]
-    let nomorSpd = dto.nomorSpd?.trim();
+    let nomorSpd = dto.nomorSpd;
+    if (nomorSpd) {
+      if (nomorSpd.includes('/SPD/')) {
+        // If nomor sequence before /SPD/ is empty or spaces, format as 4 spaces
+        nomorSpd = nomorSpd
+          .replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/')
+          .replace(/\s+$/, '');
+      } else {
+        nomorSpd = nomorSpd.trim();
+      }
+    }
     const isKpa = (dto.pemberiPerintah || '').toLowerCase().includes('kuasa');
 
     if (!nomorSpd) {
@@ -231,7 +241,11 @@ export class SpdService {
     }
 
     const data: any = {
-      ...(dto.nomorSpd && { nomorSpd: dto.nomorSpd.trim() }),
+      ...(dto.nomorSpd && {
+        nomorSpd: dto.nomorSpd.includes('/SPD/')
+          ? dto.nomorSpd.replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/').replace(/\s+$/, '')
+          : dto.nomorSpd.trim(),
+      }),
       ...(dto.pemberiPerintah && { pemberiPerintah: dto.pemberiPerintah.trim() }),
       ...(dto.pegawaiId && { pegawaiId: dto.pegawaiId }),
       ...(dto.suratTugasId !== undefined && { suratTugasId: dto.suratTugasId || null }),

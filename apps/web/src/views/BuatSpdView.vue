@@ -130,7 +130,7 @@ const previewNomorSpd = computed(() => {
   if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
     return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
   }
-  const seqPart = form.customSeq.trim();
+  const seqPart = form.customSeq.trim() || '    ';
   return `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
 });
 
@@ -250,7 +250,7 @@ const loadExistingSpd = async (id: string) => {
 
       if (data.nomorSpd) {
         form.fullNomorSpd = data.nomorSpd;
-        const match = data.nomorSpd.match(/^([A-Za-z]*)(\d*)\/SPD\/(\d+)$/);
+        const match = data.nomorSpd.match(/^([A-Za-z]*)\s*(\d*)\s*\/SPD\/(\d+)$/);
         if (match) {
           form.nomorSpdMode = 'custom';
           form.customPrefix = match[1] || '';
@@ -398,7 +398,8 @@ const handleSubmit = async () => {
       const prefix = form.nomorSpdMode === 'custom'
         ? (form.customPrefix?.trim() || '')
         : defaultPrefix;
-      finalNomorSpd = `${prefix}${form.customSeq.trim()}/SPD/${form.tahunSpd || currentYear}`;
+      const seqPart = form.customSeq.trim() || '    ';
+      finalNomorSpd = `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
     }
 
     const payload = {
@@ -587,7 +588,7 @@ const handleCancel = () => {
 
           <div class="text-xs text-text-muted pt-1 flex items-center gap-2">
             <span>Pratinjau Nomor SPD:</span>
-            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border whitespace-pre">
               {{ previewNomorSpd }}
             </span>
           </div>
