@@ -67,6 +67,12 @@ flowchart LR
             UC19(["UC-19: Render Halaman Belakang Visum"])
             UC20(["UC-20: Cetak Sekaligus Batch Non-Collate"])
         end
+
+        subgraph ModulLaporan ["Modul Laporan Perjalanan Dinas"]
+            UC21(["UC-21: Kelola & Filter Laporan"])
+            UC22(["UC-22: Buat & Ubah Laporan Perjalanan"])
+            UC23(["UC-23: Unduh & Cetak PDF Laporan"])
+        end
     end
 
     subgraph ActorsRight ["Actors Right"]
@@ -81,6 +87,8 @@ flowchart LR
     USR --- UC07
     USR --- UC11
     USR --- UC17
+    USR --- UC21
+    USR --- UC23
 
     STF --- UC08
     STF --- UC09
@@ -89,6 +97,9 @@ flowchart LR
     STF --- UC14
     STF --- UC20
     STF --- UC06
+    STF --- UC21
+    STF --- UC22
+    STF --- UC23
 
     ADM --- UC02
     ADM --- UC03
@@ -105,6 +116,8 @@ flowchart LR
     UC10 -.->|extend| UC09
     UC18 -.->|include| UC19
     UC20 -.->|include| UC19
+    UC22 -.->|extend| UC14
+    UC22 -.->|include| UC23
 ```
 
 ---
@@ -199,6 +212,18 @@ flowchart LR
 ### 3.20 UC-20: Cetak Sekaligus Batch (Non-Collate Duplex)
 - **Primary Actor:** Staff / Operator, Admin.
 - **Description:** Compiles selected SPDs into a batch PDF ordered non-collate (all front pages sequentially, followed by all back pages) for seamless manual duplex printing on office hardware.
+
+### 3.21 UC-21: Kelola & Filter Laporan Perjalanan Dinas
+- **Primary Actor:** All Actors (Super Admin, Admin, Staff, User).
+- **Description:** Browse travel reports with real-time statistics (`Total Selesai`, `Menunggu Pembuatan`, `Total SPD Disetujui`), filter by completion status (`SUDAH` / `BELUM`) or target reporting official (`Bupati`, `Wakil Bupati`, `Kepala Bagian`, `Sekertaris Daerah`), and search by civil servant name, NIP, or document number.
+
+### 3.22 UC-22: Buat & Ubah Laporan Perjalanan Dinas
+- **Primary Actor:** Staff / Operator, Admin, Super Admin.
+- **Description:** Author or edit narrative trip reports for approved SPDs (`status === 'DISETUJUI'` with `lamaHari > 0`). Automatically resolves default target official based on authority type (PA to Kepala Bagian, KPA to Sekertaris Daerah), supports free-text multi-paragraph reporting, and persists data via SQLite upsertion.
+
+### 3.23 UC-23: Unduh & Cetak PDF Laporan Perjalanan Dinas
+- **Primary Actor:** All Actors.
+- **Description:** Renders official Legal-sized ($612 \times 1008\text{ pt}$) vector PDF report with standard Times-Roman typography, justified narrative text, automatic page breaking across multi-page accounts, and dedicated bottom-right signature clearance for the traveling civil servant.
 
 ---
 

@@ -79,6 +79,28 @@ const allMenuItems = [
     ],
   },
   {
+    key: 'laporan',
+    label: 'Laporan Perjalanan',
+    icon: 'pi pi-file-check',
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    items: [
+      {
+        key: 'laporan-daftar',
+        label: 'Daftar Laporan',
+        icon: 'pi pi-list',
+        route: '/laporan',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
+      {
+        key: 'laporan-buat',
+        label: 'Buat Laporan',
+        icon: 'pi pi-plus-circle',
+        route: '/laporan/buat',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+      },
+    ],
+  },
+  {
     key: 'kepegawaian',
     label: 'Kepegawaian',
     icon: 'pi pi-users',

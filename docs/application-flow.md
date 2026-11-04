@@ -218,3 +218,48 @@ sequenceDiagram
 3. Fields are converted to RFC 4180-compliant comma-separated rows.
 4. Output is encoded with UTF-8 BOM (`\uFEFF`) to prevent character distortion in spreadsheet software.
 5. Automated anchor element triggers download as `Rekap_SPD_Banggai_Laut_[YYYY-MM-DD].csv`.
+
+### 4.7 Process 7: Laporan Perjalanan Dinas Creation and Lifecycle
+
+The travel reporting workflow allows administrative operators or traveling civil servants to generate narrative trip reports tied to approved SPD records:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Staff as "Staff / Administrator"
+    participant View as "BuatLaporanView / SpdDetailPrintView"
+    participant API as "SpdController (apps/api)"
+    participant Svc as SpdService
+    participant PDF as SpdPdfService
+    participant DB as "SQLite (via Prisma)"
+
+    Staff->>View: Select Approved SPD (status: DISETUJUI, lamaHari > 0)
+    View->>View: Auto-select default recipient (PA -> Kabag, KPA -> Sekda)
+    Staff->>View: Enter narrative Hasil Perjalanan and choose action
+    alt Action: Save Draft or Update Record
+        View->>API: PUT /api/spd/:id/laporan { hasilPerjalanan, penandatangan, tanggalLaporan }
+        API->>Svc: saveLaporan(id, dto)
+        Svc->>DB: prisma.laporanPerjalanan.upsert(...)
+        DB-->>Svc: Persisted Laporan Record
+        Svc-->>API: Persisted Laporan Record
+        API-->>View: HTTP 200 OK
+    else Action: Download or Print PDF
+        View->>API: POST /api/spd/:id/laporan-pdf { hasilPerjalanan, penandatangan, tanggalLaporan }
+        API->>Svc: saveLaporan(id, dto)
+        Svc->>DB: prisma.laporanPerjalanan.upsert(...)
+        API->>PDF: generateLaporanPdf(id, dto)
+        PDF->>DB: Query SPD with Pegawai & SuratTugas
+        PDF->>PDF: Render Legal PDF canvas with dynamic pagination
+        PDF-->>API: { buffer, fileName }
+        API-->>View: HTTP 200 application/pdf stream
+        View->>View: Open native print dialog or browser download
+    end
+```
+
+1. **Eligibility Enforcement:** Only SPDs with `status === 'DISETUJUI'` and a specified travel duration (`lamaHari > 0`) can be reported.
+2. **Recipient Auto-Resolution:**
+   - SPDs issued by *Pengguna Anggaran* (`PA`) default to *Kepala Bagian*.
+   - SPDs issued by *Kuasa Pengguna Anggaran* (`KPA`) default to *Sekertaris Daerah*.
+   - Manual overrides to *Bupati* or *Wakil Bupati* are supported.
+3. **Database Upsertion:** Report generation automatically updates or creates the `LaporanPerjalanan` record in SQLite, synchronizing reporting data across views.
+4. **Vector PDF Output:** Streams a Legal-sized vector PDF document directly to the client browser.

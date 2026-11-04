@@ -31,11 +31,8 @@ withDefaults(
     :fluid="fluid"
     v-bind="$attrs"
   >
-    <template v-if="$slots.option" #option="slotProps">
-      <slot name="option" v-bind="slotProps" />
-    </template>
-    <template v-if="$slots.value" #value="slotProps">
-      <slot name="value" v-bind="slotProps" />
+    <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
+      <slot :name="slotName" v-bind="slotProps || {}" />
     </template>
   </Select>
 </template>

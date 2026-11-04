@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SpdPdfService } from './spd-pdf.service';
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, PDFName } from 'pdf-lib';
 
 import path from 'path';
 import zlib from 'zlib';
@@ -129,5 +129,40 @@ describe('SpdPdfService', () => {
     expect(extractedText).toContain('KUASA PENGGUNA ANGGARAN');
     // Visum table rows on Back Page
     expect(extractedText).toContain('Kuasa Pengguna Anggaran');
+  });
+
+  it('generates valid Laporan Perjalanan Dinas PDF matching official template with SPD font and justified text', async () => {
+    const service = new SpdPdfService(prismaMock, kopSuratMock);
+    const { buffer, fileName } = await service.generateLaporanPdf(samplePaSpd.id, {
+      hasilPerjalanan: 'Pelaksanaan perjalanan dinas telah berjalan dengan lancar dan aman. Koordinasi menghasilkan kesepakatan bersama.\n\nAdapun rincian pertemuan meliputi koordinasi teknis bersama jajaran pimpinan dinas untuk menyelaraskan rencana program kerja tahun anggaran mendatang.',
+      penandatangan: 'Kepala Bagian',
+      tanggalLaporan: '2026-10-23',
+    });
+
+    expect(fileName).toBe('Laporan_SPD_001_SPD_2026.pdf');
+    const doc = await PDFDocument.load(buffer);
+    expect(doc.getPageCount()).toBeGreaterThanOrEqual(1);
+
+    // Verify font is Helvetica (same as SPD)
+    const baseFonts: string[] = [];
+    for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+      if ((obj as any).get && (obj as any).get(PDFName.of('BaseFont'))) {
+        baseFonts.push((obj as any).get(PDFName.of('BaseFont')).toString());
+      }
+    }
+    expect(baseFonts.some((f) => f.includes('Helvetica'))).toBe(true);
+
+    const extractedText = await extractAllTextFromPdfBuffer(buffer);
+    expect(extractedText).toContain('LAPORAN PERJALANAN DINAS');
+    expect(extractedText).toContain('Perihal : Laporan Perjalanan Dinas');
+    expect(extractedText).toContain('Kepada Yth,');
+    expect(extractedText).toContain('Kepala Bagian Umum Setda Kab. Banggai Laut');
+    expect(extractedText).toContain('Dasar');
+    expect(extractedText).toContain('Maksud Perjalanan');
+    expect(extractedText).toContain('Lama Perjalanan');
+    expect(extractedText).toContain('Hasil Perjalanan');
+    expect(extractedText).toContain('Demikian Laporan Perjalanan Dinas ini dibuat');
+    expect(extractedText).toContain('YANG MELAKUKAN PERJALANAN DINAS');
+    expect(extractedText).toContain('Ahmad, S.Kom');
   });
 });

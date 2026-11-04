@@ -112,6 +112,7 @@ export const SpdSchema = z.object({
   penandatanganPangkat: z.string().nullable().optional(),
   penandatanganNip: z.string().nullable().optional(),
   status: z.string().default('DRAFT'),
+  laporan: z.any().optional(),
   createdAt: z.date().or(z.string()),
   updatedAt: z.date().or(z.string()),
 });
@@ -149,6 +150,51 @@ export type CreateSpdDto = z.infer<typeof CreateSpdSchema>;
 export const UpdateSpdSchema = CreateSpdSchema.partial();
 
 export type UpdateSpdDto = z.infer<typeof UpdateSpdSchema>;
+
+export const PenandaTanganLaporan = {
+  BUPATI: 'Bupati',
+  WAKIL_BUPATI: 'Wakil Bupati',
+  KEPALA_BAGIAN: 'Kepala Bagian',
+  SEKERTARIS_DAERAH: 'Sekertaris Daerah',
+} as const;
+
+export type PenandaTanganLaporanType = (typeof PenandaTanganLaporan)[keyof typeof PenandaTanganLaporan];
+
+export const GenerateLaporanSpdSchema = z.object({
+  hasilPerjalanan: z.string().min(1, 'Hasil perjalanan wajib diisi'),
+  penandatangan: z.enum(['Bupati', 'Wakil Bupati', 'Kepala Bagian', 'Sekertaris Daerah']),
+  tanggalLaporan: z.string().optional(),
+  fontFamily: z.string().optional(),
+});
+
+export type GenerateLaporanSpdDto = z.infer<typeof GenerateLaporanSpdSchema>;
+
+export const LaporanPerjalananSchema = z.object({
+  id: z.string(),
+  spdId: z.string(),
+  spd: z.any().optional(),
+  suratTugasId: z.string().nullable().optional(),
+  suratTugas: z.any().optional(),
+  hasilPerjalanan: z.string(),
+  penandatangan: z.string(),
+  tanggalLaporan: z.date().or(z.string()),
+  createdAt: z.date().or(z.string()),
+  updatedAt: z.date().or(z.string()),
+});
+
+export type LaporanPerjalananDto = z.infer<typeof LaporanPerjalananSchema>;
+
+export const CreateLaporanSchema = z.object({
+  spdId: z.string().min(1, 'SPD wajib dipilih'),
+  hasilPerjalanan: z.string().min(1, 'Hasil perjalanan wajib diisi'),
+  penandatangan: z.enum(['Bupati', 'Wakil Bupati', 'Kepala Bagian', 'Sekertaris Daerah']),
+  tanggalLaporan: z.string().optional(),
+});
+
+export type CreateLaporanDto = z.infer<typeof CreateLaporanSchema>;
+
+export const UpdateLaporanSchema = CreateLaporanSchema.partial();
+export type UpdateLaporanDto = z.infer<typeof UpdateLaporanSchema>;
 
 export const SuratTugasSchema = z.object({
   id: z.string(),

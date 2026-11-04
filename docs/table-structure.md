@@ -125,6 +125,17 @@ erDiagram
         DateTime updatedAt
     }
 
+    LaporanPerjalanan {
+        String id PK
+        String spdId FK,UK
+        String suratTugasId FK
+        String hasilPerjalanan
+        String penandatangan
+        DateTime tanggalLaporan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
     User ||--o| Pegawai : "references pegawaiId"
     Jabatan ||--o{ Pegawai : "pegawaiList (jabatanId)"
     Pegawai ||--o{ Spd : "spdList (pelaksana)"
@@ -132,6 +143,8 @@ erDiagram
     Pegawai ||--o{ SuratTugas : "suratTugasDitandatanganiList"
     KopSurat ||--o{ Spd : "spdList"
     SuratTugas ||--o{ Spd : "spdList (child SPDs)"
+    SuratTugas ||--o{ LaporanPerjalanan : "laporanList"
+    Spd ||--o| LaporanPerjalanan : "laporan"
 ```
 
 ---
@@ -261,6 +274,19 @@ erDiagram
 | `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
 
+### 3.7 Table `LaporanPerjalanan`
+
+| Column | Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique trip report identifier |
+| `spdId` | String | No | None | Unique, FK -> `Spd.id` | One-to-one relation to parent SPD; `ON DELETE CASCADE` |
+| `suratTugasId` | String | Yes | `null` | FK -> `SuratTugas.id` | Optional reference to parent Surat Tugas; `ON DELETE SET NULL` |
+| `hasilPerjalanan` | String | No | None | None | Comprehensive narrative report text supporting multi-paragraph inputs |
+| `penandatangan` | String | No | None | Enum Check | Target reporting official (`Bupati`, `Wakil Bupati`, `Kepala Bagian`, `Sekertaris Daerah`) |
+| `tanggalLaporan` | DateTime | No | `now()` | None | Official date stated on the report header |
+| `createdAt` | DateTime | No | `now()` | None | Creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Last update timestamp |
+
 ---
 
 ## 4. Referential Integrity and Cascade Rules
@@ -270,3 +296,5 @@ erDiagram
 - **`Spd.kopSuratId -> KopSurat.id`:** Foreign key with `onDelete: SetNull`. Deleting a letterhead template does not destroy associated SPD records; the system falls back to the active default letterhead.
 - **`Spd.suratTugasId -> SuratTugas.id`:** Foreign key with `onDelete: SetNull`. Deleting or disconnecting a parent assignment letter maintains the independent historical existence of issued child SPDs.
 - **`Spd.penandatanganId -> Pegawai.id`:** Foreign key with `onDelete: SetNull`. Preserves stored text snapshots of signatory name, title, and NIP if the employee profile is removed.
+- **`LaporanPerjalanan.spdId -> Spd.id`:** Foreign key with `onDelete: Cascade`. Removing an SPD automatically purges its associated trip report document record.
+- **`LaporanPerjalanan.suratTugasId -> SuratTugas.id`:** Foreign key with `onDelete: SetNull`. Removing a Surat Tugas retains the trip report linked to the SPD while clearing the assignment letter reference.

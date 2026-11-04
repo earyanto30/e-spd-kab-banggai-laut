@@ -100,6 +100,7 @@ model Spd {
   penandatanganPangkat  String?
   penandatanganNip      String?
   status           String      @default("DRAFT")
+  laporan          LaporanPerjalanan?
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 }
@@ -125,6 +126,20 @@ model SuratTugas {
   updatedAt       DateTime @updatedAt
 
   spdList         Spd[]
+  laporanList     LaporanPerjalanan[]
+}
+
+model LaporanPerjalanan {
+  id              String       @id @default(cuid())
+  spdId           String       @unique
+  spd             Spd          @relation(fields: [spdId], references: [id], onDelete: Cascade)
+  suratTugasId    String?
+  suratTugas      SuratTugas?  @relation(fields: [suratTugasId], references: [id], onDelete: SetNull)
+  hasilPerjalanan String
+  penandatangan   String
+  tanggalLaporan  DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 }
 
 model DasarHukum {

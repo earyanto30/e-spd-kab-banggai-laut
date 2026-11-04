@@ -300,7 +300,73 @@ This empowers administrative staff to perform high-volume duplex printing on sta
 
 ---
 
-## 8. HTTP Streaming Pipeline
+## 8. Laporan Perjalanan Dinas PDF Mechanics (`generateLaporanPdf`)
+
+The system provides on-demand generation of official Trip Reports (Laporan Perjalanan Dinas) adhering to regional secretariat formatting standards.
+
+```mermaid
+flowchart TD
+    Req["HTTP Request POST /api/spd/:id/laporan-pdf"] --> Ctrl["SpdController.generateLaporanPdf"]
+    Ctrl --> Svc["SpdPdfService.generateLaporanPdf"]
+    Svc --> QueryDB["Query DB: Spd with Pegawai and SuratTugas"]
+    QueryDB --> CreateDoc["PDFDocument.create on Legal Size (612 x 1008 pt)"]
+    CreateDoc --> EmbedFont["Embed StandardFonts: TimesRoman & TimesRomanBold"]
+    EmbedFont --> DrawTitle["Draw Centered Title LAPORAN PERJALANAN DINAS with Underline"]
+    DrawTitle --> DrawHeader["Draw Perihal (Left) & Banggai Date + Kepada Yth (Right)"]
+    DrawHeader --> DrawPoints["Draw Points 1-3: Dasar, Maksud Perjalanan, Lama Perjalanan"]
+    DrawPoints --> CheckPoint4["Process Point 4: Multi-paragraph Hasil Perjalanan"]
+    CheckPoint4 --> CheckOverflow{Does Current Paragraph Fit Page?}
+    CheckOverflow -- Yes --> DrawText["Draw Justified Text Lines"]
+    CheckOverflow -- Overflow --> NewPage["pdfDoc.addPage(Legal)"] --> DrawText
+    DrawText --> DrawClosing["Draw Closing Statement"]
+    DrawClosing --> CheckSignSpace{Does Sign Block Fit on Page?}
+    CheckSignSpace -- Yes --> DrawSign["Draw Sign Block: YANG MELAKUKAN PERJALANAN DINAS"]
+    CheckSignSpace -- Overflow --> AddSignPage["pdfDoc.addPage(Legal)"] --> DrawSign
+    DrawSign --> SaveDoc["pdfDoc.save to Uint8Array Buffer"]
+    SaveDoc --> StreamOut["Express Response: application/pdf stream"]
+```
+
+### 8.1 Page Geometry and Layout Standards
+- **Page Size:** Legal standard ($612 \times 1008\text{ pt}$).
+- **Margins:** Left $40\text{ pt}$, Right $40\text{ pt}$, Top $45\text{ pt}$, Bottom $45\text{ pt}$ ($contentWidth = 532\text{ pt}$).
+- **Typography:** Standard `Times-Roman` and `Times-Roman-Bold` fonts.
+
+### 8.2 Header and Recipient Hierarchy
+1. **Title:** Centered `LAPORAN PERJALANAN DINAS` ($12\text{ pt}$ Bold, underline thickness $1\text{ pt}$).
+2. **Left Metadata:** `Perihal : Laporan Perjalanan Dinas` at $X = 40\text{ pt}$.
+3. **Right Metadata:** Positioned at $X = 330\text{ pt}$:
+   - Location and date: `Banggai,      [Formatted Date]`
+   - Greeting: `Kepada Yth,`
+   - Recipient title mapped from form selection:
+     - `Bupati` $\rightarrow$ `Bupati Banggai Laut`
+     - `Wakil Bupati` $\rightarrow$ `Wakil Bupati Banggai Laut`
+     - `Sekertaris Daerah` $\rightarrow$ `Sekretaris Daerah Kabupaten Banggai Laut`
+     - `Kepala Bagian` $\rightarrow$ `Kepala Bagian Umum Setda Kab. Banggai Laut`
+   - Address suffix: `di -` followed by indented `Tempat.`.
+
+### 8.3 Body Sections and Text Wrapping
+Body text uses font size $10.5\text{ pt}$ with line height $15\text{ pt}$. Colons align at $X = 145\text{ pt}$, and values start at $X = 155\text{ pt}$ with maximum width $417\text{ pt}$.
+
+1. **Dasar (Statutory References):**
+   - Line 1: `1. Surat Tugas Nomor : [nomorSurat] Tanggal [tanggalSurat]`
+   - Line 2: `2. Surat Perjalanan Dinas Nomor : [nomorSpd] Tanggal [tanggalSpd]`
+2. **Maksud Perjalanan (Purpose):** Strips numerical prefixes and executes justified text distribution across wrapped lines.
+3. **Lama Perjalanan (Duration):** Renders duration formatted as `( [lamaHari] ) hari`.
+4. **Hasil Perjalanan (Narrative Findings):**
+   - Parses multi-paragraph inputs split by newlines.
+   - Justifies all lines except the final line of each paragraph.
+   - Evaluates remaining vertical space; automatically adds a new Legal page when $Y < 105\text{ pt}$ ($marginBottom + 60\text{ pt}$).
+
+### 8.4 Closing Statement and Signatory Placement
+- **Closing Sentence:** `Demikian Laporan Perjalanan Dinas ini dibuat, untuk menjadi bahan pertimbangan.`
+- **Signatory Block:** Single block anchored at the bottom right ($X = 312\text{ pt}$, width $260\text{ pt}$, height $110\text{ pt}$):
+  - Header: Centered `YANG MELAKUKAN PERJALANAN DINAS` ($10.5\text{ pt}$ Bold).
+  - Clearance: $65\text{ pt}$ space for physical ink signature.
+  - Footer: Left-aligned traveler name (`spd.pegawai.nama`) with right-aligned signature dotted rule (`.......................`).
+
+---
+
+## 9. HTTP Streaming Pipeline
 
 Generated documents are returned directly to the client as an inline binary stream:
 

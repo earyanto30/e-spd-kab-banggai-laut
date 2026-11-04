@@ -7,7 +7,7 @@
 
         <!-- SYSTEM BOUNDARY -->
         <mxCell id="boundary" value="Sistem Informasi Surat Perjalanan Dinas (SI-SPD) SETDA Kab. Banggai Laut" style="swimlane;whiteSpace=wrap;html=1;startSize=32;fillColor=#f8fafc;strokeColor=#0f4c81;fontColor=#0f172a;fontSize=14;fontStyle=1;rounded=1;arcSize=2;strokeWidth=2;collapsible=0;" vertex="1" parent="1">
-          <mxGeometry x="270" y="30" width="980" height="980" as="geometry" />
+          <mxGeometry x="270" y="30" width="980" height="1020" as="geometry" />
         </mxCell>
 
         <!-- ACTORS (LEFT SIDE) -->
@@ -136,6 +136,19 @@
           <mxGeometry x="680" y="800" width="200" height="60" as="geometry" />
         </mxCell>
 
+        <!-- USE CASES: COLUMN 2 & 3 (LAPORAN PERJALANAN DINAS) -->
+        <mxCell id="uc_laporan_manage" value="UC-21: Kelola &amp; Filter Laporan&#xa;(Status &amp; Pejabat Filter)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontColor=#7c2d12;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="800" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_laporan_create" value="UC-22: Buat &amp; Ubah Laporan&#xa;(Free-Text Hasil Perjalanan)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontColor=#7c2d12;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="340" y="890" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="uc_laporan_pdf" value="UC-23: Unduh &amp; Cetak PDF Laporan&#xa;(Legal Format &amp; Single Sign)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#ffedd5;strokeColor=#ea580c;fontColor=#7c2d12;fontSize=11;fontStyle=1;" vertex="1" parent="boundary">
+          <mxGeometry x="680" y="890" width="200" height="60" as="geometry" />
+        </mxCell>
+
         <!-- INCLUDES & EXTENDS RELATIONS -->
         <!-- UC-12 (Buat SPD) <<include>> UC-16 (Auto Penomoran) -->
         <mxCell id="rel_inc_num1" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#7c3aed;fontColor=#4c1d95;fontSize=10;" edge="1" parent="boundary" source="uc_spd_create_direct" target="uc_spd_number">
@@ -162,8 +175,18 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
+        <!-- UC-22 (Buat Laporan) <<include>> UC-23 (Cetak PDF Laporan) -->
+        <mxCell id="rel_inc_laporan" value="&amp;lt;&amp;lt;include&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#ea580c;fontColor=#7c2d12;fontSize=10;" edge="1" parent="boundary" source="uc_laporan_create" target="uc_laporan_pdf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- UC-22 (Buat Laporan) <<extend>> UC-14 (Kelola Dokumen SPD) -->
+        <mxCell id="rel_ext_laporan_spd" value="&amp;lt;&amp;lt;extend&amp;gt;&amp;gt;" style="endArrow=open;endSize=10;dashed=1;html=1;rounded=0;strokeColor=#059669;fontColor=#064e3b;fontSize=10;" edge="1" parent="boundary" source="uc_laporan_create" target="uc_spd_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
         <!-- ACTOR ASSOCIATIONS -->
-        <!-- User -> Login, Dashboard, ST Print, SPD Preview -->
+        <!-- User -> Login, Dashboard, ST Print, SPD Preview, Laporan View & PDF -->
         <mxCell id="assoc_user_login" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_login">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -180,7 +203,15 @@
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 
-        <!-- Staff -> ST Create, ST Manage, SPD Create, SPD Generate, SPD Manage, Batch Print, Export CSV -->
+        <mxCell id="assoc_user_laporan_manage" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_laporan_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_user_laporan_pdf" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_user" target="uc_laporan_pdf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Staff -> ST Create, ST Manage, SPD Create, SPD Generate, SPD Manage, Batch Print, Export CSV, Laporan Create/Manage/PDF -->
         <mxCell id="assoc_staff_st_create" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_st_create">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
@@ -206,6 +237,18 @@
         </mxCell>
 
         <mxCell id="assoc_staff_csv" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_export_csv">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_laporan_manage" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_laporan_manage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_laporan_create" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_laporan_create">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="assoc_staff_laporan_pdf" style="endArrow=none;html=1;rounded=0;strokeColor=#475569;" edge="1" parent="1" source="actor_staff" target="uc_laporan_pdf">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
 

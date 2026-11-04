@@ -11,11 +11,18 @@ export class SpdService {
     status?: string,
     startDate?: string,
     endDate?: string,
+    laporanStatus?: string,
   ) {
     const where: any = {};
 
     if (status && status.trim() && status.trim() !== 'SEMUA') {
       where.status = status.trim();
+    }
+
+    if (laporanStatus === 'sudah') {
+      where.laporan = { isNot: null };
+    } else if (laporanStatus === 'belum') {
+      where.laporan = null;
     }
 
     if (startDate || endDate) {
@@ -58,6 +65,7 @@ export class SpdService {
         kopSurat: true,
         suratTugas: true,
         penandatangan: true,
+        laporan: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -73,6 +81,7 @@ export class SpdService {
         kopSurat: true,
         suratTugas: true,
         penandatangan: true,
+        laporan: true,
       },
     });
   }
@@ -85,6 +94,7 @@ export class SpdService {
         kopSurat: true,
         suratTugas: true,
         penandatangan: true,
+        laporan: true,
       },
     });
 
@@ -93,6 +103,34 @@ export class SpdService {
     }
 
     return item;
+  }
+
+  async saveLaporan(id: string, dto: { hasilPerjalanan: string; penandatangan: string; tanggalLaporan?: string }) {
+    const spd = await this.findById(id);
+    return this.prisma.laporanPerjalanan.upsert({
+      where: { spdId: id },
+      create: {
+        spdId: id,
+        suratTugasId: spd.suratTugasId || null,
+        hasilPerjalanan: dto.hasilPerjalanan.trim(),
+        penandatangan: dto.penandatangan.trim(),
+        tanggalLaporan: dto.tanggalLaporan ? new Date(dto.tanggalLaporan) : new Date(),
+      },
+      update: {
+        suratTugasId: spd.suratTugasId || null,
+        hasilPerjalanan: dto.hasilPerjalanan.trim(),
+        penandatangan: dto.penandatangan.trim(),
+        tanggalLaporan: dto.tanggalLaporan ? new Date(dto.tanggalLaporan) : new Date(),
+      },
+      include: {
+        spd: {
+          include: {
+            pegawai: true,
+          },
+        },
+        suratTugas: true,
+      },
+    });
   }
 
   async create(dto: CreateSpdDto) {

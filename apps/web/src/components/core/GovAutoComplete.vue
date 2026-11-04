@@ -7,7 +7,7 @@ withDefaults(
   defineProps<{
     suggestions: T[];
     loading?: boolean;
-    optionLabel?: string;
+    optionLabel?: string | ((data: any) => string);
     placeholder?: string;
     invalid?: boolean;
     disabled?: boolean;
@@ -21,6 +21,8 @@ withDefaults(
 
 const emit = defineEmits<{
   (e: 'complete', event: AutoCompleteCompleteEvent): void;
+  (e: 'item-select', event: any): void;
+  (e: 'clear'): void;
 }>();
 </script>
 
@@ -36,9 +38,11 @@ const emit = defineEmits<{
     :fluid="fluid"
     v-bind="$attrs"
     @complete="emit('complete', $event)"
+    @item-select="emit('item-select', $event)"
+    @clear="emit('clear')"
   >
-    <template v-if="$slots.option" #option="slotProps">
-      <slot name="option" v-bind="slotProps" />
+    <template v-for="(_, slotName) in $slots" :key="slotName" #[slotName]="slotProps">
+      <slot :name="slotName" v-bind="slotProps || {}" />
     </template>
   </AutoComplete>
 </template>

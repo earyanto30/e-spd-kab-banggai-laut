@@ -142,6 +142,15 @@ When collapsed (`w-20`):
 - Menu categories display top-level icons only.
 - Clicking an icon category with children automatically expands the sidebar and unrolls the active sub-menu tree.
 
+### 4.3 Navigation Menu Structure (`GovSidebar.vue`)
+The sidebar is structured into functional administrative categories:
+1. **Beranda:** Route `/` (`pi pi-home`)
+2. **Surat Tugas:** Route `/surat-tugas` (`pi pi-file`) with submenus *Daftar Surat Tugas* (`/surat-tugas`) and *Buat Surat Tugas* (`/surat-tugas/buat`).
+3. **Surat Perjalanan Dinas:** Route `/spd` (`pi pi-briefcase`) with submenus *Daftar SPD* (`/spd`) and *Buat Dokumen Baru* (`/spd/buat`).
+4. **Laporan Perjalanan:** Route `/laporan` (`pi pi-file-check`) with submenus *Daftar Laporan* (`/laporan`) and *Buat Laporan* (`/laporan/buat`).
+5. **Kepegawaian:** Route `/kepegawaian` (`pi pi-users`) with submenu *Data ASN* (`/kepegawaian/asn`).
+6. **Pengaturan:** Route `/pengaturan` (`pi pi-cog`) with submenus *Pengaturan Pengguna* (`/pengaturan/pengguna`), *Kop Surat* (`/pengaturan/kop-surat`), and *Dasar Hukum* (`/pengaturan/dasar-hukum`).
+
 ---
 
 ## 5. Form Design and Validation UX
@@ -153,6 +162,12 @@ When collapsed (`w-20`):
 4. **Dynamic Number Words (*Angka Terbilang*):** `GovInputNumber` automatically computes and renders Indonesian verbal integers (e.g. `3` -> `Tiga Hari`) in real time to prevent clerical entry errors.
 5. **KPA Numbering Enforcement:** When issuing an SPD as `Kuasa Pengguna Anggaran (KPA)`, the system automatically prefixes the letter number with `KPA` (e.g., `KPA001/SPD/SETDA/2026`).
 6. **Bulk Action Controls:** `DaftarSpdView.vue` and `DaftarSuratTugasView.vue` provide multi-select checkboxes for batch actions: bulk delete with confirmation modal, and batch non-collate printing.
+7. **Laporan Perjalanan Dinas Workflows:**
+   - **Inline Generation in Preview:** `SpdDetailPrintView.vue` provides a modal dialog with contextual SPD summaries, automatic recipient mapping, and direct PDF download/print triggers.
+   - **Dedicated List and Authoring Views:** `DaftarLaporanView.vue` surfaces KPI metric cards (`Total Laporan`, `Menunggu Pembuatan`, `SPD Disetujui`) with instant search and status filters; `BuatLaporanView.vue` includes an auto-complete selector for approved SPDs, dynamic recipient resolution, and multiline narrative editing.
+
+### 5.2 Component Customization Standards
+- **`GovSelect.vue` Dynamic Slot Passthrough:** Configured with `<template v-for="(_, slotName) in $slots" #[slotName]="slotProps">` to forward all PrimeVue `Select` scoped slots (`option`, `value`, `header`, `footer`) transparently to child templates.
 
 ---
 

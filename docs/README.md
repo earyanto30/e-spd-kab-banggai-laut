@@ -1,6 +1,6 @@
 # Sistem Informasi Surat Perjalanan Dinas (SI-SPD)
 
-Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat of Banggai Laut Regency (Sulawesi Tengah). It automates the preparation, verification, issuance, and PDF rendering of official travel documents (Surat Perjalanan Dinas) and assignment orders (Surat Tugas).
+Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat of Banggai Laut Regency (Sulawesi Tengah). It automates the preparation, verification, issuance, trip reporting (Laporan Perjalanan Dinas), and PDF rendering of official travel documents (Surat Perjalanan Dinas) and assignment orders (Surat Tugas).
 
 ---
 
@@ -11,6 +11,7 @@ Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat
 - **Frontend Client (`apps/web`):** Vue 3 (Composition API), Vite, PrimeVue 4, Tailwind CSS 3
 - **Shared Types Package (`packages/shared-types`):** TypeScript interfaces, DTOs, Enums, Zod validation schemas
 - **Storage Subsystem:** Local filesystem storage for official letterhead templates (`uploads/kop-surat`)
+- **Core Functional Modules:** Autentikasi & Akun, Kepegawaian (Data ASN & Master Jabatan), Pengaturan Kop Surat & Dasar Hukum, Surat Tugas, Surat Perjalanan Dinas (SPD Mandiri & On-Demand dari ST), Laporan Perjalanan Dinas, Dashboard Analitik, Batch Duplex Printing, dan Ekspor CSV.
 
 ---
 
@@ -31,7 +32,9 @@ Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat
 │   ├── pdf-generation.md          # Vector drawing algorithms and coordinates
 │   ├── application-flow.md        # Workflows, auth lifecycle, and state machine
 │   ├── usecase-specification.md   # Functional use cases and actor mappings
-│   └── usecase-diagram.drawio     # Draw.io XML Use Case Diagram
+│   ├── usecase-diagram.drawio     # Draw.io XML Use Case Diagram
+│   ├── class-diagram.md           # Object-oriented class specifications
+│   └── class-diagram.drawio       # Draw.io XML Class Diagram
 ├── packages/
 │   └── shared-types/    # Shared DTOs, Zod schemas, and RBAC roles
 └── package.json         # Workspace root definitions and scripts
@@ -145,3 +148,5 @@ For comprehensive technical documentation, refer to the documents in `docs/`:
 - **[Application Workflow & System Architecture](application-flow.md):** Authentication lifecycles, on-demand SPD generation, and state transitions.
 - **[Use Case Specification](usecase-specification.md):** Functional actor mappings, detailed use cases, and interaction rules.
 - **[Use Case Diagram (Draw.io)](usecase-diagram.drawio):** Native Draw.io XML diagram file importable into diagrams.net.
+- **[Class Diagram Specification](class-diagram.md):** Object-oriented structural model, service dependencies, and contracts.
+- **[Class Diagram (Draw.io)](class-diagram.drawio):** Native Draw.io XML class diagram file importable into diagrams.net.

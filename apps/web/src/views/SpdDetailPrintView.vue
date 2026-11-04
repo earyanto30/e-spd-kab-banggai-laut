@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, reactive, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Tag from 'primevue/tag';
-import { GovButton, GovSelect, GovMessage } from '../components/core';
+import Dialog from 'primevue/dialog';
+import { GovButton, GovSelect, GovMessage, GovTextarea, GovDatePicker } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 
@@ -76,6 +77,9 @@ export interface SpdDetailData {
     penandatanganPangkat?: string | null;
     penandatanganNip?: string | null;
   } | null;
+  laporanHasil?: string | null;
+  laporanPenandatangan?: string | null;
+  laporanTanggal?: string | Date | null;
   createdAt?: string | Date;
 }
 
@@ -195,7 +199,174 @@ const handleBack = () => {
   }
 };
 
+// --- Laporan Perjalanan Dinas State & Logic ---
+const isLaporanDisabled = computed(() => {
+  if (!spd.value) return true;
+  const isApproved = spd.value.status === 'DISETUJUI';
+  const hasLamaHari = spd.value.lamaHari != null && Number(spd.value.lamaHari) > 0;
+  return !isApproved || !hasLamaHari;
+});
 
+const laporanDisabledReason = computed(() => {
+  if (!spd.value) return '';
+  if (spd.value.status !== 'DISETUJUI' && (!spd.value.lamaHari || Number(spd.value.lamaHari) <= 0)) {
+    return 'Laporan Perjalanan Dinas dinonaktifkan: Dokumen SPD belum disetujui dan Lama Perjalanan belum diisi.';
+  }
+  if (spd.value.status !== 'DISETUJUI') {
+    return 'Laporan Perjalanan Dinas dinonaktifkan: Dokumen SPD harus berstatus DISETUJUI.';
+  }
+  if (!spd.value.lamaHari || Number(spd.value.lamaHari) <= 0) {
+    return 'Laporan Perjalanan Dinas dinonaktifkan: Lama Perjalanan Dinas harus ditentukan.';
+  }
+  return '';
+});
+
+const penandatanganOptions = [
+  { label: 'Bupati (Bupati Banggai Laut)', value: 'Bupati' },
+  { label: 'Wakil Bupati (Wakil Bupati Banggai Laut)', value: 'Wakil Bupati' },
+  { label: 'Kepala Bagian (Kepala Bagian Umum Setda)', value: 'Kepala Bagian' },
+  { label: 'Sekertaris Daerah (Sekretaris Daerah Kab. Banggai Laut)', value: 'Sekertaris Daerah' },
+];
+
+const showLaporanModal = ref(false);
+const isGeneratingLaporan = ref(false);
+const isPrintingLaporan = ref(false);
+
+const laporanForm = reactive({
+  penandatangan: 'Kepala Bagian' as 'Bupati' | 'Wakil Bupati' | 'Kepala Bagian' | 'Sekertaris Daerah',
+  hasilPerjalanan: '',
+  tanggalLaporan: new Date() as Date | null,
+});
+
+const laporanErrors = reactive<{ hasilPerjalanan?: string }>({});
+
+const openLaporanModal = () => {
+  laporanErrors.hasilPerjalanan = '';
+
+  const isKpa = (spd.value?.pemberiPerintah || '').toLowerCase().includes('kuasa');
+  const defaultPenandatangan = isKpa ? 'Sekertaris Daerah' : 'Kepala Bagian';
+
+  laporanForm.penandatangan = (spd.value?.laporanPenandatangan as any) || defaultPenandatangan;
+  laporanForm.hasilPerjalanan = spd.value?.laporanHasil || '';
+
+  if (spd.value?.laporanTanggal) {
+    laporanForm.tanggalLaporan = new Date(spd.value.laporanTanggal);
+  } else if (spd.value?.tanggalKembali) {
+    laporanForm.tanggalLaporan = new Date(spd.value.tanggalKembali);
+  } else {
+    laporanForm.tanggalLaporan = new Date();
+  }
+
+  showLaporanModal.value = true;
+};
+
+const validateLaporan = (): boolean => {
+  laporanErrors.hasilPerjalanan = '';
+  if (!laporanForm.hasilPerjalanan.trim()) {
+    laporanErrors.hasilPerjalanan = 'Uraian hasil pelaksanaan perjalanan dinas wajib diisi.';
+    return false;
+  }
+  return true;
+};
+
+const handleDownloadLaporan = async () => {
+  if (!validateLaporan()) return;
+  isGeneratingLaporan.value = true;
+  try {
+    const payload = {
+      hasilPerjalanan: laporanForm.hasilPerjalanan.trim(),
+      penandatangan: laporanForm.penandatangan,
+      tanggalLaporan: laporanForm.tanggalLaporan ? laporanForm.tanggalLaporan.toISOString() : undefined,
+      fontFamily: fontFamily.value,
+    };
+    const res = await apiFetch(`/api/spd/${spdId}/laporan-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanNum = (spd.value?.nomorSpd || 'SPD').replace(/[\/\\]/g, '_').trim();
+      a.download = `Laporan_SPD_${cleanNum}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success('Dokumen Laporan Perjalanan Dinas berhasil diunduh');
+
+      if (spd.value) {
+        spd.value.laporanHasil = laporanForm.hasilPerjalanan;
+        spd.value.laporanPenandatangan = laporanForm.penandatangan;
+        spd.value.laporanTanggal = laporanForm.tanggalLaporan;
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh Laporan Perjalanan Dinas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat membuat laporan');
+  } finally {
+    isGeneratingLaporan.value = false;
+  }
+};
+
+const handlePrintLaporan = async () => {
+  if (!validateLaporan()) return;
+  isPrintingLaporan.value = true;
+  try {
+    const payload = {
+      hasilPerjalanan: laporanForm.hasilPerjalanan.trim(),
+      penandatangan: laporanForm.penandatangan,
+      tanggalLaporan: laporanForm.tanggalLaporan ? laporanForm.tanggalLaporan.toISOString() : undefined,
+      fontFamily: fontFamily.value,
+    };
+    const res = await apiFetch(`/api/spd/${spdId}/laporan-pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = url;
+      document.body.appendChild(iframe);
+      iframe.onload = () => {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            URL.revokeObjectURL(url);
+          }, 3000);
+        }, 200);
+      };
+      toast.success('Dokumen Laporan Perjalanan Dinas siap dicetak');
+
+      if (spd.value) {
+        spd.value.laporanHasil = laporanForm.hasilPerjalanan;
+        spd.value.laporanPenandatangan = laporanForm.penandatangan;
+        spd.value.laporanTanggal = laporanForm.tanggalLaporan;
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mencetak Laporan Perjalanan Dinas');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat memproses cetak laporan');
+  } finally {
+    isPrintingLaporan.value = false;
+  }
+};
 
 const fetchSpd = async () => {
   loading.value = true;
@@ -336,6 +507,15 @@ onMounted(() => {
             @click="handlePrint"
             title="Cetak langsung dokumen PDF resmi"
           />
+          <GovButton
+            label="Laporan Perjalanan Dinas"
+            icon="pi pi-file-edit"
+            severity="success"
+            size="small"
+            :disabled="isLaporanDisabled"
+            @click="openLaporanModal"
+            :title="isLaporanDisabled ? laporanDisabledReason : 'Buat dan cetak Laporan Perjalanan Dinas'"
+          />
         </div>
       </div>
 
@@ -424,6 +604,123 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- MODAL BUAT LAPORAN PERJALANAN DINAS -->
+    <Dialog
+      v-model:visible="showLaporanModal"
+      modal
+      header="Buat Laporan Perjalanan Dinas"
+      :style="{ width: '680px' }"
+      class="p-dialog-gov"
+    >
+      <div class="space-y-4 pt-2">
+        <!-- Info Context Card -->
+        <div class="bg-slate-50 dark:bg-slate-900 border border-border rounded-lg p-3 text-xs space-y-1.5">
+          <div class="flex items-center justify-between">
+            <span class="text-text-muted">Nomor Dokumen SPD:</span>
+            <span class="font-mono font-bold text-primary">{{ spd?.nomorSpd || '-' }}</span>
+          </div>
+          <div class="flex items-center justify-between" v-if="spd?.suratTugas?.nomorSurat">
+            <span class="text-text-muted">Surat Tugas Induk:</span>
+            <span class="font-mono text-text-main">{{ spd?.suratTugas?.nomorSurat }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-text-muted">Pegawai Pelaksana:</span>
+            <span class="font-semibold text-text-main">{{ spd?.pegawai?.nama || '-' }}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-text-muted">Lama Perjalanan:</span>
+            <span class="font-medium text-text-main">{{ spd?.lamaHari ? `${spd.lamaHari} hari` : '-' }}</span>
+          </div>
+          <div class="pt-1.5 border-t border-border/60">
+            <span class="text-text-muted block mb-0.5">Maksud Perjalanan:</span>
+            <span class="text-text-main italic block leading-relaxed">{{ spd?.dalamRangka || '-' }}</span>
+          </div>
+        </div>
+
+        <!-- Penanda Tangan Field -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-text-main">
+            Penanda Tangan / Pejabat Tujuan Laporan <span class="text-red-500">*</span>
+          </label>
+          <GovSelect
+            v-model="laporanForm.penandatangan"
+            :options="penandatanganOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Pilih Pejabat Penanda Tangan..."
+            class="w-full"
+          />
+          <p class="text-[11px] text-text-muted">
+            <span class="text-primary font-medium">Aturan Sistem:</span>
+            SPD Pengguna Anggaran (PA) otomatis memilih Kepala Bagian; SPD Kuasa Pengguna Anggaran (KPA) otomatis memilih Sekertaris Daerah.
+          </p>
+        </div>
+
+        <!-- Tanggal Laporan Field -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-text-main">
+            Tanggal Laporan
+          </label>
+          <GovDatePicker
+            v-model="laporanForm.tanggalLaporan"
+            date-format="dd/mm/yy"
+            placeholder="Pilih tanggal laporan..."
+            class="w-full"
+          />
+        </div>
+
+        <!-- Hasil Perjalanan Free Text Field -->
+        <div class="space-y-1.5">
+          <label class="block text-xs font-semibold text-text-main">
+            Hasil Perjalanan Dinas (Free Text) <span class="text-red-500">*</span>
+          </label>
+          <GovTextarea
+            v-model="laporanForm.hasilPerjalanan"
+            rows="7"
+            placeholder="Tuliskan uraian hasil pelaksanaan perjalanan dinas secara lengkap (mendukung multi-paragraf)..."
+            :invalid="!!laporanErrors.hasilPerjalanan"
+            class="text-justify"
+            block
+          />
+          <small v-if="laporanErrors.hasilPerjalanan" class="text-red-500 text-xs block">
+            {{ laporanErrors.hasilPerjalanan }}
+          </small>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="flex items-center justify-end gap-2 pt-3 border-t border-border">
+          <GovButton
+            label="Batal"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            @click="showLaporanModal = false"
+            :disabled="isGeneratingLaporan || isPrintingLaporan"
+          />
+          <GovButton
+            label="Unduh PDF"
+            icon="pi pi-download"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            :loading="isGeneratingLaporan"
+            :disabled="isPrintingLaporan"
+            @click="handleDownloadLaporan"
+          />
+          <GovButton
+            label="Cetak Laporan"
+            icon="pi pi-print"
+            severity="success"
+            size="small"
+            :loading="isPrintingLaporan"
+            :disabled="isGeneratingLaporan"
+            @click="handlePrintLaporan"
+          />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 

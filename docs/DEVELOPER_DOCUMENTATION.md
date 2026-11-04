@@ -122,6 +122,17 @@ erDiagram
         DateTime updatedAt
     }
 
+    LaporanPerjalanan {
+        String id PK
+        String spdId FK,UK
+        String suratTugasId FK
+        String hasilPerjalanan
+        String penandatangan
+        DateTime tanggalLaporan
+        DateTime createdAt
+        DateTime updatedAt
+    }
+
     User ||--o| Pegawai : "references pegawaiId"
     Jabatan ||--o{ Pegawai : "pegawaiList (jabatanId)"
     Pegawai ||--o{ Spd : "spdList (pelaksana)"
@@ -129,6 +140,8 @@ erDiagram
     Pegawai ||--o{ SuratTugas : "suratTugasDitandatanganiList"
     KopSurat ||--o{ Spd : "spdList"
     SuratTugas ||--o{ Spd : "spdList (child SPDs)"
+    SuratTugas ||--o{ LaporanPerjalanan : "laporanList"
+    Spd ||--o| LaporanPerjalanan : "laporan"
 ```
 
 ### 1.3 Entity Specifications
@@ -259,6 +272,20 @@ Stores individual Surat Perjalanan Dinas records formatted to standard official 
 | `penandatanganPangkat` | String | Yes | `null` | None | Signatory rank snapshot |
 | `penandatanganNip` | String | Yes | `null` | None | Signatory NIP snapshot |
 | `status` | String | No | `'DRAFT'` | None | Status: `DRAFT`, `DISETUJUI`, `SELESAI`, `BATAL` |
+| `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
+| `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
+
+#### 1.3.8 Table `LaporanPerjalanan`
+Stores official narrative trip reports linked to issued Surat Perjalanan Dinas documents.
+
+| Column | Data Type | Nullable | Default | Constraints | Description |
+|---|---|---|---|---|---|
+| `id` | String | No | `cuid()` | Primary Key | Unique trip report record identifier |
+| `spdId` | String | No | None | Unique, FK -> `Spd.id` | One-to-one reference to parent SPD; `ON DELETE CASCADE` |
+| `suratTugasId` | String | Yes | `null` | FK -> `SuratTugas.id` | Reference to parent Surat Tugas; `ON DELETE SET NULL` |
+| `hasilPerjalanan` | String | No | None | None | Narrative report body; supports multi-paragraph text |
+| `penandatangan` | String | No | None | Enum Check | Target reporting official (`Bupati`, `Wakil Bupati`, `Kepala Bagian`, `Sekertaris Daerah`) |
+| `tanggalLaporan` | DateTime | No | `now()` | None | Official issuance date shown on report header |
 | `createdAt` | DateTime | No | `now()` | None | Record creation timestamp |
 | `updatedAt` | DateTime | No | Triggered | None | Record modification timestamp |
 
@@ -410,11 +437,35 @@ When multiple SPDs are selected for printing or downloading simultaneously, `Spd
 
 This facilitates direct duplex printing on standard office printers.
 
+### 3.6 Laporan Perjalanan Dinas PDF Mechanics (`generateLaporanPdf`)
+
+Generates the official single or multi-page trip report based on the physical government standard (`apps/api/src/spd/spd-pdf.service.ts`):
+- **Page Geometry:** Legal size ($612 \times 1008\text{ pt}$); margins: Left $40\text{ pt}$, Right $40\text{ pt}$, Top $45\text{ pt}$, Bottom $45\text{ pt}$.
+- **Typography:** Standard `Times-Roman` and `Times-Roman-Bold` fonts.
+- **Header Structure:**
+  - Centered underlined title: `LAPORAN PERJALANAN DINAS` ($12\text{ pt}$ Bold).
+  - Left column: `Perihal : Laporan Perjalanan Dinas`.
+  - Right column: Place and formatted date (`Banggai,      [Tanggal]`), followed by recipient designation (`Kepada Yth, [Pejabat] di - Tempat.`).
+- **Body Layout (Numbered Sections):**
+  1. `Dasar`: References Surat Tugas number & date, and SPD number & date.
+  2. `Maksud Perjalanan`: Strips numerical prefix and draws justified wrapped text.
+  3. `Lama Perjalanan`: Formatted as `( [lamaHari] ) hari`.
+  4. `Hasil Perjalanan`: Dynamic multi-paragraph text with automatic page overflow handling and text justification.
+- **Closing & Signatory Block:**
+  - Closing statement: *"Demikian Laporan Perjalanan Dinas ini dibuat, untuk menjadi bahan pertimbangan."*
+  - Single bottom-right block for the traveling civil servant:
+    ```text
+    YANG MELAKUKAN PERJALANAN DINAS
+
+    [Nama Pegawai] .......................
+    ```
+
 ---
 
 ## 4. Application Workflow and Architecture
 
-> Detailed functional use case specifications and interaction mappings are documented in [`docs/usecase-specification.md`](usecase-specification.md). The visual Draw.io diagram file is available at [`docs/usecase-diagram.drawio`](usecase-diagram.drawio).
+> Detailed functional use case specifications and interaction mappings are documented in [`docs/usecase-specification.md`](usecase-specification.md) (Draw.io: [`docs/usecase-diagram.drawio`](usecase-diagram.drawio)).
+> Object-oriented structural class specifications, design patterns, and layer relationships are documented in [`docs/class-diagram.md`](class-diagram.md) (Draw.io: [`docs/class-diagram.drawio`](class-diagram.drawio)).
 
 ### 4.1 System Topology
 
@@ -519,3 +570,20 @@ Exporting data to CSV (`DaftarSpdView.vue` and `DaftarSuratTugasView.vue`) is ex
 2. Converts data into RFC 4180-compliant comma-separated rows.
 3. Prepends Unicode Byte Order Mark (`\uFEFF`) to enforce UTF-8 parsing in Microsoft Excel.
 4. Generates an in-memory `Blob` and triggers automated download as `Rekap_SPD_Banggai_Laut_[DATE].csv`.
+
+### 4.6 Laporan Perjalanan Dinas Lifecycle and Generation Workflow
+
+The travel reporting workflow operates downstream of approved official travel (`apps/web/src/views/BuatLaporanView.vue`, `DaftarLaporanView.vue`, and `SpdDetailPrintView.vue`):
+
+1. **Eligibility Gate:**
+   - SPD document must have status `DISETUJUI`.
+   - `lamaHari` must be defined and $> 0$.
+   - Any report creation attempt on draft or indefinite-duration SPDs is disabled with informative contextual feedback.
+2. **Pejabat Destination Auto-Selection:**
+   - If SPD is issued by *Pengguna Anggaran* (`PA`), default recipient is *Kepala Bagian Umum*.
+   - If SPD is issued by *Kuasa Pengguna Anggaran* (`KPA`), default recipient is *Sekertaris Daerah*.
+   - Staff can override recipient to *Bupati*, *Wakil Bupati*, *Kepala Bagian*, or *Sekertaris Daerah*.
+3. **Storage & Regeneration:**
+   - Report text is persisted to table `LaporanPerjalanan` via `PUT /api/spd/:id/laporan` or during inline PDF rendering (`POST /api/spd/:id/laporan-pdf`).
+   - If a report already exists for the SPD, database upsert semantics update the existing record.
+

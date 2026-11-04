@@ -1,0 +1,116 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-11-04T14:15:00.000Z" agent="Mozilla/5.0" version="24.0.0" type="device">
+  <diagram id="SI-SPD-Class-Diagram-UML" name="UML Class Diagram SI-SPD">
+    <mxGraphModel dx="1400" dy="950" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="cls_instansi" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;Instansi&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+Nama: string&amp;#xa;+Lokasi: string&amp;#xa;+Alamat: string&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+KelolaKopSurat()&amp;#xa;+KelolaDasarHukum()&amp;#xa;+KelolaJabatan()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="40" width="190" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_pegawai" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;Pegawai&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+Nip: string&amp;#xa;+Nama: string&amp;#xa;+Pangkat: string&amp;#xa;+Golongan: string&amp;#xa;+Jabatan: string&amp;#xa;+UnitKerja: string&amp;#xa;+IsASN: boolean&amp;#xa;+IsPenandatangan: boolean&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+GetProfile()&amp;#xa;+UpdateData()&amp;#xa;+AssignJabatan()&amp;#xa;+TandaTanganDokumen()&amp;#xa;+VerifikasiKelayakan()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="320" width="200" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_user" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;User&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+Username: string&amp;#xa;+Email: string&amp;#xa;+Role: string&amp;#xa;+IsActive: boolean&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Login()&amp;#xa;+Logout()&amp;#xa;+ChangePassword()&amp;#xa;+CreateSuratTugas()&amp;#xa;+GenerateSpd()&amp;#xa;+ExportCsv()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="100" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_dokumen" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;DokumenPerjalanan&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+NomorSurat: string&amp;#xa;+DalamRangka: string&amp;#xa;+Status: string&amp;#xa;+KopSuratId: string&amp;#xa;+PenandatanganNama: string&amp;#xa;+PenandatanganNip: string&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+CreateDraft()&amp;#xa;+UpdateStatus()&amp;#xa;+RenderPdf()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="360" width="200" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_laporan" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;LaporanPerjalanan&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+SpdId: string&amp;#xa;+SuratTugasId: string&amp;#xa;+HasilPerjalanan: string&amp;#xa;+Penandatangan: string&amp;#xa;+TanggalLaporan: date&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+CreateLaporan()&amp;#xa;+ResolveTargetOfficial()&amp;#xa;+ValidateSpdStatus()&amp;#xa;+RenderPdf()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="360" y="600" width="200" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_surat_tugas" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;SuratTugas&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+DasarHukum: string&amp;#xa;+MaksudHeader: string&amp;#xa;+TempatDikeluarkan: string&amp;#xa;+TanggalSurat: date&amp;#xa;+PegawaiIds: string&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+AssignPegawai()&amp;#xa;+GenerateSpd()&amp;#xa;+SyncParameters()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="670" y="300" width="200" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_spd" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;Spd&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+PemberiPerintah: string&amp;#xa;+PegawaiId: string&amp;#xa;+AlatAngkut: string&amp;#xa;+TempatTujuan: string&amp;#xa;+LamaHari: int&amp;#xa;+TanggalBerangkat: date&amp;#xa;+TanggalKembali: date&amp;#xa;+Skpd: string&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+GenerateNomorSpd()&amp;#xa;+CalculateDates()&amp;#xa;+RenderVisum()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="670" y="480" width="200" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_kop" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;KopSurat&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+Nama: string&amp;#xa;+FileName: string&amp;#xa;+PaperSize: string&amp;#xa;+IsDefault: boolean&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Upload()&amp;#xa;+SetDefault()&amp;#xa;+DetectPaperSize()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="950" y="120" width="180" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="cls_jabatan" value="&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:center;&amp;quot;&amp;gt;&amp;lt;b&amp;gt;Jabatan&amp;lt;/b&amp;gt;&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Id: string&amp;#xa;+Nama: string&amp;#xa;+Keterangan: string&amp;#xa;+Urutan: int&amp;lt;/p&amp;gt;&amp;lt;hr size=&amp;quot;1&amp;quot;/&amp;gt;&amp;lt;p style=&amp;quot;margin:0px;padding:4px;text-align:left;&amp;quot;&amp;gt;+Create()&amp;#xa;+Update()&amp;lt;/p&amp;gt;" style="verticalAlign=top;align=left;overflow=fill;fontSize=11;fontFamily=Helvetica;html=1;rounded=0;whiteSpace=wrap;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="50" y="660" width="180" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_st_doc" style="endArrow=block;endFill=0;endSize=12;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;" edge="1" parent="1" source="cls_surat_tugas" target="cls_dokumen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="gen_spd_doc" style="endArrow=block;endFill=0;endSize=12;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;" edge="1" parent="1" source="cls_spd" target="cls_dokumen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_peg" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_instansi" target="cls_pegawai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_peg_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_inst_peg">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_peg_tgt" value="+1..*" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_inst_peg">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_usr" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_instansi" target="cls_user">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_usr_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_inst_usr">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_inst_usr_tgt" value="+1..*" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_inst_usr">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_usr_peg" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_user" target="cls_pegawai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_usr_peg_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_usr_peg">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_usr_peg_tgt" value="+1" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_usr_peg">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_doc" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_pegawai" target="cls_dokumen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_doc_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_doc">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_doc_tgt" value="+1..*" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_doc">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_lap" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_pegawai" target="cls_laporan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_lap_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_lap">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_lap_tgt" value="+0..*" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_lap">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_jab" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_pegawai" target="cls_jabatan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_jab_src" value="+1..*" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_jab">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_peg_jab_tgt" value="+1" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_peg_jab">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_doc_lap" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_dokumen" target="cls_laporan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_doc_lap_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_doc_lap">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_doc_lap_tgt" value="+0..1" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_doc_lap">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_kop_doc" style="endArrow=none;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;" edge="1" parent="1" source="cls_kop" target="cls_dokumen">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_kop_doc_src" value="+1" style="edgeLabel;html=1;align=left;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_kop_doc">
+          <mxGeometry x="-0.8" relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assoc_kop_doc_tgt" value="+0..*" style="edgeLabel;html=1;align=right;verticalAlign=bottom;resizable=0;points=[];fontSize=11;fontColor=#000000;" vertex="1" connectable="0" parent="assoc_kop_doc">
+          <mxGeometry x="0.8" relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

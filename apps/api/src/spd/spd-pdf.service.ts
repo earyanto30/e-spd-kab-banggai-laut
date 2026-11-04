@@ -52,7 +52,7 @@ export class SpdPdfService {
     isLastLine: boolean = false,
   ): void {
     const trimmed = line.trim();
-    const words = trimmed.split(/\s+/);
+    const words = trimmed.split(/\s+/).filter(Boolean);
 
     if (isLastLine || words.length <= 1) {
       page.drawText(trimmed, { x, y, size: fontSize, font, color });
@@ -61,11 +61,16 @@ export class SpdPdfService {
 
     const wordsTotalWidth = words.reduce((acc, w) => acc + font.widthOfTextAtSize(w, fontSize), 0);
     const spaceToDistribute = targetWidth - wordsTotalWidth;
-    const gapWidth = spaceToDistribute / (words.length - 1);
-    const normalSpaceWidth = font.widthOfTextAtSize(' ', fontSize);
 
-    // Safeguard: if spacing is distorted beyond reasonable limits, fallback to standard text
-    if (gapWidth > normalSpaceWidth * 3.5 || gapWidth < normalSpaceWidth * 0.5) {
+    if (spaceToDistribute <= 0) {
+      page.drawText(trimmed, { x, y, size: fontSize, font, color });
+      return;
+    }
+
+    const gapWidth = spaceToDistribute / (words.length - 1);
+
+    // Safeguard: only fallback if spacing is absurdly disproportionate
+    if (gapWidth > 35) {
       page.drawText(trimmed, { x, y, size: fontSize, font, color });
       return;
     }
@@ -1040,6 +1045,337 @@ export class SpdPdfService {
     return {
       buffer: Buffer.from(mergedBytes),
       fileName: `SPD_Gabungan_${ids.length}_Dokumen.pdf`,
+    };
+  }
+
+  /**
+   * Menghasilkan dokumen resmi Laporan Perjalanan Dinas sesuai format fisik lampiran
+   */
+  async generateLaporanPdf(
+    spdId: string,
+    dto: {
+      hasilPerjalanan: string;
+      penandatangan: 'Bupati' | 'Wakil Bupati' | 'Kepala Bagian' | 'Sekertaris Daerah';
+      tanggalLaporan?: string;
+    },
+    fontFamily?: string,
+  ): Promise<{ buffer: Buffer; fileName: string }> {
+    const spd = await this.prisma.spd.findUnique({
+      where: { id: spdId },
+      include: {
+        pegawai: true,
+        suratTugas: {
+          include: {
+            penandatangan: true,
+          },
+        },
+      },
+    });
+
+    if (!spd) {
+      throw new NotFoundException(`Surat Perjalanan Dinas dengan ID '${spdId}' tidak ditemukan`);
+    }
+
+    const pdfDoc = await PDFDocument.create();
+    const isTimes = fontFamily?.toLowerCase() === 'times';
+    const fontRegular = await pdfDoc.embedFont(isTimes ? StandardFonts.TimesRoman : StandardFonts.Helvetica);
+    const fontBold = await pdfDoc.embedFont(isTimes ? StandardFonts.TimesRomanBold : StandardFonts.HelveticaBold);
+
+    // Ukuran Kertas Legal (612 x 1008 pt) dengan margin resmi Laporan
+    const width = 612;
+    const height = 1008;
+    const marginLeft = 57;
+    const marginRight = 55;
+    const marginTop = 60;
+    const marginBottom = 55;
+    const black = rgb(0, 0, 0);
+
+    let currentPage = pdfDoc.addPage([width, height]);
+    let currentY = height - marginTop;
+
+    // 1. Judul Dokumen (LAPORAN PERJALANAN DINAS)
+    const title = 'LAPORAN PERJALANAN DINAS';
+    const titleSize = 12;
+    const titleWidth = fontBold.widthOfTextAtSize(title, titleSize);
+    const titleX = (width - titleWidth) / 2;
+
+    currentPage.drawText(title, {
+      x: titleX,
+      y: currentY,
+      size: titleSize,
+      font: fontBold,
+      color: black,
+    });
+    currentPage.drawLine({
+      start: { x: titleX, y: currentY - 2 },
+      end: { x: titleX + titleWidth, y: currentY - 2 },
+      thickness: 1,
+      color: black,
+    });
+
+    currentY -= 26;
+
+    // 2. Bagian Kepala Surat / Alamat Tujuan (Header & Kepada Yth)
+    const headerFontSize = 10.5;
+    const headerLineHeight = 14;
+
+    // Sisi Kiri: Perihal
+    currentPage.drawText('Perihal : Laporan Perjalanan Dinas', {
+      x: marginLeft,
+      y: currentY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+
+    // Sisi Kanan: Banggai, [Tanggal] & Kepada Yth
+    const rightColX = 335;
+    let rightY = currentY;
+
+    const dateToFormat = dto.tanggalLaporan
+      ? new Date(dto.tanggalLaporan)
+      : (spd.tanggalKembali || spd.createdAt || new Date());
+    const formattedReportDate = this.formatIndonesianDate(dateToFormat);
+
+    currentPage.drawText(`Banggai,      ${formattedReportDate}`, {
+      x: rightColX,
+      y: rightY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    rightY -= headerLineHeight;
+
+    currentPage.drawText('Kepada Yth,', {
+      x: rightColX,
+      y: rightY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    rightY -= headerLineHeight;
+
+    let targetOfficial = 'Kepala Bagian Umum Setda Kab. Banggai Laut';
+    if (dto.penandatangan === 'Bupati') {
+      targetOfficial = 'Bupati Banggai Laut';
+    } else if (dto.penandatangan === 'Wakil Bupati') {
+      targetOfficial = 'Wakil Bupati Banggai Laut';
+    } else if (dto.penandatangan === 'Sekertaris Daerah') {
+      targetOfficial = 'Sekretaris Daerah Kabupaten Banggai Laut';
+    } else if (dto.penandatangan === 'Kepala Bagian') {
+      targetOfficial = 'Kepala Bagian Umum Setda Kab. Banggai Laut';
+    }
+
+    currentPage.drawText(targetOfficial, {
+      x: rightColX,
+      y: rightY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    rightY -= headerLineHeight;
+
+    currentPage.drawText('di -', {
+      x: rightColX,
+      y: rightY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    rightY -= headerLineHeight;
+
+    currentPage.drawText('Tempat.', {
+      x: rightColX + 24,
+      y: rightY,
+      size: headerFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    rightY -= headerLineHeight;
+
+    currentY = Math.min(currentY - headerLineHeight * 3, rightY) - 18;
+
+    // 3. Poin-Poin Rincian Laporan
+    const bodyFontSize = 10.5;
+    const bodyLineHeight = 15;
+    const labelWidth = 105;
+    const colonX = marginLeft + labelWidth; // 40 + 105 = 145
+    const contentX = colonX + 10; // 155
+    const contentMaxWidth = width - marginRight - contentX; // 612 - 40 - 155 = 417
+
+    // Poin 1: Dasar
+    currentPage.drawText('Dasar', { x: marginLeft, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: colonX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+
+    const stNumber = spd.suratTugas?.nomorSurat || '-';
+    const stDate = spd.suratTugas?.tanggalSurat ? this.formatIndonesianDate(spd.suratTugas.tanggalSurat) : '-';
+    const dasar1Text = `1. Surat Tugas Nomor : ${stNumber} Tanggal ${stDate}`;
+    currentPage.drawText(dasar1Text, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentY -= bodyLineHeight;
+
+    const spdNumber = (spd.nomorSpd || '-').replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/');
+    const spdDate = spd.createdAt ? this.formatIndonesianDate(spd.createdAt) : '-';
+    const dasar2Text = `2. Surat Perjalanan Dinas Nomor : ${spdNumber} Tanggal ${spdDate}`;
+    currentPage.drawText(dasar2Text, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentY -= (bodyLineHeight + 10);
+
+    // Poin 2: Maksud Perjalanan
+    currentPage.drawText('Maksud Perjalanan', { x: marginLeft, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: colonX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+
+    const cleanMaksud = (spd.dalamRangka || '-').replace(/^\d+[\.\)]\s*/, '');
+    const maksudLines = this.splitTextToLines(cleanMaksud, fontRegular, bodyFontSize, contentMaxWidth);
+    for (let i = 0; i < maksudLines.length; i++) {
+      const line = maksudLines[i];
+      if (i === maksudLines.length - 1 || maksudLines.length === 1) {
+        currentPage.drawText(line, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+      } else {
+        this.drawJustifiedText(currentPage, line, contentX, currentY, bodyFontSize, fontRegular, black, contentMaxWidth);
+      }
+      currentY -= bodyLineHeight;
+    }
+    currentY -= 10;
+
+    // Poin 3: Lama Perjalanan
+    currentPage.drawText('Lama Perjalanan', { x: marginLeft, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: colonX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+
+    const lamaText = `( ${spd.lamaHari || ' '} ) hari`;
+    currentPage.drawText(lamaText, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentY -= (bodyLineHeight + 10);
+
+    // Poin 4: Hasil Perjalanan
+    currentPage.drawText('Hasil Perjalanan', { x: marginLeft, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: colonX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+
+    const rawLines = (dto.hasilPerjalanan || '').split(/\r?\n/);
+    const paragraphs: string[] = [];
+    let currentParagraph = '';
+
+    for (const rawLine of rawLines) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) {
+        if (currentParagraph) {
+          paragraphs.push(currentParagraph);
+          currentParagraph = '';
+        }
+      } else {
+        const isListMarker = /^(?:(?:\d+|[a-zA-Z])[\.\)]|[-•*])\s+/.test(trimmed);
+        if (isListMarker) {
+          if (currentParagraph) {
+            paragraphs.push(currentParagraph);
+          }
+          currentParagraph = trimmed;
+        } else {
+          if (currentParagraph) {
+            currentParagraph += ' ' + trimmed;
+          } else {
+            currentParagraph = trimmed;
+          }
+        }
+      }
+    }
+    if (currentParagraph) {
+      paragraphs.push(currentParagraph);
+    }
+
+    if (paragraphs.length === 0) {
+      currentPage.drawText('-', { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+      currentY -= bodyLineHeight;
+    } else {
+      for (let pIdx = 0; pIdx < paragraphs.length; pIdx++) {
+        const paragraph = paragraphs[pIdx];
+
+        // Cek sisa halaman sebelum menggambar paragraf baru
+        if (currentY < marginBottom + 60) {
+          currentPage = pdfDoc.addPage([width, height]);
+          currentY = height - marginTop;
+        }
+
+        const pLines = this.splitTextToLines(paragraph, fontRegular, bodyFontSize, contentMaxWidth);
+        for (let lIdx = 0; lIdx < pLines.length; lIdx++) {
+          if (currentY < marginBottom + 40) {
+            currentPage = pdfDoc.addPage([width, height]);
+            currentY = height - marginTop;
+          }
+
+          const line = pLines[lIdx];
+          const isLastLineOfP = lIdx === pLines.length - 1;
+          const lineWidth = fontRegular.widthOfTextAtSize(line, bodyFontSize);
+          const isAlmostFullLine = lineWidth >= contentMaxWidth * 0.85;
+
+          if (isLastLineOfP && !isAlmostFullLine) {
+            currentPage.drawText(line, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
+          } else {
+            this.drawJustifiedText(currentPage, line, contentX, currentY, bodyFontSize, fontRegular, black, contentMaxWidth);
+          }
+          currentY -= bodyLineHeight;
+        }
+
+        // Spasi antar paragraf
+        currentY -= 6;
+      }
+    }
+
+    // 4. Penutup Laporan
+    currentY -= 14;
+    const totalSignBlockHeight = 110;
+    if (currentY - totalSignBlockHeight < marginBottom) {
+      currentPage = pdfDoc.addPage([width, height]);
+      currentY = height - marginTop;
+    }
+
+    const closingText = 'Demikian Laporan Perjalanan Dinas ini dibuat, untuk menjadi bahan pertimbangan.';
+    currentPage.drawText(closingText, {
+      x: marginLeft,
+      y: currentY,
+      size: bodyFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    currentY -= 28;
+
+    // 5. Tanda Tangan Pelaksana Perjalanan Dinas (Kanan Bawah)
+    const signBlockWidth = 240;
+    const signX = width - marginRight - signBlockWidth;
+
+    const signTitle = 'YANG MELAKUKAN PERJALANAN DINAS';
+    const titleW = fontBold.widthOfTextAtSize(signTitle, 10.5);
+    currentPage.drawText(signTitle, {
+      x: signX + (signBlockWidth - titleW) / 2,
+      y: currentY,
+      size: 10.5,
+      font: fontBold,
+      color: black,
+    });
+
+    currentY -= 65;
+
+    const travelerName = spd.pegawai?.nama || 'Pegawai Pelaksana';
+    const dottedLine = '.......................';
+
+    currentPage.drawText(travelerName, {
+      x: signX,
+      y: currentY,
+      size: 10.5,
+      font: fontBold,
+      color: black,
+    });
+
+    const dottedX = signX + signBlockWidth - fontRegular.widthOfTextAtSize(dottedLine, 10.5);
+    currentPage.drawText(dottedLine, {
+      x: Math.max(dottedX, signX + fontBold.widthOfTextAtSize(travelerName, 10.5) + 15),
+      y: currentY,
+      size: 10.5,
+      font: fontRegular,
+      color: black,
+    });
+
+    const pdfBytes = await pdfDoc.save();
+    const cleanNum = (spd.nomorSpd || 'SPD').replace(/[\/\\]/g, '_').trim();
+    return {
+      buffer: Buffer.from(pdfBytes),
+      fileName: `Laporan_SPD_${cleanNum}.pdf`,
     };
   }
 }
