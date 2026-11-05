@@ -1,0 +1,191 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-11-04T14:35:00.000Z" agent="Mozilla/5.0" version="24.0.0" type="device">
+  <diagram id="SI-SPD-Activity-Diagram" name="Activity Diagram SI-SPD Banggai Laut">
+    <mxGraphModel dx="1400" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title_box" value="Penerbitan Surat Tugas, SPD dan Laporan Activity Map" style="swimlane;whiteSpace=wrap;html=1;startSize=32;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1.5;fontColor=#0f172a;fontSize=13;fontStyle=1;rounded=0;collapsible=0;" vertex="1" parent="1">
+          <mxGeometry x="70" y="40" width="960" height="1220" as="geometry" />
+        </mxCell>
+        <mxCell id="col1" value="Pengguna / Staff" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontColor=#0f172a;fontSize=11;fontStyle=0;rounded=0;collapsible=0;" vertex="1" parent="title_box">
+          <mxGeometry x="0" y="32" width="320" height="1188" as="geometry" />
+        </mxCell>
+        <mxCell id="col2" value="Sistem SI-SPD" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontColor=#0f172a;fontSize=11;fontStyle=0;rounded=0;collapsible=0;" vertex="1" parent="title_box">
+          <mxGeometry x="320" y="32" width="320" height="1188" as="geometry" />
+        </mxCell>
+        <mxCell id="col3" value="Pejabat Penandatangan (PA / KPA)" style="swimlane;whiteSpace=wrap;html=1;startSize=28;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontColor=#0f172a;fontSize=11;fontStyle=0;rounded=0;collapsible=0;" vertex="1" parent="title_box">
+          <mxGeometry x="640" y="32" width="320" height="1188" as="geometry" />
+        </mxCell>
+        <mxCell id="start_1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#000000;strokeColor=none;" vertex="1" parent="1">
+          <mxGeometry x="218" y="120" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="act_login" value="Masuk ke Sistem&amp;#xa;(Login JWT)" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="170" width="150" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="act_verify_auth" value="Verifikasi Kredensial&amp;#xa;&amp;amp; Terbitkan Sesi" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="170" width="150" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_auth" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="530" y="240" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_auth_err" value="Tampilkan Pesan&amp;#xa;Kredensial Salah" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="305" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_input_st" value="Input Agenda Tugas,&amp;#xa;Pilih ASN &amp;amp; Dasar Hukum" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="380" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_gen_st_num" value="Auto-Generate Nomor ST&amp;#xa;&amp;amp; Simpan Draf ST" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="380" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_cfg_spd" value="Klik 'Terbitkan SPD'&amp;#xa;&amp;amp; Atur Parameter" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="465" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_confirm_spd" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="210" y="545" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="end_cancel_spd" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="110" y="553" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_kpa_mode" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="530" y="545" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_gen_kpa" value="Terapkan Prefix 'KPA'&amp;#xa;&amp;amp; Pejabat Kabag Umum" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="395" y="620" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="act_gen_pa" value="Gunakan Nomor Biasa&amp;#xa;&amp;amp; Pejabat Sekda" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="565" y="620" width="140" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="act_save_spds" value="Generate Dokumen SPD&amp;#xa;untuk Setiap ASN" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="695" width="150" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="act_review_doc" value="Pemeriksaan Itinerary&amp;#xa;&amp;amp; Beban Anggaran" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="795" y="695" width="150" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="dec_approve" value="" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="850" y="770" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="act_reject_st" value="Tolak / Kembalikan&amp;#xa;ke Draf Revisi" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="795" y="835" width="150" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="act_mark_approved" value="Perbarui Status ke&amp;#xa;DISETUJUI (Sah)" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="765" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_print_doc" value="Unduh PDF Resmi&amp;#xa;(Lembar Depan &amp;amp; Belakang)" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="850" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_stream_pdf" value="Stream Vector PDF&amp;#xa;(Table 10-Point &amp;amp; Visum)" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="850" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_author_report" value="Input Hasil Perjalanan&amp;#xa;pada Laporan SPD" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="155" y="940" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="act_save_laporan" value="Validasi Status Disetujui,&amp;#xa;Simpan &amp;amp; Render PDF Legal" style="rounded=1;arcSize=20;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;strokeWidth=1;fontSize=11;fontFamily=Helvetica;fontColor=#000000;align=center;verticalAlign=middle;spacing=2;" vertex="1" parent="1">
+          <mxGeometry x="475" y="940" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="end_final" style="ellipse;html=1;shape=endState;fillColor=#000000;strokeColor=#000000;strokeWidth=1.5;" vertex="1" parent="1">
+          <mxGeometry x="538" y="1030" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="start_1" target="act_login">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_login" target="act_verify_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_verify_auth" target="dec_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_auth" target="act_auth_err">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t4_lbl" value="Gagal" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_auth_err" target="act_login">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_auth" target="act_input_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t6_lbl" value="Berhasil" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_input_st" target="act_gen_st_num">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t8" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_gen_st_num" target="act_cfg_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t9" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_cfg_spd" target="dec_confirm_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t10" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_confirm_spd" target="end_cancel_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t10_lbl" value="Batal" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t11" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_confirm_spd" target="dec_kpa_mode">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t11_lbl" value="Konfirmasi" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t12" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_kpa_mode" target="act_gen_kpa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t12_lbl" value="Mode KPA" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t13" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_kpa_mode" target="act_gen_pa">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t13_lbl" value="Mode PA" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t14" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_gen_kpa" target="act_save_spds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t15" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_gen_pa" target="act_save_spds">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t16" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_save_spds" target="act_review_doc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t17" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_review_doc" target="dec_approve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t18" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_approve" target="act_reject_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t18_lbl" value="Revisi" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t19" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_reject_st" target="act_input_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t20" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="dec_approve" target="act_mark_approved">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t20_lbl" value="Setuju" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;backgroundColor=#ffffff;" vertex="1" connectable="0" parent="t20">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t21" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_mark_approved" target="act_print_doc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t22" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_print_doc" target="act_stream_pdf">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t23" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_stream_pdf" target="act_author_report">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t24" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_author_report" target="act_save_laporan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t25" style="endArrow=block;endFill=1;html=1;rounded=0;strokeColor=#000000;strokeWidth=1;fontSize=10;fontFamily=Helvetica;fontColor=#000000;" edge="1" parent="1" source="act_save_laporan" target="end_final">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

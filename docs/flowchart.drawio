@@ -1,0 +1,222 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-11-04T15:00:00.000Z" agent="Mozilla/5.0" version="24.0.0" type="device">
+  <diagram id="SI-SPD-Simple-Flowchart" name="Flowchart Alur Sistem SI-SPD Banggai Laut">
+    <mxGraphModel dx="1200" dy="1000" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="700" pageHeight="1480" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title Header Box -->
+        <mxCell id="title_header" value="FLOWCHART ALUR UTAMA SISTEM SI-SPD BANGGAI LAUT" style="rounded=1;whiteSpace=wrap;html=1;arcSize=10;fillColor=#0f172a;strokeColor=none;fontColor=#ffffff;fontSize=13;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="120" y="20" width="460" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 1. Start Node -->
+        <mxCell id="node_start" value="Mulai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="80" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- 2. Input Login -->
+        <mxCell id="node_input_login" value="Input Username &amp; Password" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="150" width="220" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 3. Process Verify Auth -->
+        <mxCell id="node_proc_auth" value="Verifikasi Kredensial&#xa;(Scrypt &amp; Timing-Safe Check)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="225" width="220" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 4. Decision Auth Valid -->
+        <mxCell id="node_dec_auth" value="Kredensial&#xa;Valid?" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="285" y="300" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- 4a. Process Auth Error -->
+        <mxCell id="node_auth_err" value="Tampilkan Pesan&#xa;Kredensial Salah" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#fee2e2;strokeColor=#991b1b;fontColor=#991b1b;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="480" y="310" width="170" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 5. Input Surat Tugas Data -->
+        <mxCell id="node_input_st" value="Input Agenda Tugas, Dasar Hukum&#xa;&amp; Pilih Personil ASN" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="400" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 6. Process Generate ST Draft -->
+        <mxCell id="node_proc_st" value="Simpan Draf Surat Tugas&#xa;&amp; Auto-Generate Nomor ST" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="480" width="220" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 7. Process Review ST -->
+        <mxCell id="node_proc_review" value="Pemeriksaan Dokumen oleh&#xa;Pejabat Penandatangan (PA / KPA)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="555" width="240" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 8. Decision Approve ST -->
+        <mxCell id="node_dec_approve" value="Surat Tugas&#xa;Disetujui?" style="rhombus;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="285" y="630" width="130" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- 8a. Process Revision -->
+        <mxCell id="node_proc_rev" value="Catatan Revisi dari Pejabat&#xa;(Kembalikan ke Draf)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#fef3c7;strokeColor=#92400e;fontColor=#92400e;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="40" y="640" width="180" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 9. Process Update ST Approved -->
+        <mxCell id="node_proc_approve_st" value="Perbarui Status ST Menjadi DISETUJUI&#xa;(Siap Diterbitkan Dokumen SPD)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="225" y="725" width="250" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 10. Input SPD Parameters -->
+        <mxCell id="node_input_spd" value="Atur Parameter Finansial SPD&#xa;(Mata Anggaran, Akun &amp; Transportasi)" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="800" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 11. Process Generate Child SPDs -->
+        <mxCell id="node_proc_gen_spd" value="Generate Nomor SPD&#xa;&amp; Terbitkan SPD Setiap Pegawai" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="235" y="880" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 12. Document Print ST and SPD -->
+        <mxCell id="node_doc_print_spd" value="Cetak Dokumen Resmi PDF&#xa;(Surat Tugas &amp; SPD Lembar 1 - 2)" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="955" width="220" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- 13. Process Execute Official Duty -->
+        <mxCell id="node_proc_execute" value="Pelaksanaan Perjalanan Dinas&#xa;oleh Personil ASN yang Bertugas" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="235" y="1050" width="230" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 14. Input Laporan Findings -->
+        <mxCell id="node_input_laporan" value="Input Hasil Perjalanan Dinas&#xa;&amp; Rincian Pengeluaran Riil" style="shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="230" y="1125" width="240" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- 15. Document Print Laporan -->
+        <mxCell id="node_doc_print_laporan" value="Cetak Laporan Perjalanan Dinas&#xa;&amp; Bukti Visum Pelaksanaan" style="shape=document;whiteSpace=wrap;html=1;boundedLbl=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="240" y="1205" width="220" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- 16. Process Status Selesai -->
+        <mxCell id="node_proc_selesai" value="Perbarui Status Dokumen Menjadi SELESAI&#xa;(Arsip Pertanggungjawaban Lengkap)" style="rounded=1;arcSize=10;whiteSpace=wrap;html=1;strokeWidth=1.5;fillColor=#ffffff;strokeColor=#0f172a;fontColor=#0f172a;fontSize=11;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="220" y="1300" width="260" height="45" as="geometry" />
+        </mxCell>
+
+        <!-- 17. End Node -->
+        <mxCell id="node_end" value="Selesai" style="rounded=1;whiteSpace=wrap;html=1;arcSize=50;strokeWidth=1.5;fillColor=#f8fafc;strokeColor=#0f172a;fontColor=#0f172a;fontSize=12;fontStyle=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="270" y="1375" width="160" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- EDGES / FLOW LINES -->
+
+        <!-- Edge 1: Start to Input Login -->
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_start" target="node_input_login">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 2: Input Login to Verify Auth -->
+        <mxCell id="edge2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_input_login" target="node_proc_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 3: Verify Auth to Decision Auth -->
+        <mxCell id="edge3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_auth" target="node_dec_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 4: Decision Auth to Auth Error (Tidak) -->
+        <mxCell id="edge4" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#991b1b;strokeWidth=1.5;endArrow=classic;fontColor=#991b1b;fontSize=10;fontStyle=1;" edge="1" parent="1" source="node_dec_auth" target="node_auth_err">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 5: Auth Error Loopback to Input Login -->
+        <mxCell id="edge5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#991b1b;strokeWidth=1.5;endArrow=classic;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="node_auth_err" target="node_input_login">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="565" y="173" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Edge 6: Decision Auth to Input ST (Ya) -->
+        <mxCell id="edge6" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;fontColor=#0f172a;fontSize=10;fontStyle=1;" edge="1" parent="1" source="node_dec_auth" target="node_input_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 7: Input ST to Process Draft ST -->
+        <mxCell id="edge7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_input_st" target="node_proc_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 8: Process Draft ST to Review -->
+        <mxCell id="edge8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_st" target="node_proc_review">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 9: Review to Decision Approve -->
+        <mxCell id="edge9" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_review" target="node_dec_approve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 10: Decision Approve to Revision (Tidak) -->
+        <mxCell id="edge10" value="Tidak" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#92400e;strokeWidth=1.5;endArrow=classic;fontColor=#92400e;fontSize=10;fontStyle=1;" edge="1" parent="1" source="node_dec_approve" target="node_proc_rev">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 11: Revision Loopback to Input ST -->
+        <mxCell id="edge11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#92400e;strokeWidth=1.5;endArrow=classic;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="node_proc_rev" target="node_input_st">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="130" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Edge 12: Decision Approve to Update ST Approved (Ya) -->
+        <mxCell id="edge12" value="Ya" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;fontColor=#0f172a;fontSize=10;fontStyle=1;" edge="1" parent="1" source="node_dec_approve" target="node_proc_approve_st">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 13: Update ST Approved to Input SPD Parameters -->
+        <mxCell id="edge13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_approve_st" target="node_input_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 14: Input SPD Parameters to Generate Child SPDs -->
+        <mxCell id="edge14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_input_spd" target="node_proc_gen_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 15: Generate Child SPDs to Document Print -->
+        <mxCell id="edge15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_gen_spd" target="node_doc_print_spd">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 16: Document Print to Execute Official Duty -->
+        <mxCell id="edge16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_doc_print_spd" target="node_proc_execute">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 17: Execute Duty to Input Laporan Findings -->
+        <mxCell id="edge17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_execute" target="node_input_laporan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 18: Input Laporan Findings to Document Print Laporan -->
+        <mxCell id="edge18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_input_laporan" target="node_doc_print_laporan">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 19: Document Print Laporan to Status Selesai -->
+        <mxCell id="edge19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_doc_print_laporan" target="node_proc_selesai">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Edge 20: Status Selesai to End Node -->
+        <mxCell id="edge20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#0f172a;strokeWidth=1.5;endArrow=classic;" edge="1" parent="1" source="node_proc_selesai" target="node_end">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

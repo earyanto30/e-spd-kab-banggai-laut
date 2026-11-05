@@ -466,6 +466,9 @@ Generates the official single or multi-page trip report based on the physical go
 
 > Detailed functional use case specifications and interaction mappings are documented in [`docs/usecase-specification.md`](usecase-specification.md) (Draw.io: [`docs/usecase-diagram.drawio`](usecase-diagram.drawio)).
 > Object-oriented structural class specifications, design patterns, and layer relationships are documented in [`docs/class-diagram.md`](class-diagram.md) (Draw.io: [`docs/class-diagram.drawio`](class-diagram.drawio)).
+> Dynamic message sequence diagrams, invocation flows, and persistence lifecycles are documented in [`docs/sequence-diagram.md`](sequence-diagram.md) (Draw.io: [`docs/sequence-diagram.drawio`](sequence-diagram.drawio)).
+> Operational activity workflows, cross-functional swimlane maps, and decision branches are documented in [`docs/activity-diagram.md`](activity-diagram.md) (Draw.io: [`docs/activity-diagram.drawio`](activity-diagram.drawio)).
+> Standard system execution flowcharts, sequential business processes, and decision paths are documented in [`docs/flowchart.md`](flowchart.md) (Draw.io: [`docs/flowchart.drawio`](flowchart.drawio)).
 
 ### 4.1 System Topology
 

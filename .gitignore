@@ -17,3 +17,4 @@ uploads/
 apps/api/uploads/
 .playwright-mcp/
 *.tsbuildinfo
+coverage/

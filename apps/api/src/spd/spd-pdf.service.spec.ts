@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { SpdPdfService } from './spd-pdf.service';
 import { PDFDocument, PDFName } from 'pdf-lib';
-
+import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import zlib from 'zlib';
 
@@ -95,10 +96,30 @@ describe('SpdPdfService', () => {
     },
   };
 
+  let tempPdfPath: string;
+
+  beforeAll(async () => {
+    const doc = await PDFDocument.create();
+    doc.addPage([595, 842]);
+    const bytes = await doc.save();
+    tempPdfPath = path.join(os.tmpdir(), `test-kop-${Date.now()}.pdf`);
+    fs.writeFileSync(tempPdfPath, bytes);
+  });
+
+  afterAll(() => {
+    if (tempPdfPath && fs.existsSync(tempPdfPath)) {
+      try {
+        fs.unlinkSync(tempPdfPath);
+      } catch {
+        // ignore
+      }
+    }
+  });
+
   const kopSuratMock = {
     findDefaultKop: () => null,
     getKopStream: () => null,
-    getFilePath: () => path.resolve(__dirname, '../../uploads/kop-surat/kop_setda_default.pdf'),
+    getFilePath: () => tempPdfPath,
   } as any;
 
   it('renders PENGGUNA ANGGARAN across all signature sections when PA is selected', async () => {

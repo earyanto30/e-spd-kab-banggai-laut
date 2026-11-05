@@ -34,7 +34,13 @@ Sistem Informasi Surat Perjalanan Dinas (SI-SPD) serves the Regional Secretariat
 │   ├── usecase-specification.md   # Functional use cases and actor mappings
 │   ├── usecase-diagram.drawio     # Draw.io XML Use Case Diagram
 │   ├── class-diagram.md           # Object-oriented class specifications
-│   └── class-diagram.drawio       # Draw.io XML Class Diagram
+│   ├── class-diagram.drawio       # Draw.io XML Class Diagram
+│   ├── sequence-diagram.md        # Dynamic message sequence specifications
+│   ├── sequence-diagram.drawio    # Draw.io XML Sequence Diagram
+│   ├── activity-diagram.md        # Operational activity and swimlane workflows
+│   ├── activity-diagram.drawio    # Draw.io XML Activity Diagram
+│   ├── flowchart.md               # Standard system execution flowcharts
+│   └── flowchart.drawio           # Draw.io XML Flowchart
 ├── packages/
 │   └── shared-types/    # Shared DTOs, Zod schemas, and RBAC roles
 └── package.json         # Workspace root definitions and scripts
@@ -150,3 +156,9 @@ For comprehensive technical documentation, refer to the documents in `docs/`:
 - **[Use Case Diagram (Draw.io)](usecase-diagram.drawio):** Native Draw.io XML diagram file importable into diagrams.net.
 - **[Class Diagram Specification](class-diagram.md):** Object-oriented structural model, service dependencies, and contracts.
 - **[Class Diagram (Draw.io)](class-diagram.drawio):** Native Draw.io XML class diagram file importable into diagrams.net.
+- **[Sequence Diagram Specification](sequence-diagram.md):** Dynamic message sequencing, invocation lifecycles, and database operations.
+- **[Sequence Diagram (Draw.io)](sequence-diagram.drawio):** Native Draw.io XML sequence diagram file importable into diagrams.net.
+- **[Activity Diagram Specification](activity-diagram.md):** Operational cross-functional workflows, swimlanes, and decision branches.
+- **[Activity Diagram (Draw.io)](activity-diagram.drawio):** Native Draw.io XML activity diagram file importable into diagrams.net.
+- **[Flowchart Specification](flowchart.md):** Standard system execution flowcharts, sequential processes, and decision branches.
+- **[Flowchart (Draw.io)](flowchart.drawio):** Native Draw.io XML flowchart diagram file importable into diagrams.net.
