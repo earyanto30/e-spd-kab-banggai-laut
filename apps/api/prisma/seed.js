@@ -585,30 +585,35 @@ startxref
     where: { isDefault: true },
   });
 
-  // 7. Seed Surat Tugas (15 records -> triggers >10 pagination)
+  // 7. Seed Surat Tugas (15 records -> triggers >10 pagination with standard format 000.1.2.3/[seq]/[unit]/[year])
+  await prisma.laporanPerjalanan.deleteMany({});
+  await prisma.spd.deleteMany({});
+  await prisma.suratTugas.deleteMany({});
+
   const taskTemplates = [
-    { maksud: 'Koordinasi teknis implementasi sistem e-SPD dan sinkronisasi data kepegawaian ke BKD Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Koordinasi e-SPD BKD Provinsi' },
-    { maksud: 'Konsultasi Teknis Rencana Kerja Anggaran dan Pertanggungjawaban Perjalanan Dinas ke BPKAD Provinsi', tujuan: 'Palu', header: 'Konsultasi RKA BPKAD' },
-    { maksud: 'Monitoring dan Evaluasi Pelayanan Administrasi Pemerintahan Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Monev Bokan Kepulauan' },
-    { maksud: 'Rapat Koordinasi Tata Kelola Pemerintahan Daerah dan Reformasi Birokrasi se-Sulawesi Tengah', tujuan: 'Palu', header: 'Rakor RB Pemda Sulteng' },
-    { maksud: 'Bimbingan Teknis Pengelolaan Arsip Dinamis dan Tata Naskah Dinas Elektronik', tujuan: 'Luwuk', header: 'Bimtek Kearsipan Dinamis' },
-    { maksud: 'Konsultasi Penyelenggaraan Sistem Informasi Akuntabilitas Kinerja Instansi Pemerintah (SAKIP)', tujuan: 'Makassar', header: 'Konsultasi SAKIP Makassar' },
-    { maksud: 'Pelaksanaan Verifikasi dan Validasi Data Tenaga Non-ASN di Lingkungan Kecamatan Bangkurung', tujuan: 'Bangkurung', header: 'Verifikasi Non-ASN Bangkurung' },
-    { maksud: 'Penyelarasan Draft Peraturan Daerah tentang Kelembagaan Perangkat Daerah di Biro Hukum Kemendagri', tujuan: 'Jakarta', header: 'Harmonisasi Raperda Jakarta' },
-    { maksud: 'Koordinasi Akselerasi Transformasi Digital SPBE dengan Diskominfo Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Akselerasi SPBE Sulteng' },
-    { maksud: 'Pendampingan Teknis Pemeriksaan Laporan Keuangan Daerah oleh BPK RI di Luwuk', tujuan: 'Luwuk', header: 'Pendampingan BPK RI Luwuk' },
-    { maksud: 'Rapat Evaluasi Pengendalian Inflasi dan Distribusi Logistik Pangan Antar Pulau', tujuan: 'Palu', header: 'Rakor Pengendalian Inflasi' },
-    { maksud: 'Monitoring Sarana dan Prasarana Penunjang Pelayanan Administrasi Terpadu Kecamatan Labobo', tujuan: 'Labobo', header: 'Monev PATEN Labobo' },
-    { maksud: 'Konsultasi Rekonsiliasi Pengelolaan Barang Milik Daerah (BMD) bersama BPKAD Sulteng', tujuan: 'Luwuk', header: 'Rekonsiliasi BMD Luwuk' },
-    { maksud: 'Workshop Penyusunan Standar Pelayanan Minimal (SPM) dan Standar Operasional Prosedur Pelayanan', tujuan: 'Makassar', header: 'Workshop SPM Pelayanan' },
-    { maksud: 'Sosialisasi Kebijakan Disiplin ASN dan Tata Tertib Administrasi Kepegawaian Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Sosialisasi Disiplin ASN' },
+    { maksud: 'Koordinasi teknis implementasi sistem e-SPD dan sinkronisasi data kepegawaian ke BKD Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Koordinasi e-SPD BKD Provinsi', unit: 'Bag.Umum' },
+    { maksud: 'Konsultasi Teknis Rencana Kerja Anggaran dan Pertanggungjawaban Perjalanan Dinas ke BPKAD Provinsi', tujuan: 'Palu', header: 'Konsultasi RKA BPKAD', unit: 'Bag.Umum' },
+    { maksud: 'Monitoring dan Evaluasi Pelayanan Administrasi Pemerintahan Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Monev Bokan Kepulauan', unit: 'Bag.Pem' },
+    { maksud: 'Rapat Koordinasi Tata Kelola Pemerintahan Daerah dan Reformasi Birokrasi se-Sulawesi Tengah', tujuan: 'Palu', header: 'Rakor RB Pemda Sulteng', unit: 'Bag.Organisasi' },
+    { maksud: 'Bimbingan Teknis Pengelolaan Arsip Dinamis dan Tata Naskah Dinas Elektronik', tujuan: 'Luwuk', header: 'Bimtek Kearsipan Dinamis', unit: 'Bag.Umum' },
+    { maksud: 'Konsultasi Penyelenggaraan Sistem Informasi Akuntabilitas Kinerja Instansi Pemerintah (SAKIP)', tujuan: 'Makassar', header: 'Konsultasi SAKIP Makassar', unit: 'Bag.Organisasi' },
+    { maksud: 'Pelaksanaan Verifikasi dan Validasi Data Tenaga Non-ASN di Lingkungan Kecamatan Bangkurung', tujuan: 'Bangkurung', header: 'Verifikasi Non-ASN Bangkurung', unit: 'Bag.Organisasi' },
+    { maksud: 'Penyelarasan Draft Peraturan Daerah tentang Kelembagaan Perangkat Daerah di Biro Hukum Kemendagri', tujuan: 'Jakarta', header: 'Harmonisasi Raperda Jakarta', unit: 'Bag.Hukum' },
+    { maksud: 'Koordinasi Akselerasi Transformasi Digital SPBE dengan Diskominfo Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Akselerasi SPBE Sulteng', unit: 'Bag.Organisasi' },
+    { maksud: 'Pendampingan Teknis Pemeriksaan Laporan Keuangan Daerah oleh BPK RI di Luwuk', tujuan: 'Luwuk', header: 'Pendampingan BPK RI Luwuk', unit: 'Bag.Umum' },
+    { maksud: 'Rapat Evaluasi Pengendalian Inflasi dan Distribusi Logistik Pangan Antar Pulau', tujuan: 'Palu', header: 'Rakor Pengendalian Inflasi', unit: 'Bag.Ekonomi' },
+    { maksud: 'Monitoring Sarana dan Prasarana Penunjang Pelayanan Administrasi Terpadu Kecamatan Labobo', tujuan: 'Labobo', header: 'Monev PATEN Labobo', unit: 'Bag.Pem' },
+    { maksud: 'Konsultasi Rekonsiliasi Pengelolaan Barang Milik Daerah (BMD) bersama BPKAD Sulteng', tujuan: 'Luwuk', header: 'Rekonsiliasi BMD Luwuk', unit: 'Bag.Umum' },
+    { maksud: 'Workshop Penyusunan Standar Pelayanan Minimal (SPM) dan Standar Operasional Prosedur Pelayanan', tujuan: 'Makassar', header: 'Workshop SPM Pelayanan', unit: 'Bag.Organisasi' },
+    { maksud: 'Sosialisasi Kebijakan Disiplin ASN dan Tata Tertib Administrasi Kepegawaian Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Sosialisasi Disiplin ASN', unit: 'Bag.Prokopim' },
   ];
 
   const seededSuratTugas = [];
   for (let i = 0; i < taskTemplates.length; i++) {
     const tmpl = taskTemplates[i];
     const seq = String(i + 1).padStart(3, '0');
-    const nomorSurat = `000.1.2.3/${seq}/Bag.Umum/2026`;
+    const unitCode = tmpl.unit || 'Bag.Umum';
+    const nomorSurat = `000.1.2.3/${seq}/${unitCode}/2026`;
     const status = i < 8 ? 'SELESAI' : i < 12 ? 'DISETUJUI' : 'DRAFT';
     const day = 1 + (i * 2);
     const tanggalSurat = new Date(`2026-03-${String(day).padStart(2, '0')}T08:00:00.000Z`);
@@ -618,7 +623,8 @@ startxref
     const p2 = (i % 3 === 0) ? allPegawai[(i + 3) % allPegawai.length] : null;
     const assignedIds = [p1.id, ...(p2 && p2.id !== p1.id ? [p2.id] : [])];
 
-    const signatory = i % 2 === 0 ? sekdaPegawai : kabagUmumPegawai;
+    const isSekdaSignatory = i % 2 === 0;
+    const signatory = isSekdaSignatory ? sekdaPegawai : kabagUmumPegawai;
 
     const stData = {
       nomorSurat,
@@ -637,25 +643,19 @@ startxref
       status,
     };
 
-    const existing = await prisma.suratTugas.findUnique({
-      where: { nomorSurat },
+    const created = await prisma.suratTugas.create({
+      data: stData,
     });
-    if (existing) {
-      const updated = await prisma.suratTugas.update({
-        where: { id: existing.id },
-        data: stData,
-      });
-      seededSuratTugas.push({ ...updated, targetPegawai: assignedIds, tujuan: tmpl.tujuan });
-    } else {
-      const created = await prisma.suratTugas.create({
-        data: stData,
-      });
-      seededSuratTugas.push({ ...created, targetPegawai: assignedIds, tujuan: tmpl.tujuan });
-    }
+    seededSuratTugas.push({
+      ...created,
+      targetPegawai: assignedIds,
+      tujuan: tmpl.tujuan,
+      isKpa: !isSekdaSignatory,
+    });
   }
-  console.log(`[Seed] Seeded ${seededSuratTugas.length} Surat Tugas records (triggers >10 pagination).`);
+  console.log(`[Seed] Seeded ${seededSuratTugas.length} Surat Tugas records (Standard format: 000.1.2.3/[seq]/[unit]/2026).`);
 
-  // 8. Seed SPD (20+ records -> triggers >10 pagination)
+  // 8. Seed SPD (Standard format: [Prefix/]001/SPD/2026)
   const seededSpdList = [];
   let spdCounter = 1;
 
@@ -669,7 +669,8 @@ startxref
       if (!p) continue;
 
       const seq = String(spdCounter).padStart(3, '0');
-      const nomorSpd = `${seq}/SPD/SETDA/2026`;
+      const prefixPart = st.isKpa ? 'KPA/' : '';
+      const nomorSpd = `${prefixPart}${seq}/SPD/2026`;
       spdCounter++;
 
       const stDate = new Date(st.tanggalSurat);
@@ -678,7 +679,7 @@ startxref
 
       const spdPayload = {
         nomorSpd,
-        pemberiPerintah: st.penandatanganJabatan || 'Sekretaris Daerah Kab. Banggai Laut',
+        pemberiPerintah: st.isKpa ? 'Kuasa Pengguna Anggaran (KPA)' : 'Pengguna Anggaran (PA)',
         pegawaiId: p.id,
         dalamRangka: st.dalamRangka,
         alatAngkut: transport,
@@ -695,30 +696,19 @@ startxref
         suratTugasId: st.id,
         penandatanganId: st.penandatanganId,
         penandatanganNama: st.penandatanganNama,
-        penandatanganJabatan: st.penandatanganJabatan,
+        penandatanganJabatan: st.isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran',
         penandatanganPangkat: st.penandatanganPangkat,
         penandatanganNip: st.penandatanganNip,
         status: st.status,
       };
 
-      const existing = await prisma.spd.findUnique({
-        where: { nomorSpd },
+      const created = await prisma.spd.create({
+        data: spdPayload,
       });
-      if (existing) {
-        const updated = await prisma.spd.update({
-          where: { id: existing.id },
-          data: spdPayload,
-        });
-        seededSpdList.push(updated);
-      } else {
-        const created = await prisma.spd.create({
-          data: spdPayload,
-        });
-        seededSpdList.push(created);
-      }
+      seededSpdList.push(created);
     }
   }
-  console.log(`[Seed] Seeded ${seededSpdList.length} SPD records (triggers >10 pagination).`);
+  console.log(`[Seed] Seeded ${seededSpdList.length} SPD records (Standard format: [KPA/]001/SPD/2026).`);
 
   // 9. Seed Laporan Perjalanan for all completed SPDs (>10 items)
   let seededLaporanCount = 0;

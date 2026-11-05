@@ -418,10 +418,10 @@ export class SuratTugasService {
             },
           });
           const spdSeq = String(spdCount + 1).padStart(3, '0');
-          let nomorSpd = `${spdSeq}/SPD/SETDA/${year}`;
+          let nomorSpd = `${spdSeq}/SPD/${year}`;
           const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
           if (existing) {
-            nomorSpd = `${String(spdCount + 2).padStart(3, '0')}/SPD/SETDA/${year}`;
+            nomorSpd = `${String(spdCount + 2).padStart(3, '0')}/SPD/${year}`;
           }
 
           await this.prisma.spd.create({
