@@ -288,8 +288,9 @@ async function main() {
   }
   console.log(`[Seed] Seeded and linked ASN Pegawai records with master Jabatan.`);
 
-  // 3. User Accounts for all roles (SUPER_ADMIN, ADMIN, STAFF, USER)
+  // 3. User Accounts
   const allPegawai = await prisma.pegawai.findMany({ orderBy: { nip: 'asc' } });
+  const isProduction = process.env.NODE_ENV === 'production' && process.env.SEED_DUMMY_DATA !== 'true';
 
   const predefinedUsers = [
     {
@@ -300,48 +301,53 @@ async function main() {
       role: 'SUPER_ADMIN',
       nip: process.env.INITIAL_ADMIN_NIP || '198801152010011002',
     },
-    {
-      username: 'operator',
-      name: 'ARSID HAMIDI, SH',
-      email: 'arsid.hamidi@banggailautkab.go.id',
-      password: 'admin123',
-      role: 'ADMIN',
-      nip: '19700830 200312 1 003',
-    },
-    {
-      username: 'staff',
-      name: 'Fajar Prasetyo, S.Kom',
-      email: 'fajar.prasetyo@banggailautkab.go.id',
-      password: 'user123',
-      role: 'STAFF',
-      nip: '19920315 201802 1 003',
-    },
-    {
-      username: 'user',
-      name: 'Nurul Aini, A.Md',
-      email: 'nurul.aini@banggailautkab.go.id',
-      password: 'user123',
-      role: 'USER',
-      nip: '19951104 202012 2 011',
-    },
   ];
 
-  // Also create accounts for other Pegawai to trigger pagination (>10 rows)
-  for (const p of allPegawai) {
-    if (predefinedUsers.some((u) => u.nip === p.nip)) continue;
-    const cleanFirstName = p.nama
-      .toLowerCase()
-      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s*/g, '')
-      .split(/[\s,.]+/)[0] || 'pegawai';
-    const role = p.isPenandatangan ? 'ADMIN' : p.jabatan.toLowerCase().includes('pranata') || p.jabatan.toLowerCase().includes('analis') ? 'STAFF' : 'USER';
-    predefinedUsers.push({
-      username: cleanFirstName,
-      name: p.nama,
-      email: `${cleanFirstName}@banggailautkab.go.id`,
-      password: 'user123',
-      role,
-      nip: p.nip,
-    });
+  if (!isProduction) {
+    predefinedUsers.push(
+      {
+        username: 'operator',
+        name: 'ARSID HAMIDI, SH',
+        email: 'arsid.hamidi@banggailautkab.go.id',
+        password: 'admin123',
+        role: 'ADMIN',
+        nip: '19700830 200312 1 003',
+      },
+      {
+        username: 'staff',
+        name: 'Fajar Prasetyo, S.Kom',
+        email: 'fajar.prasetyo@banggailautkab.go.id',
+        password: 'user123',
+        role: 'STAFF',
+        nip: '19920315 201802 1 003',
+      },
+      {
+        username: 'user',
+        name: 'Nurul Aini, A.Md',
+        email: 'nurul.aini@banggailautkab.go.id',
+        password: 'user123',
+        role: 'USER',
+        nip: '19951104 202012 2 011',
+      }
+    );
+
+    // Also create accounts for other Pegawai to trigger pagination (>10 rows) in non-production
+    for (const p of allPegawai) {
+      if (predefinedUsers.some((u) => u.nip === p.nip)) continue;
+      const cleanFirstName = p.nama
+        .toLowerCase()
+        .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s*/g, '')
+        .split(/[\s,.]+/)[0] || 'pegawai';
+      const role = p.isPenandatangan ? 'ADMIN' : p.jabatan.toLowerCase().includes('pranata') || p.jabatan.toLowerCase().includes('analis') ? 'STAFF' : 'USER';
+      predefinedUsers.push({
+        username: cleanFirstName,
+        name: p.nama,
+        email: `${cleanFirstName}@banggailautkab.go.id`,
+        password: 'user123',
+        role,
+        nip: p.nip,
+      });
+    }
   }
 
   for (const u of predefinedUsers) {
@@ -585,7 +591,16 @@ startxref
     where: { isDefault: true },
   });
 
-  // 7. Seed Surat Tugas (15 records -> triggers >10 pagination with standard format 000.1.2.3/[seq]/[unit]/[year])
+  // 7. Seed Surat Tugas & SPD
+  if (isProduction) {
+    console.log('[Seed] Production environment detected (NODE_ENV=production).');
+    console.log('[Seed] Preserving existing transactional tables (Surat Tugas, SPD, Laporan Perjalanan).');
+    console.log('[Seed] To force dummy transactional data in production, set SEED_DUMMY_DATA=true.');
+    console.log('==> Database Seeding Finished Successfully.');
+    return;
+  }
+
+  // Non-production dummy transactional data generation
   await prisma.laporanPerjalanan.deleteMany({});
   await prisma.spd.deleteMany({});
   await prisma.suratTugas.deleteMany({});
