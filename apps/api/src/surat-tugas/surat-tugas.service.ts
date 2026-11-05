@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSuratTugasDto, UpdateSuratTugasDto, GenerateSpdFromSuratTugasDto } from '@si-setda/shared-types';
 
@@ -432,6 +432,11 @@ export class SuratTugasService {
 
   async generateSpd(id: string, dto?: GenerateSpdFromSuratTugasDto) {
     const suratTugas = await this.findById(id);
+    if (suratTugas.status !== 'DISETUJUI') {
+      throw new BadRequestException(
+        'Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).',
+      );
+    }
     const year = new Date(suratTugas.tanggalSurat || new Date()).getFullYear();
 
     // Resolving input parameters for SPD from dto -> suratTugas -> default

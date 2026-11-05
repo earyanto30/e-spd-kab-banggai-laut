@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpdDto, UpdateSpdDto } from '@si-setda/shared-types';
 
@@ -211,6 +211,11 @@ export class SpdService {
     } else if (dto.suratTugasId) {
       const st = await this.prisma.suratTugas.findUnique({ where: { id: dto.suratTugasId } });
       if (st) {
+        if (st.status !== 'DISETUJUI') {
+          throw new BadRequestException(
+            'Surat Perjalanan Dinas (SPD) hanya dapat dibuat untuk Surat Tugas yang telah disetujui (status DISETUJUI).',
+          );
+        }
         penandatanganId = st.penandatanganId || null;
         if (!penandatanganNama) penandatanganNama = st.penandatanganNama;
         penandatanganJabatan = isKpa ? 'Kuasa Pengguna Anggaran' : 'Pengguna Anggaran';
