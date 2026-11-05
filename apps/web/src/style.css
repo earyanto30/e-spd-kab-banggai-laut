@@ -39,6 +39,15 @@
   h1, h2, h3, h4, h5, h6 {
     color: var(--color-text-primary);
   }
+
+  button:disabled,
+  button[disabled],
+  .p-button:disabled,
+  .p-button.p-disabled,
+  .p-disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed !important;
+  }
 }
 
 /* Custom design system styling for PrimeVue components (Light & Dark) */
@@ -109,6 +118,14 @@
   border: none !important;
   border-bottom: 1px solid var(--color-border) !important;
   padding: 0.75rem 1rem !important;
+}
+
+.p-datatable-thead > tr > th.text-center .p-datatable-column-header-content {
+  justify-content: center !important;
+}
+
+.p-datatable-thead > tr > th.text-right .p-datatable-column-header-content {
+  justify-content: flex-end !important;
 }
 
 .p-datatable-tbody > tr {

@@ -10,9 +10,11 @@ import {
   GovDatePicker,
   GovInputText,
   GovInputNumber,
+  NumberAvailabilityBadge,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { useNumberAvailability } from '../composables/useNumberAvailability';
 
 interface AsnOption {
   id: string;
@@ -147,6 +149,14 @@ const previewNomorSurat = computed(() => {
   }
   const seqPart = form.customSeq.trim() || '[Nomor]';
   return `000.1.2.3/${seqPart}/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
+});
+
+const isAutoModeSurat = computed(() => form.nomorSuratMode === 'auto' && !isEditMode.value);
+const numberAvailability = useNumberAvailability({
+  endpoint: '/api/surat-tugas/check-number',
+  previewNomor: previewNomorSurat,
+  isAutoMode: isAutoModeSurat,
+  excludeId: suratTugasId,
 });
 
 const resetForm = () => {
@@ -378,6 +388,10 @@ const validate = (): boolean => {
     errors.dalamRangka = 'Total karakter maksud penugasan maksimal 1000 karakter.';
   }
 
+  if (numberAvailability.isDuplicate.value) {
+    errors.customSeq = 'Nomor surat sudah digunakan. Harap gunakan nomor urut yang berbeda.';
+  }
+
   return Object.keys(errors).length === 0;
 };
 
@@ -588,6 +602,7 @@ const handleCancel = () => {
                 v-model="form.customSeq"
                 :disabled="form.nomorSuratMode === 'auto' && !isEditMode"
                 placeholder="Contoh: 001 atau kosongkan"
+                :invalid="!!errors.customSeq || numberAvailability.isDuplicate.value"
                 block
               />
             </div>
@@ -616,12 +631,19 @@ const handleCancel = () => {
             </div>
           </div>
 
-          <div class="text-xs text-text-muted pt-1 flex items-center gap-2">
+          <div class="text-xs text-text-muted pt-1 flex items-center gap-2 flex-wrap">
             <span>Pratinjau Nomor Dokumen:</span>
             <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
               {{ previewNomorSurat }}
             </span>
+            <NumberAvailabilityBadge
+              :status="numberAvailability.status.value"
+              :message="numberAvailability.message.value"
+            />
           </div>
+          <small v-if="errors.customSeq || numberAvailability.isDuplicate.value" class="text-red-500 text-xs block">
+            {{ errors.customSeq || numberAvailability.message.value }}
+          </small>
         </div>
 
         <hr class="border-border" />

@@ -5,9 +5,9 @@ import Dialog from 'primevue/dialog';
 import Tag from 'primevue/tag';
 import {
   GovButton,
-  GovCard,
   GovInputText,
   GovSelect,
+  GovSelectButton,
   GovTable,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
@@ -112,6 +112,12 @@ const defaultAsnList: AsnPegawai[] = [
 const list = ref<AsnPegawai[]>([]);
 const searchQuery = ref('');
 const statusFilter = ref<'SEMUA' | 'ASN' | 'NON_ASN'>('SEMUA');
+const statusOptions = [
+  { label: 'Semua', value: 'SEMUA' },
+  { label: 'ASN', value: 'ASN' },
+  { label: 'Non ASN', value: 'NON_ASN' },
+];
+const loading = ref(false);
 const isFormDialogOpen = ref(false);
 const isDetailDialogOpen = ref(false);
 const isEditing = ref(false);
@@ -153,6 +159,7 @@ const onJabatanChange = () => {
 };
 
 const loadData = async () => {
+  loading.value = true;
   loadJabatanList();
   try {
     const res = await apiFetch('/api/pegawai');
@@ -160,6 +167,7 @@ const loadData = async () => {
       const data = await res.json();
       if (Array.isArray(data)) {
         list.value = data;
+        loading.value = false;
         return;
       }
     }
@@ -179,6 +187,12 @@ const loadData = async () => {
     list.value = [...defaultAsnList];
     persistData();
   }
+  loading.value = false;
+};
+
+const handleResetFilters = () => {
+  searchQuery.value = '';
+  statusFilter.value = 'SEMUA';
 };
 
 const persistData = () => {
@@ -380,155 +394,184 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- Main Table Card -->
-    <GovCard>
-      <template #title>
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 text-base font-semibold text-text-main">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-list text-primary"></i>
-            <span>Daftar Pegawai ASN Sekda Kab. Banggai Laut</span>
-          </div>
+    <!-- Filter & Search Toolbar -->
+    <div class="bg-surface border border-border rounded-xl p-4 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div class="flex-1 flex flex-wrap items-center gap-2.5">
+        <!-- Search Input -->
+        <div class="w-full sm:w-64 md:w-56 lg:w-72">
+          <GovInputText
+            v-model="searchQuery"
+            placeholder="Cari NIP, Nama, Jabatan..."
+            block
+          />
+        </div>
 
-          <!-- Search & Filter Controls -->
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 font-normal">
-            <div class="w-full sm:w-72">
-              <GovInputText
-                v-model="searchQuery"
-                placeholder="Cari NIP, Nama, Jabatan..."
-                block
+        <!-- Status Filter Segmented Button -->
+        <div class="w-full sm:w-auto">
+          <GovSelectButton
+            v-model="statusFilter"
+            :options="statusOptions"
+            option-label="label"
+            option-value="value"
+          />
+        </div>
+
+        <GovButton
+          v-if="searchQuery || statusFilter !== 'SEMUA'"
+          label="Reset"
+          icon="pi pi-filter-slash"
+          severity="secondary"
+          variant="outlined"
+          @click="handleResetFilters"
+        />
+
+        <GovButton
+          label="Segarkan"
+          icon="pi pi-refresh"
+          severity="secondary"
+          variant="outlined"
+          :loading="loading"
+          @click="loadData"
+        />
+      </div>
+
+      <div class="text-xs text-text-muted flex-shrink-0 self-end md:self-center">
+        Menampilkan <strong class="text-text-main font-semibold">{{ filteredList.length }}</strong> data
+      </div>
+    </div>
+
+    <!-- Main Table Card Container -->
+    <div class="bg-surface border border-border rounded-xl shadow-sm overflow-hidden">
+      <GovTable
+        :value="filteredList"
+        :loading="loading"
+        :paginator="true"
+        :rows="10"
+        data-key="id"
+        class="!border-0 !rounded-none !shadow-none [&_.p-datatable-table]:!table-fixed [&_.p-datatable-table]:!w-full"
+      >
+        <template #empty>
+          <div class="py-12 text-center text-text-muted">
+            <i class="pi pi-users text-3xl mb-2 block opacity-40"></i>
+            Tidak ada data Pegawai ASN yang sesuai filter.
+          </div>
+        </template>
+
+        <!-- Column: No -->
+        <Column header="No." header-class="text-center" body-class="text-center" :style="{ width: '55px' }">
+          <template #body="{ index }">
+            <span class="text-xs text-text-muted">{{ index + 1 }}</span>
+          </template>
+        </Column>
+
+        <!-- Column: Nama & NIP -->
+        <Column field="nama" header="Pegawai & NIP" sortable :style="{ width: '250px' }">
+          <template #body="{ data }">
+            <div class="space-y-0.5">
+              <div class="font-semibold text-text-main text-sm truncate" :title="data.nama">
+                {{ data.nama }}
+              </div>
+              <div class="font-mono text-xs text-text-muted truncate">
+                NIP. {{ data.nip }}
+              </div>
+            </div>
+          </template>
+        </Column>
+
+        <!-- Column: Jabatan & Unit Kerja -->
+        <Column field="jabatan" header="Jabatan & Unit Kerja" sortable :style="{ minWidth: '220px' }">
+          <template #body="{ data }">
+            <div class="space-y-0.5">
+              <div class="text-xs font-medium text-text-main line-clamp-2" :title="data.jabatan">
+                {{ data.jabatan }}
+              </div>
+              <div class="text-[11px] text-text-muted line-clamp-1" :title="data.unitKerja">
+                {{ data.unitKerja }}
+              </div>
+            </div>
+          </template>
+        </Column>
+
+        <!-- Column: Pangkat / Golongan -->
+        <Column field="golongan" header="Pangkat / Golongan" header-class="text-center" body-class="text-center" :style="{ width: '160px' }">
+          <template #body="{ data }">
+            <div class="space-y-0.5 text-center">
+              <div class="text-xs text-text-main truncate" :title="data.pangkat">
+                {{ data.pangkat || '-' }}
+              </div>
+              <span
+                v-if="data.golongan"
+                class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-mono font-semibold bg-slate-100 dark:bg-canvas text-primary border border-border"
+              >
+                Gol. {{ data.golongan }}
+              </span>
+            </div>
+          </template>
+        </Column>
+
+        <!-- Column: Status -->
+        <Column field="isASN" header="Status" header-class="text-center" body-class="text-center" :style="{ width: '150px' }">
+          <template #body="{ data }">
+            <div class="flex flex-col items-center justify-center gap-1">
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
+                :class="data.isASN
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60'
+                  : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60'"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
+                  :class="data.isASN ? 'bg-emerald-500 dark:bg-emerald-400' : 'bg-amber-500 dark:bg-amber-400'"
+                ></span>
+                {{ data.isASN ? 'ASN' : 'Non ASN' }}
+              </span>
+              <span
+                v-if="data.isPenandatangan"
+                class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60"
+              >
+                <i class="pi pi-check text-[9px]"></i>
+                Penandatangan
+              </span>
+            </div>
+          </template>
+        </Column>
+
+        <!-- Column: Aksi -->
+        <Column header="Aksi" header-class="text-center" body-class="text-center" :style="{ width: '130px' }">
+          <template #body="{ data }">
+            <div class="flex items-center justify-center gap-1">
+              <GovButton
+                icon="pi pi-eye"
+                size="small"
+                severity="secondary"
+                variant="text"
+                rounded
+                title="Lihat Profil Pegawai"
+                @click="openDetailDialog(data)"
+              />
+              <GovButton
+                icon="pi pi-pencil"
+                size="small"
+                severity="info"
+                variant="text"
+                rounded
+                title="Ubah Data"
+                @click="openEditDialog(data)"
+              />
+              <GovButton
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                variant="text"
+                rounded
+                title="Hapus Pegawai"
+                @click="handleDelete(data)"
               />
             </div>
-
-            <!-- Status Filter Toggle Buttons -->
-            <div class="flex items-center border border-border rounded-lg overflow-hidden bg-surface shadow-sm">
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-medium transition-colors"
-                :class="statusFilter === 'SEMUA' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
-                @click="statusFilter = 'SEMUA'"
-              >
-                Semua
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
-                :class="statusFilter === 'ASN' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
-                @click="statusFilter = 'ASN'"
-              >
-                ASN
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-xs font-medium transition-colors border-l border-border"
-                :class="statusFilter === 'NON_ASN' ? 'bg-primary text-white dark:text-[#0F172A] font-semibold' : 'text-text-muted hover:bg-canvas hover:text-text-main'"
-                @click="statusFilter = 'NON_ASN'"
-              >
-                Non ASN
-              </button>
-            </div>
-          </div>
-        </div>
-      </template>
-
-      <template #content>
-        <GovTable :value="filteredList" :paginator="true" :rows="5">
-          <!-- Column: Nama & NIP -->
-          <Column field="nama" header="Pegawai & NIP" sortable>
-            <template #body="{ data }">
-              <div class="space-y-0.5">
-                <div class="font-semibold text-text-main text-sm">
-                  {{ data.nama }}
-                </div>
-                <div class="font-mono text-xs text-text-muted">
-                  NIP. {{ data.nip }}
-                </div>
-              </div>
-            </template>
-          </Column>
-
-          <!-- Column: Jabatan & Unit Kerja -->
-          <Column field="jabatan" header="Jabatan & Unit Kerja" sortable>
-            <template #body="{ data }">
-              <div class="space-y-0.5">
-                <div class="text-xs font-medium text-text-main">
-                  {{ data.jabatan }}
-                </div>
-                <div class="text-xs text-text-muted">
-                  {{ data.unitKerja }}
-                </div>
-              </div>
-            </template>
-          </Column>
-
-          <!-- Column: Pangkat / Golongan -->
-          <Column field="golongan" header="Pangkat / Golongan" class="w-48">
-            <template #body="{ data }">
-              <div class="space-y-0.5">
-                <div class="text-xs text-text-main">
-                  {{ data.pangkat }}
-                </div>
-                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-semibold bg-slate-100 dark:bg-canvas text-primary border border-border">
-                  Gol. {{ data.golongan }}
-                </span>
-              </div>
-            </template>
-          </Column>
-
-          <!-- Column: Status -->
-          <Column field="isASN" header="Status" class="w-36 text-center">
-            <template #body="{ data }">
-              <div class="flex flex-col items-center gap-1">
-                <Tag
-                  :value="data.isASN ? 'ASN' : 'Non ASN'"
-                  :severity="data.isASN ? 'success' : 'secondary'"
-                />
-                <Tag
-                  v-if="data.isPenandatangan"
-                  value="Penandatangan"
-                  severity="info"
-                  class="text-[10px]"
-                />
-              </div>
-            </template>
-          </Column>
-
-          <!-- Column: Aksi -->
-          <Column header="Aksi" body-class="text-right" class="w-36">
-            <template #body="{ data }">
-              <div class="flex items-center justify-end gap-1">
-                <GovButton
-                  icon="pi pi-eye"
-                  size="small"
-                  severity="secondary"
-                  variant="text"
-                  rounded
-                  title="Lihat Profil Pegawai"
-                  @click="openDetailDialog(data)"
-                />
-                <GovButton
-                  icon="pi pi-pencil"
-                  size="small"
-                  severity="info"
-                  variant="text"
-                  rounded
-                  title="Ubah Data"
-                  @click="openEditDialog(data)"
-                />
-                <GovButton
-                  icon="pi pi-trash"
-                  size="small"
-                  severity="danger"
-                  variant="text"
-                  rounded
-                  title="Hapus Pegawai"
-                  @click="handleDelete(data)"
-                />
-              </div>
-            </template>
-          </Column>
-        </GovTable>
-      </template>
-    </GovCard>
+          </template>
+        </Column>
+      </GovTable>
+    </div>
 
     <!-- Detail Dialog Modal -->
     <Dialog

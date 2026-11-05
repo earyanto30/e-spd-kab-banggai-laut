@@ -12,10 +12,12 @@ import {
   GovMultiSelect,
   GovDatePicker,
   GovSelectButton,
+  NumberAvailabilityBadge,
 } from '../components/core';
 import { MODA_TRANSPORTASI_OPTIONS } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { useNumberAvailability } from '../composables/useNumberAvailability';
 
 export interface OfficialSigner {
   id?: string;
@@ -190,11 +192,28 @@ const previewNomorSpd = computed(() => {
   const prefix = generateForm.nomorSpdMode === 'custom'
     ? (generateForm.customPrefix?.trim() || '')
     : defaultPrefix;
+  const cleanPrefix = prefix.replace(/\/+$/, '');
+  const prefixPart = cleanPrefix ? `${cleanPrefix}/` : '';
   if (generateForm.nomorSpdMode === 'auto') {
-    return `${prefix}[Otomatis]/SPD/${generateForm.tahunSpd || currentYear}`;
+    return `${prefixPart}[Otomatis]/SPD/${generateForm.tahunSpd || currentYear}`;
   }
   const seqPart = generateForm.customSeq.trim() || '    ';
-  return `${prefix}${seqPart}/SPD/${generateForm.tahunSpd || currentYear}`;
+  return `${prefixPart}${seqPart}/SPD/${generateForm.tahunSpd || currentYear}`;
+});
+
+const pendingSpdPersonnelCount = computed(() => {
+  if (!data.value) return 1;
+  const existingPegawaiIds = new Set((data.value.spdList || []).map((s: any) => s.pegawaiId));
+  const missing = (data.value.pegawaiList || []).filter((p: any) => !existingPegawaiIds.has(p.id));
+  return missing.length > 0 ? missing.length : (data.value.pegawaiList?.length || 1);
+});
+
+const isAutoModeSpd = computed(() => generateForm.nomorSpdMode === 'auto');
+const spdAvailability = useNumberAvailability({
+  endpoint: '/api/spd/check-number',
+  previewNomor: previewNomorSpd,
+  isAutoMode: isAutoModeSpd,
+  count: pendingSpdPersonnelCount,
 });
 
 const generateErrors = reactive<Record<string, string>>({});
@@ -225,7 +244,13 @@ const calculatedTanggalKembali = computed(() => {
   return d;
 });
 
+const isSuratTugasApproved = computed(() => data.value?.status === 'DISETUJUI');
+
 const openGenerateSpdModal = () => {
+  if (!isSuratTugasApproved.value) {
+    toast.warn('Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).');
+    return;
+  }
   Object.keys(generateErrors).forEach((k) => delete generateErrors[k]);
 
   generateForm.nomorSpdMode = 'custom';
@@ -272,10 +297,24 @@ const validateGenerate = (): boolean => {
     generateErrors.tempatTujuan = 'Tempat tujuan wajib diisi.';
   }
 
+  if (spdAvailability.isDuplicate.value) {
+    generateErrors.customSeq = spdAvailability.message.value || 'Nomor SPD sudah digunakan.';
+  }
+
   return Object.keys(generateErrors).length === 0;
 };
 
 const submitGenerateSpd = async () => {
+  if (!isSuratTugasApproved.value) {
+    toast.error('Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).');
+    return;
+  }
+
+  if (spdAvailability.isDuplicate.value) {
+    toast.error(spdAvailability.message.value || 'Nomor SPD sudah digunakan. Harap gunakan nomor urut yang berbeda.');
+    return;
+  }
+
   if (!validateGenerate()) {
     toast.warn('Mohon periksa dan lengkapi rincian parameter penerbitan SPD.');
     return;
@@ -330,6 +369,10 @@ const handleGenerateSpd = () => {
   // If SPD list already exists and has records, open dialog to view / print them directly
   if (data.value?.spdList && data.value.spdList.length > 0) {
     showSpdDialog.value = true;
+    return;
+  }
+  if (!isSuratTugasApproved.value) {
+    toast.warn('Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).');
     return;
   }
   openGenerateSpdModal();
@@ -582,17 +625,24 @@ onMounted(() => {
             @click="handlePrint"
             title="Cetak langsung dokumen PDF resmi"
           />
-          <GovButton
+          <div
             v-if="canManage"
-            :label="data?.spdList && data.spdList.length > 0 ? 'Daftar SPD' : 'Terbitkan SPD'"
-            :icon="data?.spdList && data.spdList.length > 0 ? 'pi pi-list' : 'pi pi-file-import'"
-            severity="success"
-            variant="outlined"
-            size="small"
-            :loading="isGeneratingSpd"
-            title="Terbitkan atau lihat Surat Perjalanan Dinas (SPD) untuk personil penugasan ini"
-            @click="handleGenerateSpd"
-          />
+            class="relative inline-block"
+            :title="!isSuratTugasApproved && (!data?.spdList || data.spdList.length === 0)
+              ? 'Tips: Setujui status Surat Tugas terlebih dahulu di tabel daftar Surat Tugas untuk menerbitkan SPD'
+              : 'Terbitkan atau lihat Surat Perjalanan Dinas (SPD) untuk personil penugasan ini'"
+          >
+            <GovButton
+              :label="data?.spdList && data.spdList.length > 0 ? 'Daftar SPD' : 'Terbitkan SPD'"
+              :icon="data?.spdList && data.spdList.length > 0 ? 'pi pi-list' : 'pi pi-file-import'"
+              severity="success"
+              variant="outlined"
+              size="small"
+              :loading="isGeneratingSpd"
+              :disabled="!isSuratTugasApproved && (!data?.spdList || data.spdList.length === 0)"
+              @click="handleGenerateSpd"
+            />
+          </div>
         </div>
       </div>
 
@@ -711,8 +761,11 @@ onMounted(() => {
                 severity="secondary"
                 variant="outlined"
                 size="small"
+                :disabled="!isSuratTugasApproved"
+                :title="!isSuratTugasApproved
+                  ? 'Surat Tugas harus berstatus DISETUJUI untuk menerbitkan / mengubah SPD'
+                  : 'Terbitkan atau ubah parameter SPD dengan rincian perjalanan dinas baru'"
                 @click="openGenerateSpdModal"
-                title="Terbitkan atau ubah parameter SPD dengan rincian perjalanan dinas baru"
               />
               <GovButton
                 v-if="canManage"
@@ -817,28 +870,59 @@ onMounted(() => {
           class="w-full no-print bg-surface border border-dashed border-border rounded-xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
         >
           <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-lg bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-amber-600 dark:text-amber-400">
-              <i class="pi pi-info-circle text-xl"></i>
+            <div
+              :class="[
+                'w-10 h-10 rounded-lg border flex items-center justify-center',
+                isSuratTugasApproved
+                  ? 'bg-amber-50 dark:bg-amber-950/60 border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400'
+                  : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500'
+              ]"
+            >
+              <i :class="isSuratTugasApproved ? 'pi pi-info-circle text-xl' : 'pi pi-lock text-xl'"></i>
             </div>
             <div>
-              <h4 class="text-xs font-bold text-text-main">
-                Surat Perjalanan Dinas (SPD) Belum Diterbitkan
-              </h4>
+              <div class="flex items-center gap-2">
+                <h4 class="text-xs font-bold text-text-main">
+                  Surat Perjalanan Dinas (SPD) Belum Diterbitkan
+                </h4>
+                <Tag
+                  v-if="!isSuratTugasApproved"
+                  value="Menunggu Persetujuan Surat Tugas"
+                  severity="warn"
+                  class="text-[10px] py-0 px-2"
+                />
+              </div>
               <p class="text-[11px] text-text-muted mt-0.5">
-                Surat Tugas ini memiliki {{ data?.pegawaiList?.length || 0 }} personil penugasan. Klik tombol di samping untuk menerbitkan seluruh dokumen SPD secara instan.
+                <span v-if="isSuratTugasApproved">
+                  Surat Tugas ini memiliki {{ data?.pegawaiList?.length || 0 }} personil penugasan. Klik tombol di samping untuk menerbitkan seluruh dokumen SPD secara instan.
+                </span>
+                <span v-else>
+                  Surat Tugas ini masih berstatus <span class="font-semibold uppercase">{{ data?.status || 'DRAFT' }}</span>. Dokumen SPD hanya dapat diterbitkan setelah Surat Tugas berstatus <span class="font-semibold text-emerald-600 dark:text-emerald-400">DISETUJUI</span>.
+                  <span class="block mt-1 font-medium text-amber-700 dark:text-amber-400">
+                    <i class="pi pi-lightbulb mr-1 text-xs"></i>Tips: Buka halaman <router-link to="/surat-tugas" class="underline hover:text-amber-800 dark:hover:text-amber-300 font-bold">Daftar Surat Tugas</router-link>, klik tombol perbarui status (<i class="pi pi-sync text-[10px]"></i>) pada tabel, lalu ubah status menjadi <strong>DISETUJUI</strong>.
+                  </span>
+                </span>
               </p>
             </div>
           </div>
 
-          <GovButton
+          <div
             v-if="canManage"
-            label="Terbitkan SPD Sekarang"
-            icon="pi pi-file-import"
-            severity="success"
-            size="small"
-            :loading="isGeneratingSpd"
-            @click="openGenerateSpdModal"
-          />
+            class="relative inline-block"
+            :title="!isSuratTugasApproved
+              ? 'Tips: Setujui status Surat Tugas terlebih dahulu di tabel daftar Surat Tugas untuk menerbitkan SPD'
+              : 'Terbitkan seluruh dokumen SPD secara instan'"
+          >
+            <GovButton
+              label="Terbitkan SPD Sekarang"
+              icon="pi pi-file-import"
+              severity="success"
+              size="small"
+              :loading="isGeneratingSpd"
+              :disabled="!isSuratTugasApproved"
+              @click="openGenerateSpdModal"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -914,6 +998,8 @@ onMounted(() => {
               severity="secondary"
               variant="outlined"
               size="small"
+              :disabled="!isSuratTugasApproved"
+              :title="!isSuratTugasApproved ? 'Surat Tugas harus berstatus DISETUJUI untuk menerbitkan ulang SPD' : 'Terbitkan ulang seluruh dokumen SPD'"
               @click="showSpdDialog = false; openGenerateSpdModal()"
             />
           </div>
@@ -1038,7 +1124,7 @@ onMounted(() => {
                 Penomoran Dokumen SPD
               </label>
               <p class="text-[11px] text-text-muted mt-0.5">
-                Format: <span class="font-mono text-primary font-semibold">[Prefix][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
+                Format: <span class="font-mono text-primary font-semibold">[Prefix/][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
               </p>
             </div>
             <div class="flex items-center gap-3">
@@ -1083,6 +1169,7 @@ onMounted(() => {
                 v-model="generateForm.customSeq"
                 :disabled="generateForm.nomorSpdMode === 'auto'"
                 placeholder="Contoh: 001 atau kosongkan"
+                :invalid="!!generateErrors.customSeq || spdAvailability.isDuplicate.value"
                 block
               />
             </div>
@@ -1101,12 +1188,19 @@ onMounted(() => {
             </div>
           </div>
 
-          <div class="text-[11px] text-text-muted pt-1 flex items-center gap-2">
+          <div class="text-[11px] text-text-muted pt-1 flex items-center gap-2 flex-wrap">
             <span>Pratinjau Nomor SPD:</span>
             <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border whitespace-pre">
               {{ previewNomorSpd }}
             </span>
+            <NumberAvailabilityBadge
+              :status="spdAvailability.status.value"
+              :message="spdAvailability.message.value"
+            />
           </div>
+          <small v-if="generateErrors.customSeq || spdAvailability.isDuplicate.value" class="text-red-500 text-xs block">
+            {{ generateErrors.customSeq || spdAvailability.message.value }}
+          </small>
         </div>
 
         <!-- 1. Pejabat Pemberi Perintah -->
@@ -1231,6 +1325,7 @@ onMounted(() => {
             severity="success"
             size="small"
             :loading="isGeneratingSpd"
+            :disabled="spdAvailability.isDuplicate.value"
             @click="submitGenerateSpd"
           />
         </div>

@@ -193,6 +193,56 @@ async function main() {
       isASN: true,
       isPenandatangan: false,
     },
+    {
+      nip: '19820412 200801 1 009',
+      nama: 'Hasanuddin, S.Sos',
+      pangkat: 'Penata Tingkat I',
+      golongan: 'III/d',
+      jabatan: 'Kepala Sub Bagian Tata Usaha dan Kepegawaian',
+      unitKerja: 'Bagian Umum Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: false,
+    },
+    {
+      nip: '19870918 201001 2 006',
+      nama: 'Dewi Lestari, S.E.',
+      pangkat: 'Penata',
+      golongan: 'III/c',
+      jabatan: 'Bendahara Pengeluaran',
+      unitKerja: 'Bagian Umum Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: false,
+    },
+    {
+      nip: '19930122 201903 1 002',
+      nama: 'Rian Pratama, S.STP',
+      pangkat: 'Penata Muda Tingkat I',
+      golongan: 'III/b',
+      jabatan: 'Kepala Sub Bagian Rumah Tangga dan Perlengkapan',
+      unitKerja: 'Bagian Umum Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: false,
+    },
+    {
+      nip: '19960515 202112 2 004',
+      nama: 'Indah Permatasari, S.Tr.IP',
+      pangkat: 'Penata Muda',
+      golongan: 'III/a',
+      jabatan: 'Analis Kebijakan',
+      unitKerja: 'Bagian Organisasi Sekretariat Daerah',
+      isASN: true,
+      isPenandatangan: false,
+    },
+    {
+      nip: '19981203 202203 1 001',
+      nama: 'Ahmad Fauzi, A.Md.Kom',
+      pangkat: 'Pengatur',
+      golongan: 'II/c',
+      jabatan: 'Pranata Komputer Ahli Muda',
+      unitKerja: 'Bagian Protokol dan Komunikasi Pimpinan',
+      isASN: true,
+      isPenandatangan: false,
+    },
   ];
 
   for (const pegawaiData of defaultAsnList) {
@@ -238,56 +288,106 @@ async function main() {
   }
   console.log(`[Seed] Seeded and linked ASN Pegawai records with master Jabatan.`);
 
-  // 2. Initial Super Admin User Account
-  const adminNip = process.env.INITIAL_ADMIN_NIP || '198801152010011002';
-  const adminUsername = process.env.INITIAL_ADMIN_USERNAME || 'admin';
-  const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'admin123';
-  const adminName = process.env.INITIAL_ADMIN_NAME || 'Fadli A. Arsad';
-  const adminEmail = process.env.INITIAL_ADMIN_EMAIL || 'fadli.arsad@banggailautkab.go.id';
+  // 3. User Accounts for all roles (SUPER_ADMIN, ADMIN, STAFF, USER)
+  const allPegawai = await prisma.pegawai.findMany({ orderBy: { nip: 'asc' } });
 
-  const linkedPegawai = await prisma.pegawai.findUnique({
-    where: { nip: adminNip },
-  });
-
-  const existingAdminUser = await prisma.user.findFirst({
-    where: {
-      OR: [
-        { username: adminUsername },
-        { username: adminNip },
-        { pegawaiId: linkedPegawai ? linkedPegawai.id : undefined },
-      ],
+  const predefinedUsers = [
+    {
+      username: process.env.INITIAL_ADMIN_USERNAME || 'admin',
+      name: process.env.INITIAL_ADMIN_NAME || 'Fadli A. Arsad',
+      email: process.env.INITIAL_ADMIN_EMAIL || 'fadli.arsad@banggailautkab.go.id',
+      password: process.env.INITIAL_ADMIN_PASSWORD || 'admin123',
+      role: 'SUPER_ADMIN',
+      nip: process.env.INITIAL_ADMIN_NIP || '198801152010011002',
     },
-  });
+    {
+      username: 'operator',
+      name: 'ARSID HAMIDI, SH',
+      email: 'arsid.hamidi@banggailautkab.go.id',
+      password: 'admin123',
+      role: 'ADMIN',
+      nip: '19700830 200312 1 003',
+    },
+    {
+      username: 'staff',
+      name: 'Fajar Prasetyo, S.Kom',
+      email: 'fajar.prasetyo@banggailautkab.go.id',
+      password: 'user123',
+      role: 'STAFF',
+      nip: '19920315 201802 1 003',
+    },
+    {
+      username: 'user',
+      name: 'Nurul Aini, A.Md',
+      email: 'nurul.aini@banggailautkab.go.id',
+      password: 'user123',
+      role: 'USER',
+      nip: '19951104 202012 2 011',
+    },
+  ];
 
-  if (existingAdminUser) {
-    await prisma.user.update({
-      where: { id: existingAdminUser.id },
-      data: {
-        username: adminUsername,
-        name: adminName,
-        email: adminEmail,
-        role: 'SUPER_ADMIN',
-        isActive: true,
-        pegawaiId: linkedPegawai ? linkedPegawai.id : null,
-      },
+  // Also create accounts for other Pegawai to trigger pagination (>10 rows)
+  for (const p of allPegawai) {
+    if (predefinedUsers.some((u) => u.nip === p.nip)) continue;
+    const cleanFirstName = p.nama
+      .toLowerCase()
+      .replace(/^(drs\.|dr\.|ir\.|h\.|hj\.)\s*/g, '')
+      .split(/[\s,.]+/)[0] || 'pegawai';
+    const role = p.isPenandatangan ? 'ADMIN' : p.jabatan.toLowerCase().includes('pranata') || p.jabatan.toLowerCase().includes('analis') ? 'STAFF' : 'USER';
+    predefinedUsers.push({
+      username: cleanFirstName,
+      name: p.nama,
+      email: `${cleanFirstName}@banggailautkab.go.id`,
+      password: 'user123',
+      role,
+      nip: p.nip,
     });
-    console.log(`[Seed] Updated Super Admin user: ${adminUsername} (NIP: ${adminNip})`);
-  } else {
-    await prisma.user.create({
-      data: {
-        username: adminUsername,
-        name: adminName,
-        email: adminEmail,
-        password: hashPassword(adminPassword),
-        role: 'SUPER_ADMIN',
-        isActive: true,
-        pegawaiId: linkedPegawai ? linkedPegawai.id : null,
-      },
-    });
-    console.log(`[Seed] Created initial Super Admin user: ${adminUsername} (NIP: ${adminNip})`);
   }
 
-  // 3. Initial Kop Surat Template
+  for (const u of predefinedUsers) {
+    const linked = await prisma.pegawai.findUnique({
+      where: { nip: u.nip },
+    });
+
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: u.username },
+          { username: u.nip },
+          ...(linked ? [{ pegawaiId: linked.id }] : []),
+        ],
+      },
+    });
+
+    if (existingUser) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          username: u.username,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          isActive: true,
+          pegawaiId: linked ? linked.id : null,
+        },
+      });
+    } else {
+      await prisma.user.create({
+        data: {
+          username: u.username,
+          name: u.name,
+          email: u.email,
+          password: hashPassword(u.password),
+          role: u.role,
+          isActive: true,
+          pegawaiId: linked ? linked.id : null,
+        },
+      });
+    }
+  }
+  console.log(`[Seed] Seeded ${predefinedUsers.length} User accounts (triggers >10 pagination).`);
+
+  // 4. Initial Kop Surat Templates (6 items to trigger >5 pagination)
   const uploadDir = process.env.UPLOAD_DIR || path.join(process.cwd(), 'uploads', 'kop-surat');
   if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
@@ -350,27 +450,78 @@ startxref
     console.log('[Seed] Created default Kop Surat PDF file on disk.');
   }
 
-  const existingKop = await prisma.kopSurat.findFirst({
-    where: { id: 'kop-1' },
-  });
+  const defaultKopList = [
+    {
+      id: 'kop-1',
+      nama: 'Kop 1 (Sekda Kab. Banggai Laut)',
+      keterangan: 'Kop surat dinas resmi Sekretariat Daerah Kabupaten Banggai Laut untuk SPD',
+      fileName: 'kop_sekda_banggai_laut.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'A4',
+      isDefault: true,
+    },
+    {
+      id: 'kop-2',
+      nama: 'Kop Bagian Umum (Sekretariat Daerah)',
+      keterangan: 'Kop surat operasional Bagian Umum Sekretariat Daerah',
+      fileName: 'kop_bagian_umum.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'A4',
+      isDefault: false,
+    },
+    {
+      id: 'kop-3',
+      nama: 'Kop Bupati Banggai Laut',
+      keterangan: 'Kop dinas Bupati Banggai Laut untuk penugasan luar daerah tingkat kepala daerah',
+      fileName: 'kop_bupati.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'A4',
+      isDefault: false,
+    },
+    {
+      id: 'kop-4',
+      nama: 'Kop Sekretariat Daerah (Format Folio / F4)',
+      keterangan: 'Template resmi ukuran kertas F4 / Folio dinas',
+      fileName: 'kop_setda_folio.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'F4',
+      isDefault: false,
+    },
+    {
+      id: 'kop-5',
+      nama: 'Kop Bagian Protokol dan Komunikasi Pimpinan',
+      keterangan: 'Kop resmi Prokopim Sekretariat Daerah Kab. Banggai Laut',
+      fileName: 'kop_prokopim.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'A4',
+      isDefault: false,
+    },
+    {
+      id: 'kop-6',
+      nama: 'Kop Bagian Hukum Sekretariat Daerah',
+      keterangan: 'Kop resmi Bagian Hukum untuk konsultasi produk hukum daerah',
+      fileName: 'kop_hukum.pdf',
+      storedFileName: defaultPdfName,
+      fileSize: '1.2 KB',
+      paperSize: 'A4',
+      isDefault: false,
+    },
+  ];
 
-  if (!existingKop) {
-    await prisma.kopSurat.create({
-      data: {
-        id: 'kop-1',
-        nama: 'Kop 1 (Sekda Kab. Banggai Laut)',
-        keterangan: 'Kop surat dinas resmi Sekretariat Daerah Kabupaten Banggai Laut untuk SPD',
-        fileName: 'kop_sekda_banggai_laut.pdf',
-        storedFileName: defaultPdfName,
-        fileSize: '1.2 KB',
-        paperSize: 'A4',
-        isDefault: true,
-      },
-    });
-    console.log('[Seed] Seeded default Kop Surat metadata.');
+  for (const kop of defaultKopList) {
+    const existing = await prisma.kopSurat.findUnique({ where: { id: kop.id } });
+    if (!existing) {
+      await prisma.kopSurat.create({ data: kop });
+    }
   }
+  console.log(`[Seed] Seeded ${defaultKopList.length} Kop Surat templates (triggers >5 pagination).`);
 
-  // 4. Initial Dasar Hukum References
+  // 5. Initial Dasar Hukum References (7 items to trigger >5 pagination)
   const defaultDasarHukum = [
     {
       judul: 'UU No. 09 Tahun 2015 tentang Pemerintahan Daerah',
@@ -381,6 +532,31 @@ startxref
       judul: 'Perbup Banggai Laut tentang Perjalanan Dinas',
       isi: 'Peraturan Bupati Banggai Laut tentang Pedoman Pelaksanaan dan Pertanggungjawaban Perjalanan Dinas di Lingkungan Pemerintah Kabupaten Banggai Laut',
       urutan: 2,
+    },
+    {
+      judul: 'Peraturan Daerah Kabupaten Banggai Laut Nomor 5 Tahun 2024',
+      isi: 'Peraturan Daerah Kabupaten Banggai Laut tentang Anggaran Pendapatan dan Belanja Daerah (APBD) Tahun Anggaran Berjalan.',
+      urutan: 3,
+    },
+    {
+      judul: 'Permendagri No. 77 Tahun 2020 tentang Pengelolaan Keuangan Daerah',
+      isi: 'Peraturan Menteri Dalam Negeri Nomor 77 Tahun 2020 tentang Pedoman Teknis Pengelolaan Keuangan Daerah.',
+      urutan: 4,
+    },
+    {
+      judul: 'Perpres No. 33 Tahun 2020 tentang Standar Harga Satuan Regional',
+      isi: 'Peraturan Presiden Republik Indonesia Nomor 33 Tahun 2020 tentang Standar Harga Satuan Regional.',
+      urutan: 5,
+    },
+    {
+      judul: 'PMK No. 119/PMK.02/2020 tentang Standar Biaya Masukan',
+      isi: 'Peraturan Menteri Keuangan Nomor 119/PMK.02/2020 tentang Standar Biaya Masukan Tahun Anggaran Berkenaan.',
+      urutan: 6,
+    },
+    {
+      judul: 'Instruksi Presiden Nomor 1 Tahun 2024 tentang Transformasi SPBE',
+      isi: 'Instruksi Presiden tentang Percepatan Transformasi Digital dan Keterpaduan Layanan Digital Nasional.',
+      urutan: 7,
     },
   ];
 
@@ -394,7 +570,182 @@ startxref
       });
     }
   }
-  console.log('[Seed] Seeded initial Dasar Hukum statutory references.');
+  console.log(`[Seed] Seeded ${defaultDasarHukum.length} Dasar Hukum records.`);
+
+  // 6. Signatory Officials & Target Personnels
+  const sekdaPegawai = (await prisma.pegawai.findFirst({
+    where: { jabatan: { contains: 'Sekretaris Daerah' }, isPenandatangan: true },
+  })) || allPegawai[0];
+
+  const kabagUmumPegawai = (await prisma.pegawai.findFirst({
+    where: { jabatan: { contains: 'Kepala Bagian Umum' } },
+  })) || sekdaPegawai;
+
+  const defaultKop = await prisma.kopSurat.findFirst({
+    where: { isDefault: true },
+  });
+
+  // 7. Seed Surat Tugas (15 records -> triggers >10 pagination)
+  const taskTemplates = [
+    { maksud: 'Koordinasi teknis implementasi sistem e-SPD dan sinkronisasi data kepegawaian ke BKD Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Koordinasi e-SPD BKD Provinsi' },
+    { maksud: 'Konsultasi Teknis Rencana Kerja Anggaran dan Pertanggungjawaban Perjalanan Dinas ke BPKAD Provinsi', tujuan: 'Palu', header: 'Konsultasi RKA BPKAD' },
+    { maksud: 'Monitoring dan Evaluasi Pelayanan Administrasi Pemerintahan Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Monev Bokan Kepulauan' },
+    { maksud: 'Rapat Koordinasi Tata Kelola Pemerintahan Daerah dan Reformasi Birokrasi se-Sulawesi Tengah', tujuan: 'Palu', header: 'Rakor RB Pemda Sulteng' },
+    { maksud: 'Bimbingan Teknis Pengelolaan Arsip Dinamis dan Tata Naskah Dinas Elektronik', tujuan: 'Luwuk', header: 'Bimtek Kearsipan Dinamis' },
+    { maksud: 'Konsultasi Penyelenggaraan Sistem Informasi Akuntabilitas Kinerja Instansi Pemerintah (SAKIP)', tujuan: 'Makassar', header: 'Konsultasi SAKIP Makassar' },
+    { maksud: 'Pelaksanaan Verifikasi dan Validasi Data Tenaga Non-ASN di Lingkungan Kecamatan Bangkurung', tujuan: 'Bangkurung', header: 'Verifikasi Non-ASN Bangkurung' },
+    { maksud: 'Penyelarasan Draft Peraturan Daerah tentang Kelembagaan Perangkat Daerah di Biro Hukum Kemendagri', tujuan: 'Jakarta', header: 'Harmonisasi Raperda Jakarta' },
+    { maksud: 'Koordinasi Akselerasi Transformasi Digital SPBE dengan Diskominfo Provinsi Sulawesi Tengah', tujuan: 'Palu', header: 'Akselerasi SPBE Sulteng' },
+    { maksud: 'Pendampingan Teknis Pemeriksaan Laporan Keuangan Daerah oleh BPK RI di Luwuk', tujuan: 'Luwuk', header: 'Pendampingan BPK RI Luwuk' },
+    { maksud: 'Rapat Evaluasi Pengendalian Inflasi dan Distribusi Logistik Pangan Antar Pulau', tujuan: 'Palu', header: 'Rakor Pengendalian Inflasi' },
+    { maksud: 'Monitoring Sarana dan Prasarana Penunjang Pelayanan Administrasi Terpadu Kecamatan Labobo', tujuan: 'Labobo', header: 'Monev PATEN Labobo' },
+    { maksud: 'Konsultasi Rekonsiliasi Pengelolaan Barang Milik Daerah (BMD) bersama BPKAD Sulteng', tujuan: 'Luwuk', header: 'Rekonsiliasi BMD Luwuk' },
+    { maksud: 'Workshop Penyusunan Standar Pelayanan Minimal (SPM) dan Standar Operasional Prosedur Pelayanan', tujuan: 'Makassar', header: 'Workshop SPM Pelayanan' },
+    { maksud: 'Sosialisasi Kebijakan Disiplin ASN dan Tata Tertib Administrasi Kepegawaian Kecamatan Bokan Kepulauan', tujuan: 'Bokan Kepulauan', header: 'Sosialisasi Disiplin ASN' },
+  ];
+
+  const seededSuratTugas = [];
+  for (let i = 0; i < taskTemplates.length; i++) {
+    const tmpl = taskTemplates[i];
+    const seq = String(i + 1).padStart(3, '0');
+    const nomorSurat = `000.1.2.3/${seq}/Bag.Umum/2026`;
+    const status = i < 8 ? 'SELESAI' : i < 12 ? 'DISETUJUI' : 'DRAFT';
+    const day = 1 + (i * 2);
+    const tanggalSurat = new Date(`2026-03-${String(day).padStart(2, '0')}T08:00:00.000Z`);
+
+    // Assign 1 or 2 pegawai
+    const p1 = allPegawai[i % allPegawai.length];
+    const p2 = (i % 3 === 0) ? allPegawai[(i + 3) % allPegawai.length] : null;
+    const assignedIds = [p1.id, ...(p2 && p2.id !== p1.id ? [p2.id] : [])];
+
+    const signatory = i % 2 === 0 ? sekdaPegawai : kabagUmumPegawai;
+
+    const stData = {
+      nomorSurat,
+      dasarHukum: '1. UU No. 09 Tahun 2015\n2. Perbup Banggai Laut tentang Perjalanan Dinas',
+      dalamRangka: tmpl.maksud,
+      maksudHeader: tmpl.header,
+      tempatDikeluarkan: 'Banggai',
+      tanggalSurat,
+      penandatanganId: signatory ? signatory.id : null,
+      penandatanganNama: signatory ? signatory.nama : null,
+      penandatanganJabatan: signatory ? signatory.jabatan : null,
+      penandatanganPangkat: signatory ? signatory.pangkat : null,
+      penandatanganNip: signatory ? signatory.nip : null,
+      kopSuratId: defaultKop ? defaultKop.id : null,
+      pegawaiIds: JSON.stringify(assignedIds),
+      status,
+    };
+
+    const existing = await prisma.suratTugas.findUnique({
+      where: { nomorSurat },
+    });
+    if (existing) {
+      const updated = await prisma.suratTugas.update({
+        where: { id: existing.id },
+        data: stData,
+      });
+      seededSuratTugas.push({ ...updated, targetPegawai: assignedIds, tujuan: tmpl.tujuan });
+    } else {
+      const created = await prisma.suratTugas.create({
+        data: stData,
+      });
+      seededSuratTugas.push({ ...created, targetPegawai: assignedIds, tujuan: tmpl.tujuan });
+    }
+  }
+  console.log(`[Seed] Seeded ${seededSuratTugas.length} Surat Tugas records (triggers >10 pagination).`);
+
+  // 8. Seed SPD (20+ records -> triggers >10 pagination)
+  const seededSpdList = [];
+  let spdCounter = 1;
+
+  for (const st of seededSuratTugas) {
+    const assignedIds = st.targetPegawai;
+    const isFlight = ['Palu', 'Jakarta', 'Makassar'].includes(st.tujuan);
+    const transport = isFlight ? 'Pesawat' : ['Luwuk', 'Bokan Kepulauan', 'Labobo', 'Bangkurung'].includes(st.tujuan) ? 'Speedboat / Kapal Laut' : 'Mobil Dinas';
+
+    for (const pId of assignedIds) {
+      const p = allPegawai.find((item) => item.id === pId);
+      if (!p) continue;
+
+      const seq = String(spdCounter).padStart(3, '0');
+      const nomorSpd = `${seq}/SPD/SETDA/2026`;
+      spdCounter++;
+
+      const stDate = new Date(st.tanggalSurat);
+      const berangkat = new Date(stDate.getTime() + 24 * 60 * 60 * 1000);
+      const kembali = new Date(berangkat.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+      const spdPayload = {
+        nomorSpd,
+        pemberiPerintah: st.penandatanganJabatan || 'Sekretaris Daerah Kab. Banggai Laut',
+        pegawaiId: p.id,
+        dalamRangka: st.dalamRangka,
+        alatAngkut: transport,
+        tempatBerangkat: 'Banggai',
+        tempatTujuan: st.tujuan,
+        lamaHari: 4,
+        tanggalBerangkat: berangkat,
+        tanggalKembali: kembali,
+        skpd: 'Bagian Umum Sekretariat Daerah Kab. Banggai Laut',
+        kodeRekening: '5.1.02.04.01.0001',
+        tingkatBiaya: p.golongan.startsWith('IV') ? 'Tingkat B' : 'Tingkat C',
+        keterangan: `Pelaksanaan perjalanan dinas sesuai Surat Tugas ${st.nomorSurat}`,
+        kopSuratId: st.kopSuratId,
+        suratTugasId: st.id,
+        penandatanganId: st.penandatanganId,
+        penandatanganNama: st.penandatanganNama,
+        penandatanganJabatan: st.penandatanganJabatan,
+        penandatanganPangkat: st.penandatanganPangkat,
+        penandatanganNip: st.penandatanganNip,
+        status: st.status,
+      };
+
+      const existing = await prisma.spd.findUnique({
+        where: { nomorSpd },
+      });
+      if (existing) {
+        const updated = await prisma.spd.update({
+          where: { id: existing.id },
+          data: spdPayload,
+        });
+        seededSpdList.push(updated);
+      } else {
+        const created = await prisma.spd.create({
+          data: spdPayload,
+        });
+        seededSpdList.push(created);
+      }
+    }
+  }
+  console.log(`[Seed] Seeded ${seededSpdList.length} SPD records (triggers >10 pagination).`);
+
+  // 9. Seed Laporan Perjalanan for all completed SPDs (>10 items)
+  let seededLaporanCount = 0;
+  for (const spd of seededSpdList) {
+    if (spd.status !== 'SELESAI') continue;
+
+    const laporanDate = spd.tanggalKembali ? new Date(new Date(spd.tanggalKembali).getTime() + 24 * 60 * 60 * 1000) : new Date();
+
+    await prisma.laporanPerjalanan.upsert({
+      where: { spdId: spd.id },
+      update: {
+        suratTugasId: spd.suratTugasId,
+        hasilPerjalanan: `Telah terlaksana dengan baik ${spd.dalamRangka} bertempat di ${spd.tempatTujuan}. Seluruh agenda koordinasi teknis, verifikasi dokumen, dan konsultasi telah diselesaikan sesuai target kerja dan pedoman peraturan perundang-undangan.`,
+        penandatangan: 'Sekertaris Daerah',
+        tanggalLaporan: laporanDate,
+      },
+      create: {
+        spdId: spd.id,
+        suratTugasId: spd.suratTugasId,
+        hasilPerjalanan: `Telah terlaksana dengan baik ${spd.dalamRangka} bertempat di ${spd.tempatTujuan}. Seluruh agenda koordinasi teknis, verifikasi dokumen, dan konsultasi telah diselesaikan sesuai target kerja dan pedoman peraturan perundang-undangan.`,
+        penandatangan: 'Sekertaris Daerah',
+        tanggalLaporan: laporanDate,
+      },
+    });
+    seededLaporanCount++;
+  }
+  console.log(`[Seed] Seeded ${seededLaporanCount} Laporan Perjalanan records (triggers pagination).`);
 
   console.log('==> Database Seeding Finished Successfully.');
 }

@@ -235,6 +235,36 @@ const formatDate = (dateStr: string | null | undefined): string => {
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
 };
 
+const getStatusBadgeConfig = (status: string) => {
+  switch (status) {
+    case 'DISETUJUI':
+      return {
+        label: 'Disetujui',
+        containerClass: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/60',
+        dotClass: 'bg-blue-500 dark:bg-blue-400',
+      };
+    case 'SELESAI':
+      return {
+        label: 'Selesai',
+        containerClass: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/60',
+        dotClass: 'bg-emerald-500 dark:bg-emerald-400',
+      };
+    case 'BATAL':
+      return {
+        label: 'Batal',
+        containerClass: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
+        dotClass: 'bg-rose-500 dark:bg-rose-400',
+      };
+    case 'DRAFT':
+    default:
+      return {
+        label: 'Draf',
+        containerClass: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60',
+        dotClass: 'bg-amber-500 dark:bg-amber-400',
+      };
+  }
+};
+
 const getStatusSeverity = (status: string) => {
   switch (status) {
     case 'DISETUJUI':
@@ -554,6 +584,15 @@ const exportToCsv = () => {
           @click="handleResetFilters"
         />
 
+        <GovButton
+          label="Segarkan"
+          icon="pi pi-refresh"
+          severity="secondary"
+          variant="outlined"
+          :loading="loading"
+          @click="loadData"
+        />
+
         <!-- Toggle Mode Pilih / Checkbox -->
         <GovButton
           :label="isSelectionMode ? 'Sembunyikan Pilihan' : 'Pilih Sekaligus'"
@@ -565,7 +604,7 @@ const exportToCsv = () => {
         />
       </div>
 
-      <div class="text-xs text-text-muted flex-shrink-0">
+      <div class="text-xs text-text-muted flex-shrink-0 self-end md:self-center">
         Menampilkan <strong class="text-text-main font-semibold">{{ list.length }}</strong> data
       </div>
     </div>
@@ -704,16 +743,39 @@ const exportToCsv = () => {
         </Column>
 
         <!-- Status -->
-        <Column field="status" header="Status" style="width: 120px;">
+        <Column
+          field="status"
+          header="Status"
+          header-class="text-center"
+          body-class="text-center"
+          style="width: 130px;"
+        >
           <template #body="{ data: item }">
-            <Tag :value="item.status" :severity="getStatusSeverity(item.status)" />
+            <div class="flex items-center justify-center">
+              <span
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
+                :class="getStatusBadgeConfig(item.status).containerClass"
+              >
+                <span
+                  class="w-1.5 h-1.5 rounded-full"
+                  :class="getStatusBadgeConfig(item.status).dotClass"
+                ></span>
+                {{ getStatusBadgeConfig(item.status).label }}
+              </span>
+            </div>
           </template>
         </Column>
 
         <!-- Aksi -->
-        <Column header="Aksi" style="min-width: 190px;" align-frozen="right">
+        <Column
+          header="Aksi"
+          header-class="text-center"
+          body-class="text-center"
+          style="width: 190px;"
+          align-frozen="right"
+        >
           <template #body="{ data: item }">
-            <div class="flex items-center gap-1">
+            <div class="flex items-center justify-center gap-1">
               <!-- Cetak / Pratinjau -->
               <GovButton
                 icon="pi pi-print"

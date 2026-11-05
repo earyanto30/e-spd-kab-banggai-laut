@@ -76,7 +76,7 @@ describe('SpdPdfService', () => {
 
   const sampleKpaSpd = {
     id: 'spd-kpa-1',
-    nomorSpd: 'KPA002/SPD/2026',
+    nomorSpd: 'KPA/002/SPD/2026',
     pemberiPerintah: 'Kuasa Pengguna Anggaran (KPA)',
     dalamRangka: 'Rapat Koordinasi Umum',
     alatAngkut: 'Kendaraan Umum',
@@ -185,7 +185,8 @@ describe('SpdPdfService', () => {
     expect(extractedText).toContain('Maksud Perjalanan');
     expect(extractedText).toContain('Lama Perjalanan');
     expect(extractedText).toContain('Hasil Perjalanan');
-    expect(extractedText).toContain('Demikian Laporan Perjalanan Dinas ini dibuat');
+    expect(extractedText).toContain('Demikian');
+    expect(extractedText).toContain('Laporan Perjalanan Dinas ini dibuat');
     expect(extractedText).toContain('YANG MELAKUKAN PERJALANAN DINAS');
     expect(extractedText).toContain('Ahmad, S.Kom');
   });

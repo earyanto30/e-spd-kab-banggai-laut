@@ -13,9 +13,11 @@ import {
   GovSelect,
   GovButton,
   GovMessage,
+  NumberAvailabilityBadge,
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { useNumberAvailability } from '../composables/useNumberAvailability';
 import { MODA_TRANSPORTASI_OPTIONS } from '@si-setda/shared-types';
 
 interface AsnOption {
@@ -127,11 +129,21 @@ const previewNomorSpd = computed(() => {
   const prefix = form.nomorSpdMode === 'custom'
     ? (form.customPrefix?.trim() || '')
     : defaultPrefix;
+  const cleanPrefix = prefix.replace(/\/+$/, '');
+  const prefixPart = cleanPrefix ? `${cleanPrefix}/` : '';
   if (form.nomorSpdMode === 'auto' && !isEditMode.value) {
-    return `${prefix}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
+    return `${prefixPart}[Otomatis]/SPD/${form.tahunSpd || currentYear}`;
   }
   const seqPart = form.customSeq.trim() || '    ';
-  return `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
+  return `${prefixPart}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
+});
+
+const isAutoModeSpd = computed(() => form.nomorSpdMode === 'auto' && !isEditMode.value);
+const numberAvailability = useNumberAvailability({
+  endpoint: '/api/spd/check-number',
+  previewNomor: previewNomorSpd,
+  isAutoMode: isAutoModeSpd,
+  excludeId: spdId,
 });
 
 const resetForm = () => {
@@ -250,7 +262,7 @@ const loadExistingSpd = async (id: string) => {
 
       if (data.nomorSpd) {
         form.fullNomorSpd = data.nomorSpd;
-        const match = data.nomorSpd.match(/^([A-Za-z]*)\s*(\d*)\s*\/SPD\/(\d+)$/);
+        const match = data.nomorSpd.match(/^([A-Za-z0-9_-]*)\/?\s*(\d*)\s*\/SPD\/(\d+)$/);
         if (match) {
           form.nomorSpdMode = 'custom';
           form.customPrefix = match[1] || '';
@@ -366,6 +378,10 @@ const validate = (): boolean => {
   if (!form.kopSuratId) errors.kopSuratId = 'Kop surat dinas wajib dipilih.';
   if (!form.penandatanganId) errors.penandatanganId = 'Pejabat Penandatangan SPD wajib dipilih.';
 
+  if (numberAvailability.isDuplicate.value) {
+    errors.customSeq = 'Nomor SPD sudah digunakan. Harap gunakan nomor urut yang berbeda.';
+  }
+
   return Object.keys(errors).length === 0;
 };
 
@@ -398,8 +414,10 @@ const handleSubmit = async () => {
       const prefix = form.nomorSpdMode === 'custom'
         ? (form.customPrefix?.trim() || '')
         : defaultPrefix;
+      const cleanPrefix = prefix.replace(/\/+$/, '');
+      const prefixPart = cleanPrefix ? `${cleanPrefix}/` : '';
       const seqPart = form.customSeq.trim() || '    ';
-      finalNomorSpd = `${prefix}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
+      finalNomorSpd = `${prefixPart}${seqPart}/SPD/${form.tahunSpd || currentYear}`;
     }
 
     const payload = {
@@ -522,7 +540,7 @@ const handleCancel = () => {
                 Penomoran SPD
               </label>
               <p class="text-xs text-text-muted mt-0.5">
-                Format: <span class="font-mono text-primary font-semibold">[Prefix][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
+                Format: <span class="font-mono text-primary font-semibold">[Prefix/][Nomor]/SPD/[Tahun]</span>. Nomor urut bersifat opsional.
               </p>
             </div>
             <div class="flex items-center gap-3">
@@ -568,6 +586,7 @@ const handleCancel = () => {
                 v-model="form.customSeq"
                 :disabled="form.nomorSpdMode === 'auto' && !isEditMode"
                 placeholder="Contoh: 001 atau kosongkan"
+                :invalid="!!errors.customSeq || numberAvailability.isDuplicate.value"
                 block
               />
             </div>
@@ -586,12 +605,19 @@ const handleCancel = () => {
             </div>
           </div>
 
-          <div class="text-xs text-text-muted pt-1 flex items-center gap-2">
+          <div class="text-xs text-text-muted pt-1 flex items-center gap-2 flex-wrap">
             <span>Pratinjau Nomor SPD:</span>
             <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border whitespace-pre">
               {{ previewNomorSpd }}
             </span>
+            <NumberAvailabilityBadge
+              :status="numberAvailability.status.value"
+              :message="numberAvailability.message.value"
+            />
           </div>
+          <small v-if="errors.customSeq || numberAvailability.isDuplicate.value" class="text-red-500 text-xs block">
+            {{ errors.customSeq || numberAvailability.message.value }}
+          </small>
         </div>
 
         <hr class="border-border" />

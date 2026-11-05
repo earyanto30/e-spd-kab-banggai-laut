@@ -80,6 +80,7 @@ export interface SpdDetailData {
   laporanHasil?: string | null;
   laporanPenandatangan?: string | null;
   laporanTanggal?: string | Date | null;
+  laporan?: any | null;
   createdAt?: string | Date;
 }
 
@@ -202,6 +203,7 @@ const handleBack = () => {
 // --- Laporan Perjalanan Dinas State & Logic ---
 const isLaporanDisabled = computed(() => {
   if (!spd.value) return true;
+  if (spd.value.laporan || spd.value.status === 'SELESAI') return false;
   const isApproved = spd.value.status === 'DISETUJUI';
   const hasLamaHari = spd.value.lamaHari != null && Number(spd.value.lamaHari) > 0;
   return !isApproved || !hasLamaHari;
@@ -209,6 +211,7 @@ const isLaporanDisabled = computed(() => {
 
 const laporanDisabledReason = computed(() => {
   if (!spd.value) return '';
+  if (spd.value.laporan || spd.value.status === 'SELESAI') return '';
   if (spd.value.status !== 'DISETUJUI' && (!spd.value.lamaHari || Number(spd.value.lamaHari) <= 0)) {
     return 'Laporan Perjalanan Dinas dinonaktifkan: Dokumen SPD belum disetujui dan Lama Perjalanan belum diisi.';
   }
@@ -323,46 +326,21 @@ const handlePrintLaporan = async () => {
       tanggalLaporan: laporanForm.tanggalLaporan ? laporanForm.tanggalLaporan.toISOString() : undefined,
       fontFamily: fontFamily.value,
     };
-    const res = await apiFetch(`/api/spd/${spdId}/laporan-pdf`, {
-      method: 'POST',
+    const res = await apiFetch(`/api/spd/${spdId}/laporan`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-          }, 3000);
-        }, 200);
-      };
-      toast.success('Dokumen Laporan Perjalanan Dinas siap dicetak');
-
-      if (spd.value) {
-        spd.value.laporanHasil = laporanForm.hasilPerjalanan;
-        spd.value.laporanPenandatangan = laporanForm.penandatangan;
-        spd.value.laporanTanggal = laporanForm.tanggalLaporan;
-      }
+      showLaporanModal.value = false;
+      toast.success('Laporan berhasil disimpan. Membuka halaman pratinjau cetak...');
+      router.push(`/laporan/cetak/${spdId}`);
     } else {
       const err = await res.json().catch(() => ({}));
-      toast.error(err.message || 'Gagal mencetak Laporan Perjalanan Dinas');
+      toast.error(err.message || 'Gagal menyimpan Laporan Perjalanan Dinas');
     }
   } catch (err: any) {
-    toast.error(err.message || 'Terjadi kesalahan sistem saat memproses cetak laporan');
+    toast.error(err.message || 'Terjadi kesalahan sistem saat memproses laporan');
   } finally {
     isPrintingLaporan.value = false;
   }
@@ -458,8 +436,8 @@ onMounted(() => {
                 {{ spd?.nomorSpd || 'DRAFT' }}
               </span>
               <Tag
-                :value="spd?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT'"
-                :severity="spd?.status === 'DISETUJUI' ? 'success' : 'warn'"
+                :value="spd?.status === 'SELESAI' ? 'SELESAI' : (spd?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT')"
+                :severity="spd?.status === 'SELESAI' ? 'success' : (spd?.status === 'DISETUJUI' ? 'info' : 'warn')"
                 class="text-[10px] font-bold"
               />
             </div>

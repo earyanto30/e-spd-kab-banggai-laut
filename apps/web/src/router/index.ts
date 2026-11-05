@@ -144,6 +144,27 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/laporan/edit/:id',
+    name: 'EditLaporan',
+    component: () => import('../views/BuatLaporanView.vue'),
+    meta: {
+      title: 'Edit Laporan Perjalanan Dinas',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF],
+    },
+  },
+  {
+    path: '/laporan/cetak/:id',
+    alias: ['/laporan/preview/:id', '/laporan/:id'],
+    name: 'LaporanDetailPrint',
+    component: () => import('../views/LaporanDetailPrintView.vue'),
+    meta: {
+      title: 'Pratinjau Laporan Perjalanan Dinas',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
     path: '/tanda-tangan/surat-tugas',
     redirect: '/surat-tugas',
   },

@@ -118,6 +118,15 @@ export class SuratTugasController {
     res.send(buffer);
   }
 
+  @Get('check-number')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  checkNumber(
+    @Query('nomor') nomor: string,
+    @Query('excludeId') excludeId?: string,
+  ) {
+    return this.suratTugasService.checkNumberAvailability(nomor, excludeId);
+  }
+
   @Get(':id')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   findById(@Param('id') id: string) {

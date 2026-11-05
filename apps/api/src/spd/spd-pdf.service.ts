@@ -212,7 +212,8 @@ export class SpdPdfService {
     currentPage.drawText('Nomor', { x: metaX, y: currentY, size: metaFontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: metaX + 62, y: currentY, size: metaFontSize, font: fontRegular, color: black });
     const displayNomorSpd = (spd.nomorSpd || '-')
-      .replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/');
+      .replace(/^([A-Za-z0-9_-]+)\/\s*\/SPD\//i, '$1/    /SPD/')
+      .replace(/^([A-Za-z0-9_-]*)\s*\/SPD\//i, '$1    /SPD/');
     currentPage.drawText(displayNomorSpd, { x: metaX + 70, y: currentY, size: metaFontSize, font: fontBold, color: black });
 
     // 2. Judul Dokumen (SURAT PERJALANAN DINAS)
@@ -1213,7 +1214,9 @@ export class SpdPdfService {
     currentPage.drawText(dasar1Text, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
     currentY -= bodyLineHeight;
 
-    const spdNumber = (spd.nomorSpd || '-').replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/');
+    const spdNumber = (spd.nomorSpd || '-')
+      .replace(/^([A-Za-z0-9_-]+)\/\s*\/SPD\//i, '$1/    /SPD/')
+      .replace(/^([A-Za-z0-9_-]*)\s*\/SPD\//i, '$1    /SPD/');
     const spdDate = spd.createdAt ? this.formatIndonesianDate(spd.createdAt) : '-';
     const dasar2Text = `2. Surat Perjalanan Dinas Nomor : ${spdNumber} Tanggal ${spdDate}`;
     currentPage.drawText(dasar2Text, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
@@ -1325,24 +1328,32 @@ export class SpdPdfService {
       currentY = height - marginTop;
     }
 
-    const closingText = 'Demikian Laporan Perjalanan Dinas ini dibuat, untuk menjadi bahan pertimbangan.';
-    currentPage.drawText(closingText, {
+    // Tanda dash '-' di sisi margin kiri
+    currentPage.drawText('-', {
       x: marginLeft,
       y: currentY,
       size: bodyFontSize,
       font: fontRegular,
       color: black,
     });
-    currentY -= 28;
 
-    // 5. Tanda Tangan Pelaksana Perjalanan Dinas (Kanan Bawah)
-    const signBlockWidth = 240;
-    const signX = width - marginRight - signBlockWidth;
+    const closingText = 'Demikian  Laporan Perjalanan Dinas ini dibuat, untuk menjadi bahan pertimbangan.';
+    currentPage.drawText(closingText, {
+      x: contentX,
+      y: currentY,
+      size: bodyFontSize,
+      font: fontRegular,
+      color: black,
+    });
+    currentY -= 30;
 
+    // 5. Tanda Tangan Pelaksana Perjalanan Dinas (Tengah)
     const signTitle = 'YANG MELAKUKAN PERJALANAN DINAS';
     const titleW = fontBold.widthOfTextAtSize(signTitle, 10.5);
+    const signTitleX = (width - titleW) / 2;
+
     currentPage.drawText(signTitle, {
-      x: signX + (signBlockWidth - titleW) / 2,
+      x: signTitleX,
       y: currentY,
       size: 10.5,
       font: fontBold,
@@ -1352,19 +1363,23 @@ export class SpdPdfService {
     currentY -= 65;
 
     const travelerName = spd.pegawai?.nama || 'Pegawai Pelaksana';
-    const dottedLine = '.......................';
+    const dottedLine = '................................';
+    const nameW = fontBold.widthOfTextAtSize(travelerName, 10.5);
+    const dotsW = fontRegular.widthOfTextAtSize(dottedLine, 10.5);
+    const gap = 30;
+    const totalRowW = nameW + gap + dotsW;
+    const rowStartX = Math.max(marginLeft, (width - totalRowW) / 2);
 
     currentPage.drawText(travelerName, {
-      x: signX,
+      x: rowStartX,
       y: currentY,
       size: 10.5,
       font: fontBold,
       color: black,
     });
 
-    const dottedX = signX + signBlockWidth - fontRegular.widthOfTextAtSize(dottedLine, 10.5);
     currentPage.drawText(dottedLine, {
-      x: Math.max(dottedX, signX + fontBold.widthOfTextAtSize(travelerName, 10.5) + 15),
+      x: rowStartX + nameW + gap,
       y: currentY,
       size: 10.5,
       font: fontRegular,

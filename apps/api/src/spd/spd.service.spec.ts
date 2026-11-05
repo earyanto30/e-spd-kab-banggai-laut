@@ -51,7 +51,7 @@ describe('SpdService', () => {
       tempatTujuan: 'Luwuk',
     });
 
-    expect(result.nomorSpd).toBe('KPA006/SPD/2026');
+    expect(result.nomorSpd).toBe('KPA/006/SPD/2026');
   });
 
   it('builds status, date, and search filters', async () => {
@@ -225,5 +225,114 @@ describe('SpdService', () => {
     findUnique.mockResolvedValue({ id: 'spd1', nomorSpd: '001/SPD/2026', pegawaiId: 'p1' });
     findFirst.mockResolvedValue({ id: 'other' });
     await expect(service.update('spd1', { nomorSpd: '002/SPD/2026' })).rejects.toThrow(/sudah digunakan/);
+  });
+
+  it('checks number availability correctly for single and multiple records', async () => {
+    const prisma = {
+      spd: {
+        findFirst: vi.fn()
+          .mockResolvedValueOnce({ id: 'spd1', nomorSpd: 'KPA/031/SPD/2026' })
+          .mockResolvedValueOnce(null),
+        findMany: vi.fn()
+          .mockResolvedValueOnce([{ id: 'spd2', nomorSpd: 'KPA/032/SPD/2026' }])
+          .mockResolvedValueOnce([]),
+      },
+    } as unknown as PrismaService;
+    const service = new SpdService(prisma);
+
+    // Single check taken
+    const taken = await service.checkNumberAvailability('KPA/031/SPD/2026');
+    expect(taken.available).toBe(false);
+    expect(taken.message).toContain('sudah digunakan');
+
+    // Single check available
+    const available = await service.checkNumberAvailability('KPA/999/SPD/2026');
+    expect(available.available).toBe(true);
+
+    // Multiple check with one conflict
+    const multiConflict = await service.checkNumberAvailability('KPA/031/SPD/2026', undefined, 3);
+    expect(multiConflict.available).toBe(false);
+    expect(multiConflict.message).toContain('sudah digunakan');
+
+    // Multiple check all available
+    const multiAvailable = await service.checkNumberAvailability('KPA/050/SPD/2026', undefined, 3);
+    expect(multiAvailable.available).toBe(true);
+  });
+
+  it('automatically sets SPD and Surat Tugas status to SELESAI upon saving laporan', async () => {
+    const spdUpdate = vi.fn().mockResolvedValue({ id: 'spd1', status: 'SELESAI' });
+    const stUpdate = vi.fn().mockResolvedValue({ id: 'st1', status: 'SELESAI' });
+    const prisma = {
+      spd: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'spd1',
+          nomorSpd: '001/SPD/2026',
+          suratTugasId: 'st1',
+          pegawai: { id: 'p1', nama: 'Budi' },
+        }),
+        update: spdUpdate,
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      suratTugas: {
+        update: stUpdate,
+      },
+      laporanPerjalanan: {
+        upsert: vi.fn().mockResolvedValue({
+          id: 'lap1',
+          spdId: 'spd1',
+          suratTugasId: 'st1',
+          hasilPerjalanan: 'Hasil rapat',
+          penandatangan: 'Kepala Bagian',
+        }),
+      },
+    } as unknown as PrismaService;
+    const service = new SpdService(prisma);
+
+    const result = await service.saveLaporan('spd1', {
+      hasilPerjalanan: 'Hasil rapat',
+      penandatangan: 'Kepala Bagian',
+    });
+
+    expect(result.id).toBe('lap1');
+    expect(spdUpdate).toHaveBeenCalledWith({
+      where: { id: 'spd1' },
+      data: { status: 'SELESAI' },
+    });
+    expect(stUpdate).toHaveBeenCalledWith({
+      where: { id: 'st1' },
+      data: { status: 'SELESAI' },
+    });
+  });
+
+  it('reverts SPD and Surat Tugas status to DISETUJUI upon deleting laporan', async () => {
+    const spdUpdate = vi.fn().mockResolvedValue({ id: 'spd1', status: 'DISETUJUI' });
+    const stUpdate = vi.fn().mockResolvedValue({ id: 'st1', status: 'DISETUJUI' });
+    const prisma = {
+      laporanPerjalanan: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'lap1',
+          spdId: 'spd1',
+          suratTugasId: 'st1',
+        }),
+        delete: vi.fn().mockResolvedValue({ id: 'lap1' }),
+      },
+      spd: {
+        update: spdUpdate,
+      },
+      suratTugas: {
+        update: stUpdate,
+      },
+    } as unknown as PrismaService;
+    const service = new SpdService(prisma);
+
+    await service.deleteLaporan('spd1');
+    expect(spdUpdate).toHaveBeenCalledWith({
+      where: { id: 'spd1' },
+      data: { status: 'DISETUJUI' },
+    });
+    expect(stUpdate).toHaveBeenCalledWith({
+      where: { id: 'st1' },
+      data: { status: 'DISETUJUI' },
+    });
   });
 });

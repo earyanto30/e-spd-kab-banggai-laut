@@ -70,6 +70,29 @@ export class SpdController {
     res.send(buffer);
   }
 
+  @Get(':id/laporan-pdf')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  async downloadLaporanPdf(
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('fontFamily') fontFamilyQuery?: string,
+  ) {
+    const spd = await this.spdService.findById(id);
+    if (!spd.laporan) {
+      throw new BadRequestException('Laporan Perjalanan Dinas belum dibuat untuk dokumen SPD ini.');
+    }
+    const body: GenerateLaporanSpdDto = {
+      hasilPerjalanan: spd.laporan.hasilPerjalanan,
+      penandatangan: spd.laporan.penandatangan as any,
+      tanggalLaporan: spd.laporan.tanggalLaporan ? new Date(spd.laporan.tanggalLaporan).toISOString() : undefined,
+      fontFamily: fontFamilyQuery,
+    };
+    const { buffer, fileName } = await this.spdPdfService.generateLaporanPdf(id, body, fontFamilyQuery);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+    res.send(buffer);
+  }
+
   @Post(':id/laporan-pdf')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
   async generateLaporanPdf(
@@ -108,6 +131,12 @@ export class SpdController {
     return this.spdService.saveLaporan(id, body);
   }
 
+  @Delete(':id/laporan')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN)
+  async deleteLaporan(@Param('id') id: string) {
+    return this.spdService.deleteLaporan(id);
+  }
+
   @Post('bulk-delete')
   @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF)
   async bulkDelete(@Body('ids') ids: string[]) {
@@ -132,6 +161,17 @@ export class SpdController {
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
     res.send(buffer);
+  }
+
+  @Get('check-number')
+  @Roles(Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER)
+  checkNumber(
+    @Query('nomor') nomor: string,
+    @Query('excludeId') excludeId?: string,
+    @Query('count') count?: string,
+  ) {
+    const numCount = count ? parseInt(count, 10) : 1;
+    return this.spdService.checkNumberAvailability(nomor, excludeId, isNaN(numCount) ? 1 : numCount);
   }
 
   @Get(':id')

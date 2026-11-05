@@ -164,13 +164,13 @@ const fetchSpdList = async () => {
     const res = await apiFetch('/api/spd');
     if (res.ok) {
       const data: SpdEligibleItem[] = await res.json();
-      // Eligible SPDs must be DISETUJUI with duration or already have laporan
+      // Eligible SPDs must be DISETUJUI with duration, SELESAI, or already have laporan
       eligibleSpds.value = data.filter(
-        (item) => (item.status === 'DISETUJUI' && !!item.lamaHari) || !!item.laporan
+        (item) => (item.status === 'DISETUJUI' && !!item.lamaHari) || item.status === 'SELESAI' || !!item.laporan
       );
 
-      // Check query param spdId (prefill only when explicitly requested via URL)
-      const qSpdId = (route.query.spdId as string) || '';
+      // Check query param spdId or route param id
+      const qSpdId = (route.params.id as string) || (route.query.spdId as string) || '';
       if (qSpdId) {
         const found = eligibleSpds.value.find((s) => s.id === qSpdId);
         if (found) {
@@ -233,7 +233,7 @@ const handleSaveOnly = async () => {
 
     if (res.ok) {
       toast.success('Laporan Perjalanan Dinas berhasil disimpan');
-      router.push('/laporan');
+      router.push(`/laporan/cetak/${selectedSpdId.value}`);
     } else {
       const errData = await res.json().catch(() => ({}));
       formError.value = errData.message || 'Gagal menyimpan laporan perjalanan dinas';
@@ -276,7 +276,7 @@ const handleSaveAndDownload = async () => {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       toast.success('Laporan berhasil disimpan dan dokumen PDF berhasil diunduh');
-      router.push('/laporan');
+      router.push(`/laporan/cetak/${selectedSpdId.value}`);
     } else {
       const errData = await res.json().catch(() => ({}));
       formError.value = errData.message || 'Gagal membuat berkas PDF laporan';
@@ -290,13 +290,13 @@ const handleSaveAndDownload = async () => {
   }
 };
 
-// 3. Simpan & Cetak Langsung
+// 3. Simpan & Ke Halaman Cetak Laporan
 const handleSaveAndPrint = async () => {
   if (!validateForm()) return;
   isPrinting.value = true;
   try {
-    const res = await apiFetch(`/api/spd/${selectedSpdId.value}/laporan-pdf`, {
-      method: 'POST',
+    const res = await apiFetch(`/api/spd/${selectedSpdId.value}/laporan`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         hasilPerjalanan: form.value.hasilPerjalanan.trim(),
@@ -307,36 +307,15 @@ const handleSaveAndPrint = async () => {
     });
 
     if (res.ok) {
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.right = '0';
-      iframe.style.bottom = '0';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
-      iframe.style.border = '0';
-      iframe.src = url;
-      document.body.appendChild(iframe);
-      iframe.onload = () => {
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-          setTimeout(() => {
-            document.body.removeChild(iframe);
-            URL.revokeObjectURL(url);
-          }, 3000);
-        }, 200);
-      };
-
-      toast.success('Laporan berhasil disimpan dan dokumen siap dicetak');
+      toast.success('Laporan berhasil disimpan. Membuka halaman pratinjau cetak...');
+      router.push(`/laporan/cetak/${selectedSpdId.value}`);
     } else {
       const errData = await res.json().catch(() => ({}));
-      formError.value = errData.message || 'Gagal mencetak dokumen laporan';
+      formError.value = errData.message || 'Gagal menyimpan laporan perjalanan dinas';
       toast.error(formError.value);
     }
   } catch (err: any) {
-    formError.value = err.message || 'Terjadi kesalahan sistem saat memproses cetak';
+    formError.value = err.message || 'Terjadi kesalahan sistem saat menyimpan laporan';
     toast.error(formError.value);
   } finally {
     isPrinting.value = false;
@@ -671,7 +650,7 @@ onMounted(() => {
 
               <div class="flex flex-wrap items-center gap-2">
                 <GovButton
-                  label="Simpan Saja"
+                  label="Simpan Laporan"
                   icon="pi pi-save"
                   severity="secondary"
                   size="small"
@@ -681,9 +660,9 @@ onMounted(() => {
                 />
 
                 <GovButton
-                  label="Simpan & Cetak"
+                  label="Simpan & Cetak Laporan"
                   icon="pi pi-print"
-                  severity="secondary"
+                  severity="primary"
                   size="small"
                   :loading="isPrinting"
                   :disabled="isSubmitting || isDownloading"

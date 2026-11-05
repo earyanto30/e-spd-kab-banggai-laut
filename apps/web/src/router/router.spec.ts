@@ -45,4 +45,13 @@ describe('Router & Navigation Guard', () => {
     await router.push('/pengaturan/pengguna');
     expect(router.currentRoute.value.name).toBe('Unauthorized');
   });
+
+  it('allows authenticated users with STAFF role to access /laporan/cetak/:id', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.STAFF);
+
+    await router.push('/laporan/cetak/spd-123');
+    expect(router.currentRoute.value.name).toBe('LaporanDetailPrint');
+    expect(router.currentRoute.value.params.id).toBe('spd-123');
+  });
 });

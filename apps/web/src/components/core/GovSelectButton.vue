@@ -1,7 +1,7 @@
-<script setup lang="ts" generic="T = any">
+<script setup lang="ts" generic="T = any, V = any">
 import SelectButton from 'primevue/selectbutton';
 
-const model = defineModel<T>();
+const model = defineModel<V>();
 
 defineProps<{
   options: T[];

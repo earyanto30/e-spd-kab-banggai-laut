@@ -105,9 +105,93 @@ export class SpdService {
     return item;
   }
 
+  async checkNumberAvailability(nomor: string, excludeId?: string, count: number = 1) {
+    if (!nomor || !nomor.trim()) {
+      return { available: true, isPlaceholder: true, message: 'Nomor belum diisi' };
+    }
+    const cleanNomor = nomor.trim();
+    if (
+      cleanNomor.includes('[') ||
+      cleanNomor.includes(']') ||
+      cleanNomor.includes('//') ||
+      cleanNomor.includes('  ')
+    ) {
+      return { available: true, isPlaceholder: true, message: 'Nomor otomatis / belum lengkap' };
+    }
+
+    if (count > 1) {
+      const parts = cleanNomor.split('/SPD/');
+      if (parts.length === 2) {
+        const left = parts[0];
+        const right = parts[1];
+        const leftParts = left.split('/');
+        const rawSeq = leftParts[leftParts.length - 1];
+        const prefix = leftParts.slice(0, leftParts.length - 1).join('/');
+        const startSeqNum = parseInt(rawSeq, 10);
+
+        if (!isNaN(startSeqNum)) {
+          const padLen = rawSeq.length;
+          const numbersToCheck: string[] = [];
+          for (let i = 0; i < count; i++) {
+            const nextSeq = String(startSeqNum + i).padStart(padLen, '0');
+            const fullNum = prefix ? `${prefix}/${nextSeq}/SPD/${right}` : `${nextSeq}/SPD/${right}`;
+            numbersToCheck.push(fullNum);
+          }
+
+          const existingList = await this.prisma.spd.findMany({
+            where: {
+              nomorSpd: { in: numbersToCheck },
+              ...(excludeId ? { NOT: { id: excludeId } } : {}),
+            },
+            select: { id: true, nomorSpd: true },
+          });
+
+          if (existingList.length > 0) {
+            const conflicted = existingList.map((e) => e.nomorSpd).join(', ');
+            return {
+              available: false,
+              nomor: cleanNomor,
+              conflictNomor: conflicted,
+              message: `Nomor SPD '${conflicted}' sudah digunakan`,
+            };
+          }
+
+          return {
+            available: true,
+            nomor: cleanNomor,
+            message: `Seluruh ${count} nomor SPD tersedia`,
+          };
+        }
+      }
+    }
+
+    const existing = await this.prisma.spd.findFirst({
+      where: {
+        nomorSpd: cleanNomor,
+        ...(excludeId ? { NOT: { id: excludeId } } : {}),
+      },
+      select: { id: true, nomorSpd: true },
+    });
+
+    if (existing) {
+      return {
+        available: false,
+        nomor: cleanNomor,
+        conflictNomor: cleanNomor,
+        message: `Nomor SPD '${cleanNomor}' sudah digunakan`,
+      };
+    }
+
+    return {
+      available: true,
+      nomor: cleanNomor,
+      message: 'Nomor SPD tersedia',
+    };
+  }
+
   async saveLaporan(id: string, dto: { hasilPerjalanan: string; penandatangan: string; tanggalLaporan?: string }) {
     const spd = await this.findById(id);
-    return this.prisma.laporanPerjalanan.upsert({
+    const laporan = await this.prisma.laporanPerjalanan.upsert({
       where: { spdId: id },
       create: {
         spdId: id,
@@ -131,6 +215,60 @@ export class SpdService {
         suratTugas: true,
       },
     });
+
+    // Automatically update SPD status to SELESAI upon report creation
+    await this.prisma.spd.update({
+      where: { id },
+      data: { status: 'SELESAI' },
+    });
+
+    // If linked to a Surat Tugas, check if all associated SPDs are SELESAI or have reports
+    if (spd.suratTugasId) {
+      const remainingSpds = await this.prisma.spd.findMany({
+        where: {
+          suratTugasId: spd.suratTugasId,
+          NOT: { id },
+        },
+        select: { id: true, status: true, laporan: { select: { id: true } } },
+      });
+      const allFinished = remainingSpds.every((s) => s.status === 'SELESAI' || !!s.laporan);
+      if (allFinished) {
+        await this.prisma.suratTugas.update({
+          where: { id: spd.suratTugasId },
+          data: { status: 'SELESAI' },
+        });
+      }
+    }
+
+    return laporan;
+  }
+
+  async deleteLaporan(spdId: string) {
+    const existing = await this.prisma.laporanPerjalanan.findUnique({
+      where: { spdId },
+    });
+    if (!existing) {
+      throw new NotFoundException(`Laporan perjalanan dinas untuk SPD '${spdId}' tidak ditemukan.`);
+    }
+    const result = await this.prisma.laporanPerjalanan.delete({
+      where: { spdId },
+    });
+
+    // Revert SPD status back to DISETUJUI
+    await this.prisma.spd.update({
+      where: { id: spdId },
+      data: { status: 'DISETUJUI' },
+    });
+
+    // If linked to a Surat Tugas, revert Surat Tugas status back to DISETUJUI
+    if (existing.suratTugasId) {
+      await this.prisma.suratTugas.update({
+        where: { id: existing.suratTugasId },
+        data: { status: 'DISETUJUI' },
+      });
+    }
+
+    return result;
   }
 
   async create(dto: CreateSpdDto) {
@@ -141,13 +279,14 @@ export class SpdService {
       throw new NotFoundException(`Pegawai dengan ID '${dto.pegawaiId}' tidak ditemukan`);
     }
 
-    // Auto-generate nomor SPD if not supplied or handle dynamic format [Prefix][Number]/SPD/[Year]
+    // Auto-generate nomor SPD if not supplied or handle dynamic format [Prefix/][Number]/SPD/[Year]
     let nomorSpd = dto.nomorSpd;
     if (nomorSpd) {
       if (nomorSpd.includes('/SPD/')) {
         // If nomor sequence before /SPD/ is empty or spaces, format as 4 spaces
         nomorSpd = nomorSpd
-          .replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/')
+          .replace(/^([A-Za-z0-9_-]+)\/\s*\/SPD\//i, '$1/    /SPD/')
+          .replace(/^([A-Za-z0-9_-]*)\s*\/SPD\//i, '$1    /SPD/')
           .replace(/\s+$/, '');
       } else {
         nomorSpd = nomorSpd.trim();
@@ -166,14 +305,15 @@ export class SpdService {
         },
       });
       const seq = String(count + 1).padStart(3, '0');
-      // Format standard: [Number]/SPD/[Year] or KPA[Number]/SPD/[Year]
+      // Format standard: [Number]/SPD/[Year] or [Prefix]/[Number]/SPD/[Year]
       const prefix = isKpa ? 'KPA' : '';
-      nomorSpd = `${prefix}${seq}/SPD/${year}`;
+      const prefixPart = prefix ? `${prefix}/` : '';
+      nomorSpd = `${prefixPart}${seq}/SPD/${year}`;
 
       // Check collision
       const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
       if (existing) {
-        nomorSpd = `${prefix}${String(count + 2).padStart(3, '0')}/SPD/${year}`;
+        nomorSpd = `${prefixPart}${String(count + 2).padStart(3, '0')}/SPD/${year}`;
       }
     } else {
       // Manual / custom nomorSpd: respect user prefix (do not force KPA if user left prefix empty)
@@ -287,7 +427,10 @@ export class SpdService {
     const data: any = {
       ...(dto.nomorSpd && {
         nomorSpd: dto.nomorSpd.includes('/SPD/')
-          ? dto.nomorSpd.replace(/^([A-Za-z]*)\s*\/SPD\//i, '$1    /SPD/').replace(/\s+$/, '')
+          ? dto.nomorSpd
+              .replace(/^([A-Za-z0-9_-]+)\/\s*\/SPD\//i, '$1/    /SPD/')
+              .replace(/^([A-Za-z0-9_-]*)\s*\/SPD\//i, '$1    /SPD/')
+              .replace(/\s+$/, '')
           : dto.nomorSpd.trim(),
       }),
       ...(dto.pemberiPerintah && { pemberiPerintah: dto.pemberiPerintah.trim() }),

@@ -157,7 +157,7 @@ describe('SuratTugasService', () => {
       lamaHari: 3,
     });
     expect(result.count).toBe(2);
-    expect(create.mock.calls[0][0].data.nomorSpd).toBe('KPA001/SPD/2026');
+    expect(create.mock.calls[0][0].data.nomorSpd).toBe('KPA/001/SPD/2026');
     expect(create.mock.calls[0][0].data.alatAngkut).toBe('Mobil, Pesawat');
   });
 
@@ -197,7 +197,7 @@ describe('SuratTugasService', () => {
       tahunSpd: 2027,
     });
     expect(result.count).toBe(1);
-    expect(update.mock.calls[0][0].data.nomorSpd).toBe('KPA007/SPD/2027');
+    expect(update.mock.calls[0][0].data.nomorSpd).toBe('KPA/007/SPD/2027');
   });
 
   it('rejects generateSpd if Surat Tugas is not DISETUJUI', async () => {
@@ -216,5 +216,28 @@ describe('SuratTugasService', () => {
     await expect(service.generateSpd('st-draft')).rejects.toThrow(
       'Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).',
     );
+  });
+
+  it('checks number availability correctly', async () => {
+    const prisma = {
+      suratTugas: {
+        findFirst: vi.fn()
+          .mockResolvedValueOnce({ id: 'st1', nomorSurat: '000.1.2.3/001/Bag.Umum/2026' })
+          .mockResolvedValueOnce(null),
+      },
+    } as unknown as PrismaService;
+    const service = new SuratTugasService(prisma);
+
+    const taken = await service.checkNumberAvailability('000.1.2.3/001/Bag.Umum/2026');
+    expect(taken.available).toBe(false);
+    expect(taken.message).toContain('sudah digunakan');
+
+    const available = await service.checkNumberAvailability('000.1.2.3/999/Bag.Umum/2026');
+    expect(available.available).toBe(true);
+    expect(available.message).toBe('Nomor surat tersedia');
+
+    const placeholder = await service.checkNumberAvailability('000.1.2.3/[Otomatis]/Bag.Umum/2026');
+    expect(placeholder.available).toBe(true);
+    expect(placeholder.isPlaceholder).toBe(true);
   });
 });

@@ -157,6 +157,43 @@ export class SuratTugasService {
     };
   }
 
+  async checkNumberAvailability(nomor: string, excludeId?: string) {
+    if (!nomor || !nomor.trim()) {
+      return { available: true, isPlaceholder: true, message: 'Nomor belum diisi' };
+    }
+    const cleanNomor = nomor.trim();
+    if (
+      cleanNomor.includes('[') ||
+      cleanNomor.includes(']') ||
+      cleanNomor.includes('//') ||
+      cleanNomor.includes('  ')
+    ) {
+      return { available: true, isPlaceholder: true, message: 'Nomor otomatis / belum lengkap' };
+    }
+
+    const existing = await this.prisma.suratTugas.findFirst({
+      where: {
+        nomorSurat: cleanNomor,
+        ...(excludeId ? { NOT: { id: excludeId } } : {}),
+      },
+      select: { id: true, nomorSurat: true },
+    });
+
+    if (existing) {
+      return {
+        available: false,
+        nomor: cleanNomor,
+        message: `Nomor Surat '${cleanNomor}' sudah digunakan`,
+      };
+    }
+
+    return {
+      available: true,
+      nomor: cleanNomor,
+      message: 'Nomor surat tersedia',
+    };
+  }
+
   async create(dto: CreateSuratTugasDto) {
     const year = new Date().getFullYear();
 
@@ -499,19 +536,21 @@ export class SuratTugasService {
     const customPrefix = dto?.customPrefix !== undefined ? dto.customPrefix.trim() : '';
     const defaultPrefix = isKpa ? 'KPA' : '';
     const prefix = isCustom ? customPrefix : defaultPrefix;
+    const cleanPrefix = prefix ? prefix.trim().replace(/\/+$/, '') : '';
+    const prefixPart = cleanPrefix ? `${cleanPrefix}/` : '';
 
     const getCustomNomorSpd = (index: number) => {
       const rawSeq = dto?.customSeq ? dto.customSeq.trim() : '';
       if (!rawSeq) {
-        return index === 0 ? `${prefix}    /SPD/${targetYear}` : `${prefix}${index + 1}/SPD/${targetYear}`;
+        return index === 0 ? `${prefixPart}    /SPD/${targetYear}` : `${prefixPart}${index + 1}/SPD/${targetYear}`;
       }
       const parsed = parseInt(rawSeq, 10);
       if (!isNaN(parsed)) {
         const nextNum = parsed + index;
         const padded = String(nextNum).padStart(rawSeq.length, '0');
-        return `${prefix}${padded}/SPD/${targetYear}`;
+        return `${prefixPart}${padded}/SPD/${targetYear}`;
       }
-      return index === 0 ? `${prefix}${rawSeq}/SPD/${targetYear}` : `${prefix}${rawSeq}-${index + 1}/SPD/${targetYear}`;
+      return index === 0 ? `${prefixPart}${rawSeq}/SPD/${targetYear}` : `${prefixPart}${rawSeq}-${index + 1}/SPD/${targetYear}`;
     };
 
     // Jika seluruh personil sudah memiliki dokumen SPD
@@ -584,10 +623,10 @@ export class SuratTugasService {
           },
         });
         const spdSeq = String(spdCount + 1).padStart(3, '0');
-        nomorSpd = `${prefix}${spdSeq}/SPD/${targetYear}`;
+        nomorSpd = `${prefixPart}${spdSeq}/SPD/${targetYear}`;
         const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
         if (existing) {
-          nomorSpd = `${prefix}${String(spdCount + 2).padStart(3, '0')}/SPD/${targetYear}`;
+          nomorSpd = `${prefixPart}${String(spdCount + 2).padStart(3, '0')}/SPD/${targetYear}`;
         }
       }
 

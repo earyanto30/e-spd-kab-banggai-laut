@@ -13,3 +13,4 @@ export { default as GovInputNumber } from './GovInputNumber.vue';
 export { default as GovDatePicker } from './GovDatePicker.vue';
 export { default as GovSelect } from './GovSelect.vue';
 export { default as GovToast } from './GovToast.vue';
+export { default as NumberAvailabilityBadge } from './NumberAvailabilityBadge.vue';
