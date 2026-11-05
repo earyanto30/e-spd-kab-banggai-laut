@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SpdService } from './spd.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 const pegawai = { id: 'p1', nama: 'Budi', nip: '123', pangkat: 'III/c', golongan: 'III/c', jabatan: 'Staf' };
 
 describe('SpdService', () => {
   it('generates a numbered SPD and calculates return date', async () => {
-    const created = vi.fn(async (args) => args.data);
+    const created = vi.fn((args) => args.data);
     const prisma = {
       pegawai: { findUnique: vi.fn().mockResolvedValue(pegawai) },
       spd: {
@@ -13,7 +14,7 @@ describe('SpdService', () => {
         findUnique: vi.fn().mockResolvedValue(null),
         create: created,
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const result = await new SpdService(prisma).create({
       pemberiPerintah: 'Sekda',
@@ -37,9 +38,9 @@ describe('SpdService', () => {
       spd: {
         count: vi.fn().mockResolvedValue(4),
         findUnique: vi.fn().mockResolvedValueOnce({ id: 'existing' }).mockResolvedValueOnce(null),
-        create: vi.fn(async (args) => args.data),
+        create: vi.fn((args) => args.data),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const result = await new SpdService(prisma).create({
       pemberiPerintah: 'Kuasa Pengguna Anggaran',
@@ -55,7 +56,7 @@ describe('SpdService', () => {
 
   it('builds status, date, and search filters', async () => {
     const findMany = vi.fn().mockResolvedValue([]);
-    const prisma = { spd: { findMany } } as any;
+    const prisma = { spd: { findMany } } as unknown as PrismaService;
     await new SpdService(prisma).findAll('Budi', 'DRAFT', '2026-01-01', '2026-01-31');
     expect(findMany).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
@@ -67,10 +68,12 @@ describe('SpdService', () => {
   });
 
   it('rejects missing employees and duplicate manual numbers', async () => {
+    const findUniquePegawai = vi.fn().mockResolvedValue(null);
+    const findUniqueSpd = vi.fn();
     const prisma = {
-      pegawai: { findUnique: vi.fn().mockResolvedValue(null) },
-      spd: { findUnique: vi.fn() },
-    } as any;
+      pegawai: { findUnique: findUniquePegawai },
+      spd: { findUnique: findUniqueSpd },
+    } as unknown as PrismaService;
     await expect(new SpdService(prisma).create({
       nomorSpd: '001/SPD/2026',
       pemberiPerintah: 'Sekda',
@@ -81,8 +84,8 @@ describe('SpdService', () => {
       tempatTujuan: 'Luwuk',
     })).rejects.toThrow(/Pegawai/);
 
-    prisma.pegawai.findUnique.mockResolvedValue(pegawai);
-    prisma.spd.findUnique.mockResolvedValue({ id: 'duplicate' });
+    findUniquePegawai.mockResolvedValue(pegawai);
+    findUniqueSpd.mockResolvedValue({ id: 'duplicate' });
     await expect(new SpdService(prisma).create({
       nomorSpd: '001/SPD/2026',
       pemberiPerintah: 'Sekda',
@@ -96,27 +99,38 @@ describe('SpdService', () => {
 
   it('resolves signatories and linked Surat Tugas data when creating', async () => {
     const signer = { ...pegawai, id: 'signer', nama: 'Signer', nip: '999', golongan: '' };
-    const create = vi.fn(async ({ data }: any) => data);
+    const create = vi.fn(({ data }: { data: { penandatanganNama?: string; [k: string]: unknown } }) => data);
     const prisma = {
       pegawai: {
-        findUnique: vi.fn().mockImplementation(({ where }: any) =>
+        findUnique: vi.fn().mockImplementation(({ where }: { where: { id: string } }) =>
           Promise.resolve(where.id === 'signer' ? signer : pegawai)
         ),
       },
       suratTugas: {
-        findUnique: vi.fn().mockResolvedValue({
-          penandatanganId: 'st-signer',
-          penandatanganNama: 'ST Signer',
-          penandatanganJabatan: 'Kepala',
-          penandatanganPangkat: 'IV/a',
-          penandatanganNip: '888',
+        findUnique: vi.fn().mockImplementation(({ where }: { where: { id: string } }) => {
+          if (where.id === 'st-draft') {
+            return Promise.resolve({
+              id: 'st-draft',
+              status: 'DRAFT',
+              penandatanganNama: 'Draft Signer',
+            });
+          }
+          return Promise.resolve({
+            id: 'st1',
+            status: 'DISETUJUI',
+            penandatanganId: 'st-signer',
+            penandatanganNama: 'ST Signer',
+            penandatanganJabatan: 'Kepala',
+            penandatanganPangkat: 'IV/a',
+            penandatanganNip: '888',
+          });
         }),
       },
       spd: {
         findUnique: vi.fn().mockResolvedValue(null),
         create,
       },
-    } as any;
+    } as unknown as PrismaService;
 
     await new SpdService(prisma).create({
       nomorSpd: ' /SPD/2026',
@@ -141,6 +155,19 @@ describe('SpdService', () => {
       tempatTujuan: 'Luwuk',
     });
     expect(create.mock.calls[1][0].data.penandatanganNama).toBe('ST Signer');
+
+    await expect(
+      new SpdService(prisma).create({
+        nomorSpd: '003/SPD/2026',
+        pemberiPerintah: 'Sekda',
+        pegawaiId: 'p1',
+        suratTugasId: 'st-draft',
+        dalamRangka: 'Dinas',
+        alatAngkut: 'Mobil',
+        tempatBerangkat: 'Banggai',
+        tempatTujuan: 'Luwuk',
+      }),
+    ).rejects.toThrow('Surat Perjalanan Dinas (SPD) hanya dapat dibuat untuk Surat Tugas yang telah disetujui (status DISETUJUI).');
   });
 
   it('finds, updates, deletes, and bulk deletes SPD records', async () => {
@@ -162,7 +189,7 @@ describe('SpdService', () => {
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
       suratTugas: { update: vi.fn() },
-    } as any;
+    } as unknown as PrismaService;
     const service = new SpdService(prisma);
 
     expect(await service.findById('spd1')).toBe(existing);
@@ -184,17 +211,19 @@ describe('SpdService', () => {
   });
 
   it('rejects missing records and duplicate update numbers', async () => {
+    const findUnique = vi.fn().mockResolvedValue(null);
+    const findFirst = vi.fn();
     const prisma = {
       spd: {
-        findUnique: vi.fn().mockResolvedValue(null),
-        findFirst: vi.fn(),
+        findUnique,
+        findFirst,
       },
-    } as any;
+    } as unknown as PrismaService;
     const service = new SpdService(prisma);
     await expect(service.findById('missing')).rejects.toThrow(/tidak ditemukan/);
 
-    prisma.spd.findUnique.mockResolvedValue({ id: 'spd1', nomorSpd: '001/SPD/2026', pegawaiId: 'p1' });
-    prisma.spd.findFirst.mockResolvedValue({ id: 'other' });
+    findUnique.mockResolvedValue({ id: 'spd1', nomorSpd: '001/SPD/2026', pegawaiId: 'p1' });
+    findFirst.mockResolvedValue({ id: 'other' });
     await expect(service.update('spd1', { nomorSpd: '002/SPD/2026' })).rejects.toThrow(/sudah digunakan/);
   });
 });

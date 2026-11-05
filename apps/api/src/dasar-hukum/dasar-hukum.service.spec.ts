@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DasarHukumService } from './dasar-hukum.service';
 import { NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('DasarHukumService', () => {
   const mockDasarHukum = {
@@ -14,7 +15,7 @@ describe('DasarHukumService', () => {
 
   it('filters legal bases by search query and sorts by urutan', async () => {
     const findMany = vi.fn().mockResolvedValue([mockDasarHukum]);
-    const prisma = { dasarHukum: { findMany } } as any;
+    const prisma = { dasarHukum: { findMany } } as unknown as PrismaService;
 
     const service = new DasarHukumService(prisma);
     const result = await service.findAll('Standar Biaya');
@@ -37,10 +38,10 @@ describe('DasarHukumService', () => {
     const prisma = {
       dasarHukum: {
         findUnique: vi.fn().mockResolvedValue(mockDasarHukum),
-        create: vi.fn(async ({ data }) => ({ ...mockDasarHukum, ...data })),
-        update: vi.fn(async ({ data }) => ({ ...mockDasarHukum, ...data })),
+        create: vi.fn(({ data }) => ({ ...mockDasarHukum, ...data })),
+        update: vi.fn(({ data }) => ({ ...mockDasarHukum, ...data })),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new DasarHukumService(prisma);
     const created = await service.create({
@@ -61,7 +62,7 @@ describe('DasarHukumService', () => {
       dasarHukum: {
         findUnique: vi.fn().mockResolvedValue(null),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new DasarHukumService(prisma);
     await expect(service.findById('unknown')).rejects.toThrow(NotFoundException);

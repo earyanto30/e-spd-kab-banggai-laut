@@ -27,4 +27,6 @@ enabled = true
 
   [analyzers.meta]
   environment = ["nodejs", "browser"]
+  plugins = ["vue"]
+  dialect = "typescript"
   js_version = "es2022"

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { KopSuratService } from './kop-surat.service';
 import { NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('KopSuratService', () => {
   const mockKop = {
@@ -17,12 +18,13 @@ describe('KopSuratService', () => {
   };
 
   it('retrieves all kop surat records and finds by id', async () => {
+    const findUnique = vi.fn().mockResolvedValue(mockKop);
     const prisma = {
       kopSurat: {
         findMany: vi.fn().mockResolvedValue([mockKop]),
-        findUnique: vi.fn().mockResolvedValue(mockKop),
+        findUnique,
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new KopSuratService(prisma);
     const all = await service.findAll();
@@ -32,7 +34,7 @@ describe('KopSuratService', () => {
     expect(single.nama).toBe('Kop Sekda');
 
     // Missing ID
-    prisma.kopSurat.findUnique.mockResolvedValueOnce(null);
+    findUnique.mockResolvedValueOnce(null);
     await expect(service.findById('non-existent')).rejects.toThrow(NotFoundException);
   });
 
@@ -43,7 +45,7 @@ describe('KopSuratService', () => {
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
         update: vi.fn().mockResolvedValue({ ...mockKop, isDefault: true }),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new KopSuratService(prisma);
     const updated = await service.setDefault('kop-1');
@@ -59,7 +61,7 @@ describe('KopSuratService', () => {
       kopSurat: {
         count: vi.fn().mockResolvedValue(1),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new KopSuratService(prisma);
     await expect(service.delete('kop-1')).rejects.toThrow(BadRequestException);

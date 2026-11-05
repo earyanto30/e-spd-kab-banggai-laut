@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { JabatanService } from './jabatan.service';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, ConflictException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('JabatanService', () => {
   const mockJabatan = {
@@ -16,7 +17,7 @@ describe('JabatanService', () => {
 
   it('retrieves all jabatan sorted by urutan and nama', async () => {
     const findMany = vi.fn().mockResolvedValue([mockJabatan]);
-    const prisma = { jabatan: { findMany } } as any;
+    const prisma = { jabatan: { findMany } } as unknown as PrismaService;
 
     const service = new JabatanService(prisma);
     const result = await service.findAll('Sekda');
@@ -35,9 +36,9 @@ describe('JabatanService', () => {
         findUnique: vi.fn()
           .mockResolvedValueOnce(null)
           .mockResolvedValueOnce(mockJabatan),
-        create: vi.fn(async ({ data }) => ({ ...mockJabatan, ...data })),
+        create: vi.fn(({ data }) => ({ ...mockJabatan, ...data })),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new JabatanService(prisma);
     const created = await service.create({
@@ -63,7 +64,7 @@ describe('JabatanService', () => {
       pegawai: {
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new JabatanService(prisma);
     const updated = await service.update('j1', { nama: 'Sekretaris Baru' });
@@ -84,7 +85,7 @@ describe('JabatanService', () => {
       pegawai: {
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new JabatanService(prisma);
     const result = await service.remove('j1');
@@ -102,7 +103,7 @@ describe('JabatanService', () => {
       jabatan: {
         findUnique: vi.fn().mockResolvedValue(null),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new JabatanService(prisma);
     await expect(service.findById('unknown')).rejects.toThrow(NotFoundException);

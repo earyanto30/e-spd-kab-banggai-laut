@@ -1,18 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { mount } from '@vue/test-utils';
-import GovButton from './GovButton.vue';
-import GovInputText from './GovInputText.vue';
-import GovMessage from './GovMessage.vue';
-import GovTextarea from './GovTextarea.vue';
-import GovCard from './GovCard.vue';
-import GovCheckbox from './GovCheckbox.vue';
-import GovInputNumber from './GovInputNumber.vue';
-import GovSelect from './GovSelect.vue';
-import GovPassword from './GovPassword.vue';
-import GovDatePicker from './GovDatePicker.vue';
-import GovMultiSelect from './GovMultiSelect.vue';
-import GovSelectButton from './GovSelectButton.vue';
-import GovTable from './GovTable.vue';
+import {
+  GovButton,
+  GovInputText,
+  GovMessage,
+  GovTextarea,
+  GovCard,
+  GovCheckbox,
+  GovInputNumber,
+  GovSelect,
+  GovPassword,
+  GovDatePicker,
+  GovMultiSelect,
+  GovSelectButton,
+  GovTable,
+} from './index';
 
 const stubs = {
   Button: { template: '<button :disabled="loading || disabled"><slot /></button>', props: ['loading', 'disabled'] },

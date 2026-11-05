@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { PegawaiService } from './pegawai.service';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { ConflictException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('PegawaiService', () => {
   const mockPegawai = {
@@ -20,7 +21,7 @@ describe('PegawaiService', () => {
 
   it('filters employees by keyword, isASN, and isPenandatangan', async () => {
     const findMany = vi.fn().mockResolvedValue([mockPegawai]);
-    const prisma = { pegawai: { findMany } } as any;
+    const prisma = { pegawai: { findMany } } as unknown as PrismaService;
 
     const service = new PegawaiService(prisma);
     const result = await service.findAll('Ahmad', 'true', 'true');
@@ -44,12 +45,12 @@ describe('PegawaiService', () => {
     const prisma = {
       pegawai: {
         findUnique: vi.fn().mockResolvedValueOnce(null),
-        create: vi.fn(async ({ data }) => ({ ...mockPegawai, ...data })),
+        create: vi.fn(({ data }) => ({ ...mockPegawai, ...data })),
       },
       jabatan: {
         findUnique: vi.fn().mockResolvedValueOnce({ id: 'j1', nama: 'Kepala Bagian Umum' }),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new PegawaiService(prisma);
     const created = await service.create({
@@ -75,7 +76,7 @@ describe('PegawaiService', () => {
       pegawai: {
         findUnique: vi.fn().mockResolvedValueOnce(mockPegawai),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new PegawaiService(prisma);
     await expect(
@@ -98,7 +99,7 @@ describe('PegawaiService', () => {
         update: vi.fn().mockResolvedValue({ ...mockPegawai, nama: 'Ahmad Updated' }),
         delete: vi.fn().mockResolvedValue(mockPegawai),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new PegawaiService(prisma);
     const updated = await service.update('p1', { nama: 'Ahmad Updated', nip: '198501012010011002' });

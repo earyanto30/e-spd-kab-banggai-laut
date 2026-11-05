@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { hashPassword } from './crypto.util';
 import { UnauthorizedException } from '@nestjs/common';
 import { Role } from '@si-setda/shared-types';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('AuthService', () => {
   const password = 'secretpassword';
@@ -33,7 +34,7 @@ describe('AuthService', () => {
       user: {
         findFirst: vi.fn().mockResolvedValue(mockUser),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const authService = new AuthService(prisma);
     const result = await authService.login({
@@ -53,7 +54,7 @@ describe('AuthService', () => {
       user: {
         findFirst: vi.fn().mockResolvedValue(mockUser),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const authService = new AuthService(prisma);
     const result = await authService.login({
@@ -75,11 +76,12 @@ describe('AuthService', () => {
   });
 
   it('throws UnauthorizedException on invalid password or user not found', async () => {
+    const findFirst = vi.fn().mockResolvedValue(null);
     const prisma = {
       user: {
-        findFirst: vi.fn().mockResolvedValue(null),
+        findFirst,
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const authService = new AuthService(prisma);
     await expect(
@@ -87,7 +89,7 @@ describe('AuthService', () => {
     ).rejects.toThrow(UnauthorizedException);
 
     // With user found but wrong password
-    prisma.user.findFirst.mockResolvedValueOnce(mockUser);
+    findFirst.mockResolvedValueOnce(mockUser);
     await expect(
       authService.login({ username: 'admin', password: 'wrongpassword' }),
     ).rejects.toThrow('Username / NIP atau kata sandi salah');
@@ -99,7 +101,7 @@ describe('AuthService', () => {
       user: {
         findFirst: vi.fn().mockResolvedValue(inactiveUser),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const authService = new AuthService(prisma);
     await expect(

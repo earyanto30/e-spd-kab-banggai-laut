@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DashboardService } from './dashboard.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('DashboardService', () => {
   it('computes KPIs, monthly trends, and destination categories', async () => {
-    const spdCount = vi.fn().mockImplementation(async ({ where } = {}) => {
+    const spdCount = vi.fn().mockImplementation(({ where } = {}) => {
       if (where?.status === 'DISETUJUI') return 8;
       return 15;
     });
@@ -11,7 +12,7 @@ describe('DashboardService', () => {
     const stCount = vi.fn().mockResolvedValue(10);
     const pegawaiCount = vi.fn().mockResolvedValue(25);
 
-    const spdFindMany = vi.fn().mockImplementation(async (args) => {
+    const spdFindMany = vi.fn().mockImplementation((args) => {
       if (args?.take === 5) {
         return [
           {
@@ -44,7 +45,7 @@ describe('DashboardService', () => {
       pegawai: {
         count: pegawaiCount,
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new DashboardService(prisma);
     const stats = await service.getStats();

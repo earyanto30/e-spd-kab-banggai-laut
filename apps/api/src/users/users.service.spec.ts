@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from 'vitest';
 import { UsersService } from './users.service';
 import { Role } from '@si-setda/shared-types';
 import {
-  NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('UsersService', () => {
   const mockUser = {
@@ -23,7 +23,7 @@ describe('UsersService', () => {
 
   it('filters users by query, role, and active status', async () => {
     const findMany = vi.fn().mockResolvedValue([mockUser]);
-    const prisma = { user: { findMany } } as any;
+    const prisma = { user: { findMany } } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
     const result = await service.findAll('admin', Role.SUPER_ADMIN, 'true');
@@ -44,9 +44,9 @@ describe('UsersService', () => {
     const prisma = {
       user: {
         findUnique: vi.fn().mockResolvedValueOnce(null),
-        create: vi.fn(async ({ data }) => ({ ...mockUser, ...data, id: 'u2' })),
+        create: vi.fn(({ data }) => ({ ...mockUser, ...data, id: 'u2' })),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
     const created = await service.create({
@@ -73,7 +73,7 @@ describe('UsersService', () => {
       user: {
         findUnique: vi.fn().mockResolvedValueOnce(mockUser),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
     await expect(
@@ -93,7 +93,7 @@ describe('UsersService', () => {
         findUnique: vi.fn().mockResolvedValue(mockUser),
         count: vi.fn().mockResolvedValue(0), // no other active super admins
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
 
@@ -117,7 +117,7 @@ describe('UsersService', () => {
         findUnique: vi.fn().mockResolvedValue(mockUser), // username is 'admin'
         count: vi.fn().mockResolvedValue(2),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
     await expect(service.delete('u1')).rejects.toThrow('Akun Super Admin Utama');
@@ -127,12 +127,12 @@ describe('UsersService', () => {
     const prisma = {
       user: {
         findUnique: vi.fn().mockResolvedValue(mockUser),
-        update: vi.fn(async ({ data }) => ({ ...mockUser, ...data })),
+        update: vi.fn(({ data }) => ({ ...mockUser, ...data })),
       },
       pegawai: {
         findMany: vi.fn().mockResolvedValue([{ id: 'p1', nama: 'Pegawai Tanpa User' }]),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const service = new UsersService(prisma);
     const updated = await service.update('u1', { password: 'newpassword123' });

@@ -5,6 +5,8 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { KopSuratService } from '../kop-surat/kop-surat.service';
 
 describe('SuratTugasPdfService', () => {
   let tempPdfPath: string;
@@ -59,7 +61,7 @@ describe('SuratTugasPdfService', () => {
 
   const prismaMock = {
     suratTugas: {
-      findUnique: ({ where }: any) => {
+      findUnique: ({ where }: { where: { id: string } }) => {
         if (where.id === 'st-1') return sampleSuratTugas;
         return null;
       },
@@ -71,11 +73,11 @@ describe('SuratTugasPdfService', () => {
     pegawai: {
       findMany: () => [],
     },
-  } as any;
+  } as unknown as PrismaService;
 
   const kopSuratMock = {
     getFilePath: () => tempPdfPath,
-  } as any;
+  } as unknown as KopSuratService;
 
   it('generates Surat Tugas PDF buffer and valid filename', async () => {
     const service = new SuratTugasPdfService(prismaMock, kopSuratMock);

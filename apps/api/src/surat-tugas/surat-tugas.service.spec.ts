@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { SuratTugasService } from './surat-tugas.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('SuratTugasService', () => {
   it('creates a numbered assignment with serialized executors', async () => {
@@ -18,7 +19,7 @@ describe('SuratTugasService', () => {
         findMany: vi.fn().mockResolvedValue([{ id: 'p1', nama: 'Budi' }]),
         findFirst: vi.fn().mockResolvedValue(null),
       },
-    } as any;
+    } as unknown as PrismaService;
 
     const result = await new SuratTugasService(prisma).create({
       dalamRangka: 'Dinas',
@@ -43,7 +44,7 @@ describe('SuratTugasService', () => {
           .mockResolvedValueOnce([{ id: 'p1', nama: 'Budi' }]),
       },
       suratTugas: { findMany: vi.fn().mockResolvedValue([item]) },
-    } as any;
+    } as unknown as PrismaService;
     const result = await new SuratTugasService(prisma).findAll('Budi', 'DRAFT', '2026-01-01', '2026-01-31');
     expect(result[0].pegawaiList).toEqual([{ id: 'p1', nama: 'Budi' }]);
     expect(prisma.suratTugas.findMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -77,7 +78,7 @@ describe('SuratTugasService', () => {
         create: vi.fn(),
       },
       pegawai: { findUnique: vi.fn().mockResolvedValue({ id: 'p2' }) },
-    } as any;
+    } as unknown as PrismaService;
 
     const result = await new SuratTugasService(prisma).update('st1', {
       dalamRangka: '1. New\n2. Briefing',
@@ -92,9 +93,10 @@ describe('SuratTugasService', () => {
 
   it('updates status, handles missing records, and deletes assignments', async () => {
     const item = { id: 'st1', pegawaiIds: null, spdList: [{ pegawai: { id: 'p1' } }] };
+    const findUnique = vi.fn().mockResolvedValue(item);
     const prisma = {
       suratTugas: {
-        findUnique: vi.fn().mockResolvedValue(item),
+        findUnique,
         update: vi.fn().mockResolvedValue(item),
         delete: vi.fn().mockResolvedValue(item),
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
@@ -103,7 +105,7 @@ describe('SuratTugasService', () => {
         deleteMany: vi.fn(),
         count: vi.fn().mockResolvedValue(2),
       },
-    } as any;
+    } as unknown as PrismaService;
     const service = new SuratTugasService(prisma);
     expect(await service.findById('st1')).toMatchObject({ pegawaiList: [{ id: 'p1' }] });
     expect(await service.updateStatus('st1', ' SELESAI ')).toBe(item);
@@ -112,7 +114,7 @@ describe('SuratTugasService', () => {
     expect(await service.bulkDelete([])).toMatchObject({ count: 0 });
     expect(await service.bulkDelete(['st1'])).toMatchObject({ count: 2 });
 
-    prisma.suratTugas.findUnique.mockResolvedValue(null);
+    findUnique.mockResolvedValue(null);
     await expect(service.findById('missing')).rejects.toThrow(/tidak ditemukan/);
   });
 
@@ -120,6 +122,7 @@ describe('SuratTugasService', () => {
     const suratTugas = {
       id: 'st1',
       nomorSurat: '001',
+      status: 'DISETUJUI',
       pegawaiIds: JSON.stringify(['p1', 'p2']),
       tanggalSurat: new Date('2026-01-01'),
       tempatDikeluarkan: 'Banggai',
@@ -132,7 +135,7 @@ describe('SuratTugasService', () => {
       kopSuratId: null,
       spdList: [],
     };
-    const create = vi.fn(async ({ data }: any) => data);
+    const create = vi.fn(({ data }: { data: { nomorSpd?: string; alatAngkut?: string; [k: string]: unknown } }) => data);
     const prisma = {
       suratTugas: { findUnique: vi.fn().mockResolvedValue(suratTugas) },
       pegawai: {
@@ -146,7 +149,7 @@ describe('SuratTugasService', () => {
         findUnique: vi.fn().mockResolvedValue(null),
         create,
       },
-    } as any;
+    } as unknown as PrismaService;
     const result = await new SuratTugasService(prisma).generateSpd('st1', {
       pemberiPerintah: 'Kuasa Pengguna Anggaran',
       alatAngkut: ['Mobil', 'Pesawat'],
@@ -162,6 +165,7 @@ describe('SuratTugasService', () => {
     const suratTugas = {
       id: 'st1',
       nomorSurat: '001',
+      status: 'DISETUJUI',
       pegawaiIds: JSON.stringify(['p1']),
       tanggalSurat: new Date('2026-01-01'),
       tempatDikeluarkan: 'Banggai',
@@ -174,7 +178,7 @@ describe('SuratTugasService', () => {
       spdList: [],
     };
     const existing = [{ id: 'spd1', pegawaiId: 'p1', nomorSpd: '001/SPD/2026' }];
-    const update = vi.fn(async ({ data }: any) => ({ ...existing[0], ...data }));
+    const update = vi.fn(({ data }: { data: Record<string, unknown> }) => ({ ...existing[0], ...data }));
     const prisma = {
       suratTugas: { findUnique: vi.fn().mockResolvedValue(suratTugas) },
       pegawai: { findMany: vi.fn().mockResolvedValue([{ id: 'p1' }]) },
@@ -183,7 +187,7 @@ describe('SuratTugasService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
         update,
       },
-    } as any;
+    } as unknown as PrismaService;
     const service = new SuratTugasService(prisma);
     expect((await service.generateSpd('st1')).count).toBe(1);
     const result = await service.generateSpd('st1', {
@@ -194,5 +198,23 @@ describe('SuratTugasService', () => {
     });
     expect(result.count).toBe(1);
     expect(update.mock.calls[0][0].data.nomorSpd).toBe('KPA007/SPD/2027');
+  });
+
+  it('rejects generateSpd if Surat Tugas is not DISETUJUI', async () => {
+    const draftSuratTugas = {
+      id: 'st-draft',
+      nomorSurat: '002',
+      status: 'DRAFT',
+      pegawaiIds: JSON.stringify(['p1']),
+      tanggalSurat: new Date('2026-01-01'),
+      spdList: [],
+    };
+    const prisma = {
+      suratTugas: { findUnique: vi.fn().mockResolvedValue(draftSuratTugas) },
+    } as unknown as PrismaService;
+    const service = new SuratTugasService(prisma);
+    await expect(service.generateSpd('st-draft')).rejects.toThrow(
+      'Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).',
+    );
   });
 });

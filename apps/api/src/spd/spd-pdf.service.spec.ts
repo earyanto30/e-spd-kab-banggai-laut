@@ -5,13 +5,15 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import zlib from 'zlib';
+import { PrismaService } from '../prisma/prisma.service';
+import { KopSuratService } from '../kop-surat/kop-surat.service';
 
 async function extractAllTextFromPdfBuffer(buf: Buffer): Promise<string> {
   const doc = await PDFDocument.load(buf);
   let text = '';
   for (const [, obj] of doc.context.enumerateIndirectObjects()) {
-    if ((obj as any).contents) {
-      const raw = (obj as any).contents;
+    const raw = (obj as unknown as { contents?: Uint8Array }).contents;
+    if (raw) {
       try {
         const decomp = zlib.inflateSync(Buffer.from(raw)).toString('latin1');
         text += '\n' + decomp;
@@ -32,7 +34,7 @@ async function extractAllTextFromPdfBuffer(buf: Buffer): Promise<string> {
 describe('SpdPdfService', () => {
   const prismaMock = {
     spd: {
-      findUnique: ({ where }: any) => {
+      findUnique: ({ where }: { where: { id: string } }) => {
         if (where.id === 'spd-pa-1') return samplePaSpd;
         if (where.id === 'spd-kpa-1') return sampleKpaSpd;
         return null;
@@ -46,7 +48,7 @@ describe('SpdPdfService', () => {
       findUnique: () => null,
       findFirst: () => null,
     },
-  } as any;
+  } as unknown as PrismaService;
 
   const samplePaSpd = {
     id: 'spd-pa-1',
@@ -120,7 +122,7 @@ describe('SpdPdfService', () => {
     findDefaultKop: () => null,
     getKopStream: () => null,
     getFilePath: () => tempPdfPath,
-  } as any;
+  } as unknown as KopSuratService;
 
   it('renders PENGGUNA ANGGARAN across all signature sections when PA is selected', async () => {
     const service = new SpdPdfService(prismaMock, kopSuratMock);
@@ -167,8 +169,9 @@ describe('SpdPdfService', () => {
     // Verify font is Helvetica (same as SPD)
     const baseFonts: string[] = [];
     for (const [, obj] of doc.context.enumerateIndirectObjects()) {
-      if ((obj as any).get && (obj as any).get(PDFName.of('BaseFont'))) {
-        baseFonts.push((obj as any).get(PDFName.of('BaseFont')).toString());
+      const fontObj = obj as unknown as { get?: (name: PDFName) => { toString: () => string } };
+      if (fontObj.get && fontObj.get(PDFName.of('BaseFont'))) {
+        baseFonts.push(fontObj.get(PDFName.of('BaseFont')).toString());
       }
     }
     expect(baseFonts.some((f) => f.includes('Helvetica'))).toBe(true);
