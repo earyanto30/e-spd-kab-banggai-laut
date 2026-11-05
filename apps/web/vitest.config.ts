@@ -13,5 +13,18 @@ export default defineConfig({
     environment: 'happy-dom',
     include: ['src/**/*.spec.ts'],
     globals: true,
+    coverage: {
+      provider: 'v8',
+      include: [
+        'src/utils/**/*.ts',
+        'src/composables/**/*.ts',
+        'src/router/**/*.ts',
+        'src/components/core/**/*.{ts,vue}',
+      ],
+      exclude: [
+        'src/**/*.spec.ts',
+        'src/components/core/index.ts',
+      ],
+    },
   },
 });
