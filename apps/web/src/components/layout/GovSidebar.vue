@@ -101,6 +101,35 @@ const allMenuItems = [
     ],
   },
   {
+    key: 'arsip',
+    label: 'Arsip Dokumen',
+    icon: 'pi pi-folder',
+    roles: [Role.USER, Role.STAFF, Role.ADMIN, Role.SUPER_ADMIN],
+    items: [
+      {
+        key: 'arsip-semua',
+        label: 'Semua Arsip',
+        icon: 'pi pi-box',
+        route: '/arsip',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
+      {
+        key: 'arsip-surat-tugas',
+        label: 'Arsip Surat Tugas',
+        icon: 'pi pi-file-edit',
+        route: '/arsip/surat-tugas',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
+      {
+        key: 'arsip-spd',
+        label: 'Arsip SPD',
+        icon: 'pi pi-briefcase',
+        route: '/arsip/spd',
+        roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+      },
+    ],
+  },
+  {
     key: 'kepegawaian',
     label: 'Kepegawaian',
     icon: 'pi pi-users',

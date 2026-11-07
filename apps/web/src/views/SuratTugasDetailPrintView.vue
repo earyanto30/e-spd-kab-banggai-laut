@@ -162,7 +162,54 @@ const handleDownloadPdf = async () => {
   }
 };
 
+const isDownloadingBundle = ref(false);
+const isArchiving = ref(false);
 
+const handleDownloadBundle = async () => {
+  isDownloadingBundle.value = true;
+  try {
+    const res = await apiFetch(`/api/arsip/bundle/surat-tugas/${suratTugasId}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanNum = (data.value?.nomorSurat || 'Surat_Tugas').replace(/[\/\\]/g, '_');
+      a.download = `BUNDEL_ARSIP_${cleanNum}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Bundel berkas arsip ${data.value?.nomorSurat || ''} berhasil diunduh lengkap`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh bundel arsip');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengunduh bundel arsip');
+  } finally {
+    isDownloadingBundle.value = false;
+  }
+};
+
+const handleQuickArchive = async () => {
+  isArchiving.value = true;
+  try {
+    const res = await apiFetch(`/api/arsip/surat-tugas/${suratTugasId}`, { method: 'POST' });
+    if (res.ok) {
+      const respData = await res.json();
+      toast.success(respData.message || 'Surat Tugas berhasil diarsipkan.');
+      await fetchData();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengarsipkan Surat Tugas.');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengarsipkan.');
+  } finally {
+    isArchiving.value = false;
+  }
+};
 
 const isGeneratingSpd = ref(false);
 const showSpdDialog = ref(false);
@@ -576,8 +623,8 @@ onMounted(() => {
                 {{ data?.nomorSurat || 'DRAFT' }}
               </span>
               <Tag
-                :value="data?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT'"
-                :severity="data?.status === 'DISETUJUI' ? 'success' : 'warn'"
+                :value="data?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : (data?.status === 'SELESAI' ? 'SELESAI' : (data?.status === 'ARSIP' ? 'ARSIP' : (data?.status === 'BATAL' ? 'BATAL' : 'DRAFT')))"
+                :severity="data?.status === 'DISETUJUI' ? 'info' : (data?.status === 'SELESAI' ? 'success' : (data?.status === 'ARSIP' ? 'secondary' : (data?.status === 'BATAL' ? 'danger' : 'warn')))"
                 class="text-[10px] font-bold"
               />
             </div>
@@ -599,6 +646,7 @@ onMounted(() => {
           />
 
           <GovButton
+            v-if="data?.status !== 'ARSIP'"
             label="Edit Surat"
             icon="pi pi-pencil"
             severity="secondary"
@@ -616,6 +664,27 @@ onMounted(() => {
             :loading="isDownloadingPdf"
             @click="handleDownloadPdf"
             title="Unduh berkas PDF resmi terpadu dengan kop surat"
+          />
+          <GovButton
+            label="Unduh Bundel Arsip"
+            icon="pi pi-file-export"
+            severity="help"
+            variant="outlined"
+            size="small"
+            :loading="isDownloadingBundle"
+            @click="handleDownloadBundle"
+            title="Unduh bundel berkas arsip lengkap (Cover + Surat Tugas + Semua SPD + Laporan)"
+          />
+          <GovButton
+            v-if="canManage && data?.status !== 'ARSIP' && data?.status !== 'BATAL'"
+            label="Arsipkan"
+            icon="pi pi-folder-plus"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            :loading="isArchiving"
+            @click="handleQuickArchive"
+            title="Arsipkan Surat Tugas dan seluruh SPD terkait"
           />
           <GovButton
             label="Cetak Dokumen"
@@ -643,6 +712,17 @@ onMounted(() => {
               @click="handleGenerateSpd"
             />
           </div>
+        </div>
+      </div>
+
+      <!-- Banner Dokumen Terkunci (ARSIP) -->
+      <div
+        v-if="data?.status === 'ARSIP'"
+        class="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-purple-900 dark:text-purple-200"
+      >
+        <div class="flex items-center gap-2">
+          <i class="pi pi-lock text-purple-600 dark:text-purple-400 text-sm"></i>
+          <span>Dokumen Surat Tugas ini telah <strong>diarsipkan resmi dan dikunci (Read-Only)</strong>. Untuk mengubah data, silakan pulihkan status terlebih dahulu di menu <strong>Arsip Dokumen</strong>.</span>
         </div>
       </div>
 
@@ -803,7 +883,7 @@ onMounted(() => {
                   </div>
                   <Tag
                     :value="spd.status || 'DRAFT'"
-                    :severity="spd.status === 'DISETUJUI' ? 'info' : (spd.status === 'SELESAI' ? 'success' : 'warn')"
+                    :severity="spd.status === 'DISETUJUI' ? 'info' : (spd.status === 'SELESAI' ? 'success' : (spd.status === 'ARSIP' ? 'secondary' : (spd.status === 'BATAL' ? 'danger' : 'warn')))"
                     class="text-[10px] py-0 px-2"
                   />
                 </div>

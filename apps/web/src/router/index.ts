@@ -165,6 +165,36 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: '/arsip',
+    name: 'ArsipDokumen',
+    component: () => import('../views/ArsipDokumenView.vue'),
+    meta: {
+      title: 'Arsip Dokumen',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
+    path: '/arsip/surat-tugas',
+    name: 'ArsipSuratTugas',
+    component: () => import('../views/ArsipDokumenView.vue'),
+    meta: {
+      title: 'Arsip Surat Tugas',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
+    path: '/arsip/spd',
+    name: 'ArsipSpd',
+    component: () => import('../views/ArsipDokumenView.vue'),
+    meta: {
+      title: 'Arsip Surat Perjalanan Dinas (SPD)',
+      requiresAuth: true,
+      roles: [Role.SUPER_ADMIN, Role.ADMIN, Role.STAFF, Role.USER],
+    },
+  },
+  {
     path: '/tanda-tangan/surat-tugas',
     redirect: '/surat-tugas',
   },

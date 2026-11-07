@@ -54,4 +54,18 @@ describe('Router & Navigation Guard', () => {
     expect(router.currentRoute.value.name).toBe('LaporanDetailPrint');
     expect(router.currentRoute.value.params.id).toBe('spd-123');
   });
+
+  it('allows authenticated users to access archive routes (/arsip, /arsip/surat-tugas, /arsip/spd)', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.USER);
+
+    await router.push('/arsip');
+    expect(router.currentRoute.value.name).toBe('ArsipDokumen');
+
+    await router.push('/arsip/surat-tugas');
+    expect(router.currentRoute.value.name).toBe('ArsipSuratTugas');
+
+    await router.push('/arsip/spd');
+    expect(router.currentRoute.value.name).toBe('ArsipSpd');
+  });
 });

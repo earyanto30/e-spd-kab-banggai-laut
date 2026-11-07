@@ -97,6 +97,7 @@ describe('SuratTugasService', () => {
     const prisma = {
       suratTugas: {
         findUnique,
+        findMany: vi.fn().mockResolvedValue([]),
         update: vi.fn().mockResolvedValue(item),
         delete: vi.fn().mockResolvedValue(item),
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
@@ -109,6 +110,7 @@ describe('SuratTugasService', () => {
     const service = new SuratTugasService(prisma);
     expect(await service.findById('st1')).toMatchObject({ pegawaiList: [{ id: 'p1' }] });
     expect(await service.updateStatus('st1', ' SELESAI ')).toBe(item);
+    expect(await service.updateStatus('st1', ' ARSIP ')).toBe(item);
     expect(await service.deleteAllSpd('st1')).toMatchObject({ count: 2 });
     expect(await service.delete('st1')).toBe(item);
     expect(await service.bulkDelete([])).toMatchObject({ count: 0 });
@@ -116,6 +118,29 @@ describe('SuratTugasService', () => {
 
     findUnique.mockResolvedValue(null);
     await expect(service.findById('missing')).rejects.toThrow(/tidak ditemukan/);
+  });
+
+  it('rejects update, delete, and deleteAllSpd when Surat Tugas is ARSIP (immutable/locked)', async () => {
+    const archivedSt = {
+      id: 'st-arsip',
+      nomorSurat: '090/01/ST/2026',
+      status: 'ARSIP',
+    };
+    const prisma = {
+      suratTugas: {
+        findUnique: vi.fn().mockResolvedValue(archivedSt),
+        findMany: vi.fn().mockResolvedValue([archivedSt]),
+      },
+      spd: {
+        count: vi.fn().mockResolvedValue(1),
+      },
+    } as unknown as PrismaService;
+    const service = new SuratTugasService(prisma);
+
+    await expect(service.update('st-arsip', { dalamRangka: 'Ubah' })).rejects.toThrow(/berstatus ARSIP dan terkunci/);
+    await expect(service.delete('st-arsip')).rejects.toThrow(/berstatus ARSIP dan terkunci/);
+    await expect(service.bulkDelete(['st-arsip'])).rejects.toThrow(/berstatus ARSIP dan terkunci/);
+    await expect(service.deleteAllSpd('st-arsip')).rejects.toThrow(/berstatus ARSIP dan terkunci/);
   });
 
   it('generates SPD documents for all assigned employees', async () => {

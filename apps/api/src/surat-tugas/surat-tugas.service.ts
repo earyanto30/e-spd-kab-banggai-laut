@@ -138,7 +138,7 @@ export class SuratTugasService {
       throw new NotFoundException(`Surat Tugas dengan ID '${id}' tidak ditemukan`);
     }
 
-    let pegawaiList = item.spdList.map((s) => s.pegawai).filter(Boolean);
+    let pegawaiList = (item.spdList || []).map((s) => s.pegawai).filter(Boolean);
     if (pegawaiList.length === 0 && item.pegawaiIds) {
       try {
         const ids: string[] = JSON.parse(item.pegawaiIds);
@@ -313,6 +313,11 @@ export class SuratTugasService {
 
   async update(id: string, dto: UpdateSuratTugasDto) {
     const existingSt = await this.findById(id);
+    if (existingSt.status === 'ARSIP') {
+      throw new BadRequestException(
+        `Dokumen Surat Tugas nomor '${existingSt.nomorSurat}' telah berstatus ARSIP dan terkunci. Harap pulihkan status dokumen terlebih dahulu sebelum melakukan perubahan.`
+      );
+    }
 
     const updateData: any = {};
     if (dto.nomorSurat) updateData.nomorSurat = dto.nomorSurat.trim();
@@ -674,6 +679,11 @@ export class SuratTugasService {
 
   async deleteAllSpd(id: string) {
     const suratTugas = await this.findById(id);
+    if (suratTugas.status === 'ARSIP') {
+      throw new BadRequestException(
+        `Surat Tugas nomor '${suratTugas.nomorSurat}' telah berstatus ARSIP dan terkunci.`
+      );
+    }
     const count = await this.prisma.spd.count({ where: { suratTugasId: id } });
     if (count > 0) {
       await this.prisma.spd.deleteMany({
@@ -688,7 +698,12 @@ export class SuratTugasService {
   }
 
   async delete(id: string) {
-    await this.findById(id);
+    const existingSt = await this.findById(id);
+    if (existingSt.status === 'ARSIP') {
+      throw new BadRequestException(
+        `Dokumen Surat Tugas nomor '${existingSt.nomorSurat}' telah berstatus ARSIP dan terkunci. Harap pulihkan status dokumen terlebih dahulu sebelum menghapus.`
+      );
+    }
     // Delete child SPD records created under this Surat Tugas first
     await this.prisma.spd.deleteMany({
       where: { suratTugasId: id },
@@ -701,6 +716,15 @@ export class SuratTugasService {
   async bulkDelete(ids: string[]) {
     if (!ids || ids.length === 0) {
       return { success: true, count: 0, message: 'Tidak ada surat tugas yang dipilih.' };
+    }
+    const archivedItems = await this.prisma.suratTugas.findMany({
+      where: { id: { in: ids }, status: 'ARSIP' },
+      select: { nomorSurat: true },
+    });
+    if (archivedItems.length > 0) {
+      throw new BadRequestException(
+        `Terdapat ${archivedItems.length} dokumen Surat Tugas yang telah berstatus ARSIP dan terkunci. Harap pulihkan statusnya terlebih dahulu sebelum menghapus.`
+      );
     }
     // Delete child SPD records created under these Surat Tugas first
     await this.prisma.spd.deleteMany({

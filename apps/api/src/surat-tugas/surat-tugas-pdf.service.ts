@@ -507,10 +507,19 @@ export class SuratTugasPdfService {
     }
 
     // Header Dikeluarkan di & Pada Tanggal
-    currentPage.drawText('Dikeluarkan di', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    currentPage.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
+    // Align header text with the widest title line below (e.g. KABUPATEN BANGGAI LAUT / SETDA KAB. BANGGAI LAUT)
+    const signCenterX = signX + signBlockWidth / 2;
+    const maxTitleW = titleLines.length > 0
+      ? Math.max(...titleLines.map((tLine) => fontBold.widthOfTextAtSize(tLine, fontSize)))
+      : signBlockWidth;
+    const headerX = signCenterX - maxTitleW / 2;
+    const signColonX = headerX + 78;
+    const signValX = headerX + 88;
+
+    currentPage.drawText('Dikeluarkan di', { x: headerX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signColonX, y: currentY, size: fontSize, font: fontRegular, color: black });
     currentPage.drawText(st.tempatDikeluarkan || 'Banggai', {
-      x: signX + 92,
+      x: signValX,
       y: currentY,
       size: fontSize,
       font: fontRegular,
@@ -518,22 +527,23 @@ export class SuratTugasPdfService {
     });
     currentY -= signLineSpacing;
 
-    currentPage.drawText('Pada Tanggal', { x: signX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    currentPage.drawText(':', { x: signX + 80, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText('Pada Tanggal', { x: headerX, y: currentY, size: fontSize, font: fontRegular, color: black });
+    currentPage.drawText(':', { x: signColonX, y: currentY, size: fontSize, font: fontRegular, color: black });
     const formattedDate = this.formatIndonesianDate(st.tanggalSurat);
     currentPage.drawText(formattedDate, {
-      x: signX + 92,
+      x: signValX,
       y: currentY,
       size: fontSize,
       font: fontRegular,
       color: black,
     });
 
-    // Underline below date
-    const dateLineWidth = 92 + fontRegular.widthOfTextAtSize(formattedDate, fontSize);
+    // Underline below date spanning across header and matching/exceeding title width
+    const dateLineWidth = (signValX - headerX) + fontRegular.widthOfTextAtSize(formattedDate, fontSize);
+    const underlineWidth = Math.max(dateLineWidth, maxTitleW);
     currentPage.drawLine({
-      start: { x: signX, y: currentY - 2 },
-      end: { x: signX + dateLineWidth, y: currentY - 2 },
+      start: { x: headerX, y: currentY - 2 },
+      end: { x: headerX + underlineWidth, y: currentY - 2 },
       thickness: 0.8,
       color: black,
     });
@@ -543,7 +553,7 @@ export class SuratTugasPdfService {
     // Jabatan Pejabat (Center-aligned in sign block)
     for (const tLine of titleLines) {
       const tW = fontBold.widthOfTextAtSize(tLine, fontSize);
-      const tX = signX + (signBlockWidth - tW) / 2;
+      const tX = signCenterX - tW / 2;
       currentPage.drawText(tLine, { x: tX, y: currentY, size: fontSize, font: fontBold, color: black });
       currentY -= lineHeight;
     }

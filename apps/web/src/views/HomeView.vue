@@ -340,6 +340,10 @@ const getStatusSeverity = (status: string) => {
       return 'success';
     case 'SELESAI':
       return 'info';
+    case 'ARSIP':
+      return 'secondary';
+    case 'BATAL':
+      return 'danger';
     case 'DRAFT':
       return 'warn';
     default:

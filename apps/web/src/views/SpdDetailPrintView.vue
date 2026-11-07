@@ -93,6 +93,9 @@ const spd = ref<SpdDetailData | null>(null);
 const loading = ref(true);
 const errorMessage = ref('');
 
+const userRole = localStorage.getItem('user_role') || '';
+const canManage = computed(() => ['SUPER_ADMIN', 'ADMIN', 'STAFF'].includes(userRole));
+
 // Signer choices
 const signersList = ref<OfficialSigner[]>([]);
 const selectedSigner = ref<OfficialSigner | null>(null);
@@ -164,6 +167,55 @@ const handleDownloadPdf = async () => {
     toast.error(errorMessage.value);
   } finally {
     isDownloadingPdf.value = false;
+  }
+};
+
+const isDownloadingBundle = ref(false);
+const isArchiving = ref(false);
+
+const handleDownloadBundle = async () => {
+  isDownloadingBundle.value = true;
+  try {
+    const res = await apiFetch(`/api/arsip/bundle/spd/${spdId}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanNum = (spd.value?.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
+      a.download = `BUNDEL_ARSIP_${cleanNum}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Bundel berkas arsip ${spd.value?.nomorSpd || ''} berhasil diunduh lengkap`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh bundel arsip');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengunduh bundel arsip');
+  } finally {
+    isDownloadingBundle.value = false;
+  }
+};
+
+const handleQuickArchive = async () => {
+  isArchiving.value = true;
+  try {
+    const res = await apiFetch(`/api/arsip/spd/${spdId}`, { method: 'POST' });
+    if (res.ok) {
+      const respData = await res.json();
+      toast.success(respData.message || 'SPD berhasil diarsipkan.');
+      await fetchSpd();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengarsipkan SPD.');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengarsipkan.');
+  } finally {
+    isArchiving.value = false;
   }
 };
 
@@ -436,8 +488,8 @@ onMounted(() => {
                 {{ spd?.nomorSpd || 'DRAFT' }}
               </span>
               <Tag
-                :value="spd?.status === 'SELESAI' ? 'SELESAI' : (spd?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : 'DRAFT')"
-                :severity="spd?.status === 'SELESAI' ? 'success' : (spd?.status === 'DISETUJUI' ? 'info' : 'warn')"
+                :value="spd?.status === 'SELESAI' ? 'SELESAI' : (spd?.status === 'DISETUJUI' ? 'DISETUJUI / DITANDATANGANI' : (spd?.status === 'ARSIP' ? 'ARSIP' : (spd?.status === 'BATAL' ? 'BATAL' : 'DRAFT')))"
+                :severity="spd?.status === 'SELESAI' ? 'success' : (spd?.status === 'DISETUJUI' ? 'info' : (spd?.status === 'ARSIP' ? 'secondary' : (spd?.status === 'BATAL' ? 'danger' : 'warn')))"
                 class="text-[10px] font-bold"
               />
             </div>
@@ -459,6 +511,7 @@ onMounted(() => {
           />
 
           <GovButton
+            v-if="spd?.status !== 'ARSIP'"
             label="Edit Surat"
             icon="pi pi-pencil"
             severity="secondary"
@@ -478,6 +531,27 @@ onMounted(() => {
             title="Unduh berkas PDF resmi terpadu dengan kop surat"
           />
           <GovButton
+            label="Unduh Bundel Arsip"
+            icon="pi pi-file-export"
+            severity="help"
+            variant="outlined"
+            size="small"
+            :loading="isDownloadingBundle"
+            @click="handleDownloadBundle"
+            title="Unduh bundel berkas arsip lengkap (Cover + SPD + Laporan)"
+          />
+          <GovButton
+            v-if="canManage && spd?.status !== 'ARSIP' && spd?.status !== 'BATAL'"
+            label="Arsipkan"
+            icon="pi pi-folder-plus"
+            severity="secondary"
+            variant="outlined"
+            size="small"
+            :loading="isArchiving"
+            @click="handleQuickArchive"
+            title="Arsipkan SPD ini sekarang"
+          />
+          <GovButton
             label="Cetak Dokumen"
             icon="pi pi-print"
             severity="primary"
@@ -494,6 +568,17 @@ onMounted(() => {
             @click="openLaporanModal"
             :title="isLaporanDisabled ? laporanDisabledReason : 'Buat dan cetak Laporan Perjalanan Dinas'"
           />
+        </div>
+      </div>
+
+      <!-- Banner Dokumen Terkunci (ARSIP) -->
+      <div
+        v-if="spd?.status === 'ARSIP'"
+        class="bg-purple-50 dark:bg-purple-950/40 border border-purple-200 dark:border-purple-800 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-purple-900 dark:text-purple-200"
+      >
+        <div class="flex items-center gap-2">
+          <i class="pi pi-lock text-purple-600 dark:text-purple-400 text-sm"></i>
+          <span>Dokumen SPD ini telah <strong>diarsipkan resmi dan dikunci (Read-Only)</strong>. Untuk mengubah data, silakan pulihkan status terlebih dahulu di menu <strong>Arsip Dokumen</strong>.</span>
         </div>
       </div>
 

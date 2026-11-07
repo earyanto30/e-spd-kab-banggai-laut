@@ -4,9 +4,33 @@ import { PDFDocument } from 'pdf-lib';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import zlib from 'zlib';
 import { NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { KopSuratService } from '../kop-surat/kop-surat.service';
+
+async function extractAllTextFromPdfBuffer(buffer: Buffer): Promise<string> {
+  const doc = await PDFDocument.load(buffer);
+  let text = '';
+  for (const [, obj] of doc.context.enumerateIndirectObjects()) {
+    const raw = (obj as any).getContents?.();
+    if (raw && raw.length > 0) {
+      try {
+        const uncompressed = zlib.unzipSync(Buffer.from(raw));
+        text += '\n' + uncompressed.toString('latin1');
+      } catch {
+        text += '\n' + Buffer.from(raw).toString('latin1');
+      }
+    }
+  }
+  return text.replace(/<([0-9A-Fa-f]+)>/g, (_, hex) => {
+    try {
+      return Buffer.from(hex, 'hex').toString('latin1');
+    } catch {
+      return _;
+    }
+  });
+}
 
 describe('SuratTugasPdfService', () => {
   let tempPdfPath: string;
@@ -88,6 +112,22 @@ describe('SuratTugasPdfService', () => {
 
     const doc = await PDFDocument.load(result.buffer);
     expect(doc.getPageCount()).toBeGreaterThanOrEqual(1);
+
+    const streamText = await extractAllTextFromPdfBuffer(result.buffer);
+    expect(streamText).toContain('Dikeluarkan di');
+    expect(streamText).toContain('Pada Tanggal');
+    expect(streamText).toContain('SEKRETARIS DAERAH');
+    expect(streamText).toContain('KABUPATEN BANGGAI LAUT');
+
+    // Extract X coordinates of 'Dikeluarkan di' and 'KABUPATEN BANGGAI LAUT'
+    const dikMatch = streamText.match(/1 0 0 1 ([0-9.]+) [0-9.]+ Tm\s*Dikeluarkan di/);
+    const kabMatch = streamText.match(/1 0 0 1 ([0-9.]+) [0-9.]+ Tm\s*KABUPATEN BANGGAI LAUT/);
+    expect(dikMatch).not.toBeNull();
+    expect(kabMatch).not.toBeNull();
+    if (dikMatch && kabMatch) {
+      // Dikeluarkan di must align with the left edge of KABUPATEN BANGGAI LAUT
+      expect(parseFloat(dikMatch[1])).toBeCloseTo(parseFloat(kabMatch[1]), 1);
+    }
   });
 
   it('throws NotFoundException when Surat Tugas is not found', async () => {

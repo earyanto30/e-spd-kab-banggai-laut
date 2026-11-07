@@ -80,9 +80,20 @@ export const SpdStatus = {
   DISETUJUI: 'DISETUJUI',
   SELESAI: 'SELESAI',
   BATAL: 'BATAL',
+  ARSIP: 'ARSIP',
 } as const;
 
 export type SpdStatusType = (typeof SpdStatus)[keyof typeof SpdStatus];
+
+export const SuratTugasStatus = {
+  DRAFT: 'DRAFT',
+  DISETUJUI: 'DISETUJUI',
+  SELESAI: 'SELESAI',
+  BATAL: 'BATAL',
+  ARSIP: 'ARSIP',
+} as const;
+
+export type SuratTugasStatusType = (typeof SuratTugasStatus)[keyof typeof SuratTugasStatus];
 
 export const SpdSchema = z.object({
   id: z.string(),

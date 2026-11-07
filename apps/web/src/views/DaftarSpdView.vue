@@ -82,6 +82,7 @@ const statusOptions = [
   { label: 'Disetujui (DISETUJUI)', value: 'DISETUJUI' },
   { label: 'Selesai (SELESAI)', value: 'SELESAI' },
   { label: 'Dibatalkan (BATAL)', value: 'BATAL' },
+  { label: 'Arsip (ARSIP)', value: 'ARSIP' },
 ];
 
 const updateStatusOptions = [
@@ -89,13 +90,14 @@ const updateStatusOptions = [
   { label: 'DISETUJUI (Disetujui PA/KPA)', value: 'DISETUJUI' },
   { label: 'SELESAI (Perjalanan Selesai)', value: 'SELESAI' },
   { label: 'BATAL (Dibatalkan)', value: 'BATAL' },
+  { label: 'ARSIP (Diarsipkan)', value: 'ARSIP' },
 ];
 
 // Dialog States
 const isStatusDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const activeSpd = ref<SpdItem | null>(null);
-const newStatus = ref<'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL'>('DRAFT');
+const newStatus = ref<'DRAFT' | 'DISETUJUI' | 'SELESAI' | 'BATAL' | 'ARSIP'>('DRAFT');
 const isSubmitting = ref(false);
 
 // Checkbox Selection Mode & Bulk Actions
@@ -267,6 +269,12 @@ const getStatusBadgeConfig = (status: string) => {
         containerClass: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60',
         dotClass: 'bg-rose-500 dark:bg-rose-400',
       };
+    case 'ARSIP':
+      return {
+        label: 'Arsip',
+        containerClass: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/60',
+        dotClass: 'bg-purple-500 dark:bg-purple-400',
+      };
     case 'DRAFT':
     default:
       return {
@@ -286,6 +294,8 @@ const getStatusSeverity = (status: string) => {
       return 'success';
     case 'BATAL':
       return 'danger';
+    case 'ARSIP':
+      return 'secondary';
     case 'DRAFT':
     default:
       return 'warn';
@@ -443,6 +453,49 @@ const handleDownloadPdf = async (item: SpdItem) => {
   } catch (err) {
     console.error('Gagal mengunduh PDF:', err);
     toast.error('Terjadi kesalahan saat mengunduh PDF');
+  }
+};
+
+// Unduh Bundel Berkas Arsip Lengkap
+const handleDownloadBundle = async (item: SpdItem) => {
+  try {
+    const res = await apiFetch(`/api/arsip/bundle/spd/${item.id}`);
+    if (res.ok) {
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const cleanNomor = (item.nomorSpd || 'SPD').replace(/[\/\\]/g, '_');
+      a.download = `BUNDEL_ARSIP_${cleanNomor}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Bundel berkas arsip ${item.nomorSpd} berhasil diunduh lengkap.`);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengunduh bundel arsip dokumen.');
+    }
+  } catch (err) {
+    console.error('Error downloading bundle:', err);
+    toast.error('Terjadi kesalahan saat mengunduh bundel arsip.');
+  }
+};
+
+// 1-Klik Cepat Arsipkan SPD
+const handleQuickArchive = async (item: SpdItem) => {
+  try {
+    const res = await apiFetch(`/api/arsip/spd/${item.id}`, { method: 'POST' });
+    if (res.ok) {
+      const data = await res.json();
+      toast.success(data.message || `SPD ${item.nomorSpd} berhasil diarsipkan.`);
+      await loadSpdList();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      toast.error(err.message || 'Gagal mengarsipkan SPD.');
+    }
+  } catch (err: any) {
+    toast.error(err.message || 'Terjadi kesalahan sistem saat mengarsipkan.');
   }
 };
 
@@ -810,7 +863,9 @@ onMounted(() => {
                 class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border whitespace-nowrap"
                 :class="getStatusBadgeConfig(data.status).containerClass"
               >
+                <i v-if="data.status === 'ARSIP'" class="pi pi-lock text-[10px]"></i>
                 <span
+                  v-else
                   class="w-1.5 h-1.5 rounded-full"
                   :class="getStatusBadgeConfig(data.status).dotClass"
                 ></span>
@@ -825,11 +880,22 @@ onMounted(() => {
           header="Aksi"
           header-class="text-center"
           body-class="text-center"
-          style="width: 190px;"
+          style="width: 220px;"
           align-frozen="right"
         >
           <template #body="{ data }">
             <div class="flex items-center justify-center gap-1">
+              <!-- Unduh Bundel Arsip Lengkap -->
+              <GovButton
+                icon="pi pi-file-export"
+                size="small"
+                severity="help"
+                variant="text"
+                rounded
+                @click="handleDownloadBundle(data)"
+                title="Unduh Bundel Berkas Arsip Lengkap"
+              />
+
               <!-- Cetak / Pratinjau -->
               <GovButton
                 icon="pi pi-print"
@@ -852,6 +918,18 @@ onMounted(() => {
                 title="Unduh Berkas PDF Resmi (Kop Asli)"
               />
 
+              <!-- 1-Klik Arsipkan Cepat jika Selesai / Disetujui -->
+              <GovButton
+                v-if="canManage && data.status !== 'ARSIP' && data.status !== 'BATAL'"
+                icon="pi pi-folder-plus"
+                size="small"
+                severity="secondary"
+                variant="text"
+                rounded
+                @click="handleQuickArchive(data)"
+                title="Arsipkan SPD ini sekarang"
+              />
+
               <!-- Edit Dokumen SPD -->
               <GovButton
                 v-if="canManage"
@@ -860,8 +938,9 @@ onMounted(() => {
                 severity="info"
                 variant="text"
                 rounded
-                @click="router.push(`/spd/edit/${data.id}`)"
-                title="Edit / Ubah Data SPD"
+                :disabled="data.status === 'ARSIP'"
+                @click="data.status !== 'ARSIP' && router.push(`/spd/edit/${data.id}`)"
+                :title="data.status === 'ARSIP' ? 'Dokumen berstatus ARSIP telah dikunci (Read-Only). Pulihkan status terlebih dahulu untuk mengubah data.' : 'Edit / Ubah Data SPD'"
               />
 
               <!-- Ubah Status -->
@@ -884,8 +963,9 @@ onMounted(() => {
                 severity="danger"
                 variant="text"
                 rounded
-                @click="openDeleteDialog(data)"
-                title="Hapus Dokumen"
+                :disabled="data.status === 'ARSIP'"
+                @click="data.status !== 'ARSIP' && openDeleteDialog(data)"
+                :title="data.status === 'ARSIP' ? 'Dokumen berstatus ARSIP dikunci dan tidak dapat dihapus.' : 'Hapus Dokumen'"
               />
             </div>
           </template>

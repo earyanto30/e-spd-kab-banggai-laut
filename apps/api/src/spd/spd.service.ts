@@ -401,6 +401,11 @@ export class SpdService {
 
   async update(id: string, dto: UpdateSpdDto) {
     const existing = await this.findById(id);
+    if (existing.status === 'ARSIP') {
+      throw new BadRequestException(
+        `Dokumen SPD nomor '${existing.nomorSpd}' telah berstatus ARSIP dan terkunci. Harap pulihkan status dokumen terlebih dahulu sebelum melakukan perubahan.`
+      );
+    }
     const isKpa = (dto.pemberiPerintah || existing.pemberiPerintah || '').toLowerCase().includes('kuasa');
 
     if (dto.nomorSpd && dto.nomorSpd.trim() !== existing.nomorSpd) {
@@ -551,7 +556,12 @@ export class SpdService {
   }
 
   async delete(id: string) {
-    await this.findById(id);
+    const existing = await this.findById(id);
+    if (existing.status === 'ARSIP') {
+      throw new BadRequestException(
+        `Dokumen SPD nomor '${existing.nomorSpd}' telah berstatus ARSIP dan terkunci. Harap pulihkan status dokumen terlebih dahulu sebelum menghapus.`
+      );
+    }
     await this.prisma.spd.delete({
       where: { id },
     });
@@ -561,6 +571,15 @@ export class SpdService {
   async bulkDelete(ids: string[]) {
     if (!ids || ids.length === 0) {
       return { success: true, count: 0, message: 'Tidak ada SPD yang dipilih.' };
+    }
+    const archivedItems = await this.prisma.spd.findMany({
+      where: { id: { in: ids }, status: 'ARSIP' },
+      select: { nomorSpd: true },
+    });
+    if (archivedItems.length > 0) {
+      throw new BadRequestException(
+        `Terdapat ${archivedItems.length} dokumen SPD yang telah berstatus ARSIP dan terkunci. Harap pulihkan statusnya terlebih dahulu sebelum menghapus.`
+      );
     }
     const result = await this.prisma.spd.deleteMany({
       where: { id: { in: ids } },

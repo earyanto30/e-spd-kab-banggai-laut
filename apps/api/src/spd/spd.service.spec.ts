@@ -183,7 +183,8 @@ describe('SpdService', () => {
       spd: {
         findUnique: vi.fn().mockResolvedValue(existing),
         findFirst: vi.fn().mockResolvedValue(null),
-        update: vi.fn().mockResolvedValue({ ...existing, status: 'SELESAI' }),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...existing, ...data })),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
         delete: vi.fn(),
         deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
@@ -194,6 +195,7 @@ describe('SpdService', () => {
 
     expect(await service.findById('spd1')).toBe(existing);
     expect(await service.updateStatus('spd1', ' SELESAI ')).toMatchObject({ status: 'SELESAI' });
+    expect(await service.updateStatus('spd1', ' ARSIP ')).toMatchObject({ status: 'ARSIP' });
     expect(await service.update('spd1', {
       dalamRangka: '1. Dinas\n2. Rapat',
       tempatBerangkat: ' Luwuk ',
@@ -225,6 +227,25 @@ describe('SpdService', () => {
     findUnique.mockResolvedValue({ id: 'spd1', nomorSpd: '001/SPD/2026', pegawaiId: 'p1' });
     findFirst.mockResolvedValue({ id: 'other' });
     await expect(service.update('spd1', { nomorSpd: '002/SPD/2026' })).rejects.toThrow(/sudah digunakan/);
+  });
+
+  it('rejects update and delete when SPD is ARSIP (immutable/locked)', async () => {
+    const archivedSpd = {
+      id: 'spd-arsip',
+      nomorSpd: '090/01/SPD/2026',
+      status: 'ARSIP',
+    };
+    const prisma = {
+      spd: {
+        findUnique: vi.fn().mockResolvedValue(archivedSpd),
+        findMany: vi.fn().mockResolvedValue([archivedSpd]),
+      },
+    } as unknown as PrismaService;
+    const service = new SpdService(prisma);
+
+    await expect(service.update('spd-arsip', { dalamRangka: 'Ubah' })).rejects.toThrow(/berstatus ARSIP dan terkunci/);
+    await expect(service.delete('spd-arsip')).rejects.toThrow(/berstatus ARSIP dan terkunci/);
+    await expect(service.bulkDelete(['spd-arsip'])).rejects.toThrow(/berstatus ARSIP dan terkunci/);
   });
 
   it('checks number availability correctly for single and multiple records', async () => {
