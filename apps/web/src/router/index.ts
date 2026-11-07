@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
 import { Role, RoleType, hasRequiredRole } from '@si-setda/shared-types';
+import { apiFetch } from '../utils/api';
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -36,6 +37,17 @@ const routes: RouteRecordRaw[] = [
     meta: {
       title: 'Akses Ditolak',
       requiresAuth: true,
+    },
+  },
+  {
+    path: '/onboarding',
+    name: 'Onboarding',
+    component: () => import('../views/OnboardingView.vue'),
+    meta: {
+      title: 'Inisialisasi Sistem',
+      requiresAuth: true,
+      hideNavbar: true,
+      roles: [Role.SUPER_ADMIN],
     },
   },
   {
@@ -280,7 +292,7 @@ const router = createRouter({
 });
 
 // Global authentication & RBAC navigation guard
-router.beforeEach((to, _from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const token = localStorage.getItem('auth_token');
   const currentUserRole = (localStorage.getItem('user_role') as RoleType) || Role.USER;
 
@@ -295,12 +307,42 @@ router.beforeEach((to, _from, next) => {
     return next();
   }
 
-  // 2. If already logged in and navigating to /login, redirect to Home
+  // 2. Onboarding check for SUPER_ADMIN
+  if (currentUserRole === Role.SUPER_ADMIN) {
+    let onboardingCompleted = localStorage.getItem('onboarding_completed');
+    if (onboardingCompleted === null && typeof window !== 'undefined') {
+      try {
+        const res = await apiFetch('/api/system/status');
+        if (res.ok) {
+          const status = await res.json();
+          onboardingCompleted = status.isOnboardingCompleted ? 'true' : 'false';
+          localStorage.setItem('onboarding_completed', onboardingCompleted);
+        }
+      } catch {
+        // Fallback gracefully on network error
+      }
+    }
+
+    if (onboardingCompleted === 'false') {
+      if (to.name !== 'Onboarding') {
+        return next({ name: 'Onboarding' });
+      }
+      return next();
+    }
+
+    if (onboardingCompleted === 'true' && to.name === 'Onboarding') {
+      return next({ name: 'Home' });
+    }
+  } else if (to.name === 'Onboarding') {
+    return next({ name: 'Home' });
+  }
+
+  // 3. If already logged in and navigating to /login, redirect to Home
   if (to.name === 'Login') {
     return next({ name: 'Home' });
   }
 
-  // 3. RBAC role guard for protected routes
+  // 4. RBAC role guard for protected routes
   const allowedRoles = to.meta.roles;
   if (allowedRoles && !hasRequiredRole(currentUserRole, allowedRoles)) {
     return next({ name: 'Unauthorized' });

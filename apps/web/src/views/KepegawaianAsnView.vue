@@ -29,86 +29,6 @@ export interface AsnPegawai {
 
 const STORAGE_KEY = 'kepegawaian_asn_list';
 
-const defaultAsnList: AsnPegawai[] = [
-  {
-    id: 'asn-1',
-    nip: '19680512 199403 1 004',
-    nama: 'Drs. H. Bambang Soeprapto, M.Si',
-    pangkat: 'Pembina Utama Madya',
-    golongan: 'IV/d',
-    jabatan: 'Sekretaris Daerah',
-    unitKerja: 'Sekretariat Daerah',
-    isASN: true,
-    isPenandatangan: true,
-  },
-  {
-    id: 'asn-2',
-    nip: '19740821 199903 2 002',
-    nama: 'Ir. Hj. Siti Rahmawati, MT',
-    pangkat: 'Pembina Utama Muda',
-    golongan: 'IV/c',
-    jabatan: 'Asisten Pemerintahan dan Kesra',
-    unitKerja: 'Sekretariat Daerah - Asisten I',
-    isASN: true,
-    isPenandatangan: false,
-  },
-  {
-    id: 'asn-3',
-    nip: '19850214 200412 1 001',
-    nama: 'Dedy Kurniawan, S.STP, M.AP',
-    pangkat: 'Pembina',
-    golongan: 'IV/a',
-    jabatan: 'Kepala Bagian Umum dan Protokol',
-    unitKerja: 'Sekretariat Daerah - Bagian Umum',
-    isASN: true,
-    isPenandatangan: true,
-  },
-  {
-    id: 'asn-4',
-    nip: '19890610 201101 2 008',
-    nama: 'Ratna Juwita, S.H., M.H.',
-    pangkat: 'Penata Tingkat I',
-    golongan: 'III/d',
-    jabatan: 'Kepala Bagian Hukum',
-    unitKerja: 'Sekretariat Daerah - Bagian Hukum',
-    isASN: true,
-    isPenandatangan: false,
-  },
-  {
-    id: 'asn-5',
-    nip: '19920315 201802 1 003',
-    nama: 'Fajar Prasetyo, S.Kom',
-    pangkat: 'Penata',
-    golongan: 'III/c',
-    jabatan: 'Pranata Komputer Ahli Muda',
-    unitKerja: 'Sekretariat Daerah - Bagian Organisasi',
-    isASN: true,
-    isPenandatangan: false,
-  },
-  {
-    id: 'asn-6',
-    nip: '19951104 202012 2 011',
-    nama: 'Nurul Aini, A.Md',
-    pangkat: 'Pengatur',
-    golongan: 'II/c',
-    jabatan: 'Pengelola Administrasi Perjalanan Dinas',
-    unitKerja: 'Sekretariat Daerah - Bagian Umum',
-    isASN: true,
-    isPenandatangan: false,
-  },
-  {
-    id: 'asn-7',
-    nip: '19900720 202321 1 005',
-    nama: 'Eko Wahyudi, S.AP',
-    pangkat: 'Ahli Pertama',
-    golongan: 'IX',
-    jabatan: 'Analis Kebijakan',
-    unitKerja: 'Sekretariat Daerah - Bagian Perekonomian',
-    isASN: true,
-    isPenandatangan: false,
-  },
-];
-
 const list = ref<AsnPegawai[]>([]);
 const searchQuery = ref('');
 const statusFilter = ref<'SEMUA' | 'ASN' | 'NON_ASN'>('SEMUA');
@@ -179,13 +99,12 @@ const loadData = async () => {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      list.value = Array.isArray(parsed) && parsed.length > 0 ? parsed : [...defaultAsnList];
+      list.value = Array.isArray(parsed) ? parsed : [];
     } catch {
-      list.value = [...defaultAsnList];
+      list.value = [];
     }
   } else {
-    list.value = [...defaultAsnList];
-    persistData();
+    list.value = [];
   }
   loading.value = false;
 };

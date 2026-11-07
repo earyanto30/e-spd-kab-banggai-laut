@@ -92,7 +92,12 @@ async function main() {
   }
 
   // 2. Initial ASN / Pegawai Master Data
-  const defaultAsnList = [
+  // In clean fresh installation, we do not insert dummy ASN records.
+  // Instead, the system onboarding process will configure official KPA and PA officers.
+  // Dummy records are only seeded if explicitly requested via SEED_DUMMY_DATA="true"
+  const shouldSeedDummyAsn = process.env.SEED_DUMMY_DATA === 'true';
+
+  const defaultAsnList = shouldSeedDummyAsn ? [
     {
       nip: process.env.INITIAL_ADMIN_NIP || '198801152010011002',
       nama: process.env.INITIAL_ADMIN_NAME || 'Fadli A. Arsad',
@@ -243,7 +248,7 @@ async function main() {
       isASN: true,
       isPenandatangan: false,
     },
-  ];
+  ] : [];
 
   for (const pegawaiData of defaultAsnList) {
     const matchedJabatan = resolveJabatan(pegawaiData.jabatan);
@@ -289,8 +294,10 @@ async function main() {
   console.log(`[Seed] Seeded and linked ASN Pegawai records with master Jabatan.`);
 
   // 3. User Accounts
+  // Default clean seed only creates the single INITIAL_ADMIN account (Super Admin).
+  // Additional dummy user accounts are only created if SEED_DUMMY_DATA="true".
   const allPegawai = await prisma.pegawai.findMany({ orderBy: { nip: 'asc' } });
-  const isProduction = process.env.NODE_ENV === 'production' && process.env.SEED_DUMMY_DATA !== 'true';
+  const shouldSeedDummyUsers = process.env.SEED_DUMMY_DATA === 'true';
 
   const predefinedUsers = [
     {
@@ -303,7 +310,7 @@ async function main() {
     },
   ];
 
-  if (!isProduction) {
+  if (shouldSeedDummyUsers) {
     predefinedUsers.push(
       {
         username: 'operator',
@@ -331,7 +338,7 @@ async function main() {
       }
     );
 
-    // Also create accounts for other Pegawai to trigger pagination (>10 rows) in non-production
+    // Also create accounts for other Pegawai to trigger pagination (>10 rows) in dummy mode
     for (const p of allPegawai) {
       if (predefinedUsers.some((u) => u.nip === p.nip)) continue;
       const cleanFirstName = p.nama

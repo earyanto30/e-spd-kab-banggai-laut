@@ -359,7 +359,30 @@ export const UpdatePegawaiSchema = CreatePegawaiSchema.partial();
 
 export type UpdatePegawaiDto = z.infer<typeof UpdatePegawaiSchema>;
 
+// Onboarding schemas
+export const OnboardingPejabatSchema = z.object({
+  nama: z.string().min(1, 'Nama pejabat wajib diisi'),
+  nip: z.string().min(1, 'NIP pejabat wajib diisi'),
+  pangkat: z.string().min(1, 'Pangkat wajib diisi'),
+  golongan: z.string().min(1, 'Golongan ruang wajib diisi'),
+  jabatan: z.string().min(1, 'Jabatan wajib diisi'),
+  unitKerja: z.string().optional(),
+});
 
+export type OnboardingPejabatDto = z.infer<typeof OnboardingPejabatSchema>;
 
+export const OnboardingSubmitSchema = z.object({
+  adminPassword: z.string().min(6, 'Kata sandi admin minimal 6 karakter'),
+  kpa: OnboardingPejabatSchema,
+  pa: OnboardingPejabatSchema,
+});
 
+export type OnboardingSubmitDto = z.infer<typeof OnboardingSubmitSchema>;
+
+export interface SystemStatusDto {
+  isOnboardingCompleted: boolean;
+  hasAdminPasswordChanged: boolean;
+  hasKpa: boolean;
+  hasPa: boolean;
+}
 

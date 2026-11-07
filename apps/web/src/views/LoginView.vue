@@ -11,7 +11,7 @@ import {
   GovMessage,
 } from '../components/core';
 import { useTheme } from '../composables/useTheme';
-import { LoginRequestSchema } from '@si-setda/shared-types';
+import { LoginRequestSchema, Role, type SystemStatusDto } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
 import logoUrl from '../assets/logo.png';
 
@@ -76,6 +76,27 @@ const handleLogin = async () => {
     } else {
       localStorage.removeItem('user_is_penandatangan');
     }
+
+    // Check system status for fresh onboarding
+    try {
+      const statusRes = await apiFetch('/api/system/status');
+      if (statusRes.ok) {
+        const status: SystemStatusDto = await statusRes.json();
+        if (status.isOnboardingCompleted) {
+          localStorage.setItem('onboarding_completed', 'true');
+        } else {
+          localStorage.setItem('onboarding_completed', 'false');
+          if (data.user.role === Role.SUPER_ADMIN) {
+            isLoading.value = false;
+            router.push('/onboarding');
+            return;
+          }
+        }
+      }
+    } catch {
+      // Continue normal redirect if status endpoint is unreachable
+    }
+
     isLoading.value = false;
 
     const redirectTarget = (route.query.redirect as string) || '/';

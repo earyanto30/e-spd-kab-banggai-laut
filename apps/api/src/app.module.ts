@@ -10,6 +10,7 @@ import { DasarHukumModule } from './dasar-hukum/dasar-hukum.module';
 import { JabatanModule } from './jabatan/jabatan.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ArsipModule } from './arsip/arsip.module';
+import { SystemModule } from './system/system.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
     JabatanModule,
     DashboardModule,
     ArsipModule,
+    SystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],

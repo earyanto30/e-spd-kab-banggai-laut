@@ -68,4 +68,39 @@ describe('Router & Navigation Guard', () => {
     await router.push('/arsip/spd');
     expect(router.currentRoute.value.name).toBe('ArsipSpd');
   });
+
+  it('redirects SUPER_ADMIN to /onboarding when onboarding is not completed', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.SUPER_ADMIN);
+    localStorage.setItem('onboarding_completed', 'false');
+
+    await router.push('/surat-tugas');
+    expect(router.currentRoute.value.name).toBe('Onboarding');
+  });
+
+  it('allows SUPER_ADMIN to access /onboarding when onboarding is pending', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.SUPER_ADMIN);
+    localStorage.setItem('onboarding_completed', 'false');
+
+    await router.push('/onboarding');
+    expect(router.currentRoute.value.name).toBe('Onboarding');
+  });
+
+  it('redirects SUPER_ADMIN away from /onboarding to Home when onboarding is completed', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.SUPER_ADMIN);
+    localStorage.setItem('onboarding_completed', 'true');
+
+    await router.push('/onboarding');
+    expect(router.currentRoute.value.name).toBe('Home');
+  });
+
+  it('redirects non-SUPER_ADMIN users away from /onboarding', async () => {
+    localStorage.setItem('auth_token', 'valid-token-123');
+    localStorage.setItem('user_role', Role.STAFF);
+
+    await router.push('/onboarding');
+    expect(router.currentRoute.value.name).toBe('Home');
+  });
 });
