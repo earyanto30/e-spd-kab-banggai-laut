@@ -115,16 +115,19 @@ jobs:
 
       - name: Trigger ShipFlare Deploy
         env:
-          SHIPFLARE_SECRET: ${{ secrets.SHIPFLARE_SECRET }}
+          SHIPFLARE_SECRET_PROD: ${{ secrets.SHIPFLARE_SECRET_PROD || secrets.SHIPFLARE_SECRET }}
+          SHIPFLARE_SECRET_DEV: ${{ secrets.SHIPFLARE_SECRET_DEV || secrets.SHIPFLARE_SECRET }}
         run: |
           if [ "${{ github.ref_name }}" = "main" ]; then
             APP_NAME="e-spd-kab-banggai-laut-prod"
+            SECRET="$SHIPFLARE_SECRET_PROD"
           else
             APP_NAME="dev-espd-banggai-laut-aryanto-site"
+            SECRET="$SHIPFLARE_SECRET_DEV"
           fi
           TS=$(date +%s)
           BODY="{\"tag\":\"${GITHUB_SHA}\"}"
-          SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SHIPFLARE_SECRET" | awk '{print $2}')
+          SIG=$(printf '%s.%s' "$TS" "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
           curl -fsS -X POST "https://cd.aryanto.site/api/v1/webhooks/deploy?app=${APP_NAME}" \
             -H "X-ShipFlare-Timestamp: $TS" \
             -H "X-ShipFlare-Signature: sha256=$SIG" \
