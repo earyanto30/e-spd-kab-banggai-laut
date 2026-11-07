@@ -629,7 +629,8 @@ startxref
     const seq = String(i + 1).padStart(3, '0');
     const unitCode = tmpl.unit || 'Bag.Umum';
     const nomorSurat = `000.1.2.3/${seq}/${unitCode}/2026`;
-    const status = i < 8 ? 'SELESAI' : i < 12 ? 'DISETUJUI' : 'DRAFT';
+    // Status distribution: i < 5 -> ARSIP, 5 <= i < 9 -> SELESAI (siap arsip), 9 <= i < 12 -> DISETUJUI, i >= 12 -> DRAFT
+    const status = i < 5 ? 'ARSIP' : i < 9 ? 'SELESAI' : i < 12 ? 'DISETUJUI' : 'DRAFT';
     const day = 1 + (i * 2);
     const tanggalSurat = new Date(`2026-03-${String(day).padStart(2, '0')}T08:00:00.000Z`);
 
@@ -725,10 +726,10 @@ startxref
   }
   console.log(`[Seed] Seeded ${seededSpdList.length} SPD records (Standard format: [KPA/]001/SPD/2026).`);
 
-  // 9. Seed Laporan Perjalanan for all completed SPDs (>10 items)
+  // 9. Seed Laporan Perjalanan for all completed and archived SPDs
   let seededLaporanCount = 0;
   for (const spd of seededSpdList) {
-    if (spd.status !== 'SELESAI') continue;
+    if (spd.status !== 'SELESAI' && spd.status !== 'ARSIP') continue;
 
     const laporanDate = spd.tanggalKembali ? new Date(new Date(spd.tanggalKembali).getTime() + 24 * 60 * 60 * 1000) : new Date();
 
