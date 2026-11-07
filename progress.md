@@ -28,6 +28,7 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 | **Sistem Role & RBAC** | Implementasi Matriks Akses Ketat: Super Admin, Admin, Staff, User di Backend & Frontend | ✅ **Selesai** | 25 Okt 2026 |
 | **Jabatan Penandatangan SPD** | Standardisasi Jabatan Penandatangan PA ("PENGGUNA ANGGARAN") & KPA ("KUASA PENGGUNA ANGGARAN") di Seluruh Ruang Tanda Tangan SPD | ✅ **Selesai** | 25 Okt 2026 |
 | **UAT-2 Surat Tugas & SPD** | Tata Letak Margin Narrow, Header & Directive Spacing, Maksud Header, Sekda Rule, Tanggal Berangkat Opsional, Sinkronisasi 2 Arah, & Kontrol Penomoran Manual | ✅ **Selesai** | 25 Okt 2026 |
+| **Onboarding Fresh Install & Data Seed Clean** | Inisialisasi Sistem Baru (Ganti Password Admin, Set Pejabat KPA/PA) & Pembersihan Hardcoded Dummy ASN | ✅ **Selesai** | 07 Nov 2026 |
 
 ---
 
@@ -532,6 +533,38 @@ Dokumen ini mencatat ringkasan progres, arsitektur yang telah diimplementasikan,
 3. **Mekanisme Sinkronisasi 2 Arah (2-Way Sync):**
    - **SPD -> Surat Tugas & Sibling SPDs:** Perubahan maksud perjalanan dinas (*dalam rangka*), tanggal keberangkatan, tujuan, tempat berangkat, moda transportasi, dan durasi hari pada dokumen SPD otomatis menyinkronkan data dokumen Surat Tugas induk dan seluruh dokumen SPD saudara (*siblings*) di bawah Surat Tugas tersebut.
    - **Surat Tugas -> SPD:** Perubahan data penugasan pada Surat Tugas otomatis tersinkronisasi ke seluruh dokumen SPD turunan yang terhubung.
+
+---
+
+### ✅ Onboarding Fresh Install & Data Seed Clean (Selesai - 07 Nov 2026)
+1. **Pembersihan Data Bawaan / Hardcoded Mock ASN:**
+   - Database seed (`apps/api/prisma/seed.js`) dikonfigurasi ulang sehingga instalasi baru bersih dari data dummy ASN dan pengguna contoh.
+   - Variabel lingkungan `SEED_DUMMY_DATA=true` disediakan jika pengembang membutuhkan data pengujian secara eksplisit.
+   - Hardcoded mock array pada frontend `KepegawaianAsnView.vue` dieliminasi total; antarmuka secara konsisten mengonsumsi REST API backend tanpa fallback localStorage mock.
+
+2. **Skema Pengaturan Sistem (`SystemSetting`):**
+   - Penambahan model `SystemSetting` (`key String @id`, `value String`, `createdAt`, `updatedAt`) pada Prisma ORM.
+   - Kunci pengaturan `onboarding_completed` menandai status inisialisasi aplikasi secara persisten.
+
+3. **Backend Onboarding Service & Endpoint:**
+   - Endpoint publik `GET /api/system/status` untuk pemeriksaan status onboarding sistem.
+   - Endpoint terproteksi `POST /api/system/onboarding` (khusus role `SUPER_ADMIN`) yang menjalankan transaksi atomik:
+     1. Pembaruan dan enkripsi kata sandi akun Administrator (`admin`).
+     2. Pendaftaran/pembaruan pejabat Kuasa Pengguna Anggaran (KPA) - Kepala Bagian Umum dengan status penandatangan resmi.
+     3. Pendaftaran/pembaruan pejabat Pengguna Anggaran (PA) - Sekretaris Daerah dengan status penandatangan resmi.
+     4. Penghubungan akun `admin` ke profil pejabat terkait.
+     5. Penandaan status `onboarding_completed = 'true'`.
+
+4. **Wizard Onboarding Frontend (`/onboarding`):**
+   - Wizard antarmuka modern bertahap (3 langkah) dengan validasi lengkap:
+     - **Langkah 1:** Ubah kata sandi akun Administrator.
+     - **Langkah 2:** Pengisian data resmi Pejabat KPA (Kepala Bagian Umum).
+     - **Langkah 3:** Pengisian data resmi Pejabat PA (Sekretaris Daerah) & konfirmasi final.
+   - Integrasi ke `vue-router` dengan navigation guard ketat:
+     - Pengguna `SUPER_ADMIN` otomatis diarahkan ke `/onboarding` jika status onboarding belum selesai.
+     - Halaman `/onboarding` dikunci dan tidak dapat diakses kembali setelah onboarding selesai.
+     - Pengguna non-Super Admin dicegah mengakses rute inisialisasi.
+
 
 
 
