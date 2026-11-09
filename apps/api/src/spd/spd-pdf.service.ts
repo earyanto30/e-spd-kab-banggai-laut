@@ -1243,7 +1243,9 @@ export class SpdPdfService {
     currentPage.drawText('Lama Perjalanan', { x: marginLeft, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: colonX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
 
-    const lamaText = `( ${spd.lamaHari || ' '} ) hari`;
+    const lamaText = spd.lamaHari
+      ? `${spd.lamaHari} (${this.angkaTerbilang(spd.lamaHari)}) hari`
+      : '-';
     currentPage.drawText(lamaText, { x: contentX, y: currentY, size: bodyFontSize, font: fontRegular, color: black });
     currentY -= (bodyLineHeight + 10);
 

@@ -14,7 +14,7 @@ import {
   GovSelectButton,
   NumberAvailabilityBadge,
 } from '../components/core';
-import { MODA_TRANSPORTASI_OPTIONS } from '@si-setda/shared-types';
+import { MODA_TRANSPORTASI_OPTIONS, formatLamaHari } from '@si-setda/shared-types';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
 import { useNumberAvailability } from '../composables/useNumberAvailability';
@@ -265,18 +265,9 @@ const spdAvailability = useNumberAvailability({
 
 const generateErrors = reactive<Record<string, string>>({});
 
-const angkaTerbilang = (n: number): string => {
-  const kata = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
-  if (n <= 0) return 'nol';
-  if (n < 12) return kata[n];
-  if (n < 20) return `${kata[n - 10]} belas`;
-  if (n < 100) return `${kata[Math.floor(n / 10)]} puluh${n % 10 ? ' ' + kata[n % 10] : ''}`;
-  return String(n);
-};
-
 const generateLamaPerjalananDisplay = computed(() => {
   const days = Number(generateForm.lamaHari) || 0;
-  return `${days} (${angkaTerbilang(days)}) Hari`;
+  return formatLamaHari(days);
 });
 
 const generateAlatAngkutDisplay = computed(() => {
@@ -619,7 +610,7 @@ onMounted(() => {
               <h1 class="text-lg font-bold text-text-main">
                 Dokumen Surat Tugas
               </h1>
-              <span class="text-xs px-2 py-0.5 rounded font-mono bg-blue-100 dark:bg-blue-900/40 text-primary font-semibold">
+              <span class="text-xs px-2 py-0.5 rounded font-mono bg-blue-100 dark:bg-blue-900/40 text-primary font-semibold whitespace-pre">
                 {{ data?.nomorSurat || 'DRAFT' }}
               </span>
               <Tag

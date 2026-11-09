@@ -112,7 +112,7 @@ model SuratTugas {
   dalamRangka     String
   maksudHeader    String?
   tempatDikeluarkan String @default("Banggai")
-  tanggalSurat    DateTime @default(now())
+  tanggalSurat    DateTime? @default(now())
   penandatanganId String?
   penandatangan   Pegawai? @relation("SuratTugasPenandatangan", fields: [penandatanganId], references: [id], onDelete: SetNull)
   penandatanganNama     String?

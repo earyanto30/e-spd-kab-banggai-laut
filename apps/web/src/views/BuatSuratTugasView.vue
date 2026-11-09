@@ -73,7 +73,7 @@ const getInitialForm = () => ({
   kopSuratId: null as string | null,
   penandatanganId: null as string | null,
   tempatDikeluarkan: 'Banggai',
-  tanggalSurat: new Date(),
+  tanggalSurat: new Date() as Date | null,
 });
 
 const form = reactive(getInitialForm());
@@ -147,7 +147,7 @@ const previewNomorSurat = computed(() => {
   if (form.nomorSuratMode === 'auto' && !isEditMode.value) {
     return `000.1.2.3/[Otomatis]/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
   }
-  const seqPart = form.customSeq.trim() || '[Nomor]';
+  const seqPart = form.customSeq.trim() || '    ';
   return `000.1.2.3/${seqPart}/${form.unitCode || 'Bag.Umum'}/${form.tahunSurat || currentYear}`;
 });
 
@@ -299,12 +299,13 @@ const loadExistingData = async (id: string) => {
           form.nomorSuratMode = 'custom';
           form.customSeq = parts[1] || '';
           form.unitCode = parts[2] || 'Bag.Umum';
+          form.tahunSurat = parseInt(parts[3], 10) || currentYear;
         } else {
           form.nomorSuratMode = 'custom';
           form.customSeq = data.nomorSurat;
+          form.tahunSurat = currentYear;
         }
       }
-      form.tahunSurat = currentYear;
 
       if (data.dasarHukum) {
         // Parse raw dasarHukum string to match existing master data or fallback item
@@ -333,7 +334,7 @@ const loadExistingData = async (id: string) => {
       } else if (data.penandatangan?.id) {
         form.penandatanganId = data.penandatangan.id;
       }
-      if (data.tanggalSurat) form.tanggalSurat = new Date(data.tanggalSurat);
+      form.tanggalSurat = data.tanggalSurat ? new Date(data.tanggalSurat) : null;
     } else {
       toast.error('Gagal memuat data Surat Tugas yang akan diedit');
     }
@@ -409,13 +410,20 @@ const handleSubmit = async () => {
       .join('\n');
 
     let finalNomorSurat: string | undefined = undefined;
+    const unit = form.unitCode?.trim() || 'Bag.Umum';
+    const year = form.tahunSurat || currentYear;
+
     if (form.nomorSuratMode === 'custom' || isEditMode.value) {
-      const seq = form.customSeq.trim();
-      const unit = form.unitCode.trim() || 'Bag.Umum';
-      const year = form.tahunSurat || currentYear;
+      const seq = form.customSeq?.trim() || '';
       if (seq) {
         finalNomorSurat = `000.1.2.3/${seq}/${unit}/${year}`;
+      } else {
+        // Jika nomor urut dikosongkan pada mode kustom, gunakan format spasi agar tetap kosong dan tidak digantikan nomor urut otomatis
+        finalNomorSurat = `000.1.2.3/    /${unit}/${year}`;
       }
+    } else {
+      // Pada mode otomatis, gunakan format // agar nomor urut diisi otomatis oleh backend dengan unit & tahun yang disesuaikan
+      finalNomorSurat = `000.1.2.3//${unit}/${year}`;
     }
 
     // Gabungkan seluruh dasar hukum terpilih dipisah double newline
@@ -433,7 +441,7 @@ const handleSubmit = async () => {
       tempatDikeluarkan: form.tempatDikeluarkan.trim() || 'Banggai',
       kopSuratId: form.kopSuratId,
       penandatanganId: form.penandatanganId || undefined,
-      tanggalSurat: form.tanggalSurat,
+      tanggalSurat: form.tanggalSurat ? form.tanggalSurat : null,
     };
 
     const url = isEditMode.value
@@ -532,7 +540,7 @@ const handleCancel = () => {
     >
       <div>
         <span class="font-bold">Berhasil!</span> Surat Tugas nomor
-        <span class="font-mono font-bold">{{ createdSuratTugas.nomorSurat }}</span> telah tersimpan.
+        <span class="font-mono font-bold whitespace-pre">{{ createdSuratTugas.nomorSurat }}</span> telah tersimpan.
         <span v-if="createdSuratTugas.spdList?.length"> ({{ createdSuratTugas.spdList.length }} dokumen SPD terhubung)</span>
         <span v-else class="text-xs block text-emerald-800 dark:text-emerald-200 mt-0.5">Dokumen SPD dapat diterbitkan kapan saja melalui tombol "Terbitkan SPD" pada halaman Pratinjau Dokumen.</span>
       </div>
@@ -633,7 +641,7 @@ const handleCancel = () => {
 
           <div class="text-xs text-text-muted pt-1 flex items-center gap-2 flex-wrap">
             <span>Pratinjau Nomor Dokumen:</span>
-            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border">
+            <span class="font-mono font-semibold text-text-main bg-white dark:bg-slate-800 px-2 py-0.5 rounded border border-border whitespace-pre">
               {{ previewNomorSurat }}
             </span>
             <NumberAvailabilityBadge
@@ -948,6 +956,8 @@ const handleCancel = () => {
             <GovDatePicker
               v-model="form.tanggalSurat"
               date-format="dd/mm/yy"
+              show-button-bar
+              placeholder="Pilih tanggal atau kosongkan"
             />
           </div>
         </div>

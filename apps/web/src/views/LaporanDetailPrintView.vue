@@ -9,6 +9,7 @@ import {
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { formatLamaHari } from '@si-setda/shared-types';
 
 export interface SpdWithLaporanData {
   id: string;
@@ -445,7 +446,7 @@ onMounted(() => {
               </div>
               <div class="flex items-center justify-between border-b border-border/60 pb-1.5">
                 <span class="text-text-muted">Lama Perjalanan:</span>
-                <span class="text-text-main">{{ spd.lamaHari ? `${spd.lamaHari} hari` : '-' }} (Berangkat: {{ formatDate(spd.tanggalBerangkat) }})</span>
+                <span class="text-text-main">{{ spd.lamaHari ? formatLamaHari(spd.lamaHari) : '-' }} (Berangkat: {{ formatDate(spd.tanggalBerangkat) }})</span>
               </div>
               <div class="flex items-center justify-between border-b border-border/60 pb-1.5">
                 <span class="text-text-muted">Pejabat Tujuan:</span>

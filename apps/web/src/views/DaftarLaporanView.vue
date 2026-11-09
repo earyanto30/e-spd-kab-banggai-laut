@@ -14,6 +14,7 @@ import {
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { formatLamaHari } from '@si-setda/shared-types';
 
 export interface LaporanItem {
   id: string; // spd id
@@ -567,7 +568,7 @@ onMounted(() => {
               {{ data.dalamRangka }}
             </div>
             <div class="text-[11px] text-text-muted mt-0.5">
-              Durasi: {{ data.lamaHari ? `${data.lamaHari} hari` : '-' }}
+              Durasi: {{ data.lamaHari ? formatLamaHari(data.lamaHari) : '-' }}
             </div>
           </template>
         </Column>
@@ -721,7 +722,7 @@ onMounted(() => {
           </div>
           <div class="flex items-center justify-between">
             <span class="text-text-muted">Lama Perjalanan:</span>
-            <span class="font-medium text-text-main">{{ activeItem?.lamaHari ? `${activeItem.lamaHari} hari` : '-' }}</span>
+            <span class="font-medium text-text-main">{{ activeItem?.lamaHari ? formatLamaHari(activeItem.lamaHari) : '-' }}</span>
           </div>
           <div class="pt-1.5 border-t border-border/60">
             <span class="text-text-muted block mb-0.5">Maksud Perjalanan:</span>

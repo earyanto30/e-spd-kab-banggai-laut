@@ -76,10 +76,7 @@ export class SuratTugasPdfService {
     }
   }
 
-  private formatIndonesianDate(dateStr?: string | Date | null): string {
-    if (!dateStr) return '-';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return '-';
+  private formatIndonesianDate(dateStr?: string | Date | null, fallbackDate?: Date | null): string {
     const months = [
       'Januari',
       'Februari',
@@ -94,6 +91,19 @@ export class SuratTugasPdfService {
       'November',
       'Desember',
     ];
+    if (!dateStr) {
+      const fallback = fallbackDate ? new Date(fallbackDate) : new Date();
+      const m = isNaN(fallback.getTime()) ? new Date().getMonth() : fallback.getMonth();
+      const y = isNaN(fallback.getTime()) ? new Date().getFullYear() : fallback.getFullYear();
+      return `    ${months[m]} ${y}`;
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      const fallback = fallbackDate ? new Date(fallbackDate) : new Date();
+      const m = isNaN(fallback.getTime()) ? new Date().getMonth() : fallback.getMonth();
+      const y = isNaN(fallback.getTime()) ? new Date().getFullYear() : fallback.getFullYear();
+      return `    ${months[m]} ${y}`;
+    }
     return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
   }
 
@@ -202,7 +212,10 @@ export class SuratTugasPdfService {
     });
 
     currentY -= 14;
-    const nomorText = `Nomor : ${st.nomorSurat || '000.1.2.3/ / Bag.Umum/' + new Date().getFullYear()}`;
+    const cleanNomorSurat = (st.nomorSurat || '000.1.2.3/    /Bag.Umum/' + new Date().getFullYear())
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\/\s*\//, '/    /');
+    const nomorText = `Nomor : ${cleanNomorSurat}`;
     const nomorWidth = fontRegular.widthOfTextAtSize(nomorText, fontSize);
     currentPage.drawText(nomorText, {
       x: (width - nomorWidth) / 2,
@@ -529,7 +542,7 @@ export class SuratTugasPdfService {
 
     currentPage.drawText('Pada Tanggal', { x: headerX, y: currentY, size: fontSize, font: fontRegular, color: black });
     currentPage.drawText(':', { x: signColonX, y: currentY, size: fontSize, font: fontRegular, color: black });
-    const formattedDate = this.formatIndonesianDate(st.tanggalSurat);
+    const formattedDate = this.formatIndonesianDate(st.tanggalSurat, st.createdAt);
     currentPage.drawText(formattedDate, {
       x: signValX,
       y: currentY,
@@ -594,7 +607,10 @@ export class SuratTugasPdfService {
     });
 
     const pdfBytes = await pdfDoc.save();
-    const cleanNum = (st.nomorSurat || 'Surat_Tugas').replace(/[\/\\]/g, '_');
+    const cleanNum = (st.nomorSurat || 'Surat_Tugas')
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .replace(/\s+/g, '')
+      .replace(/[\/\\]/g, '_');
     return {
       buffer: Buffer.from(pdfBytes),
       fileName: `Surat_Tugas_${cleanNum}.pdf`,

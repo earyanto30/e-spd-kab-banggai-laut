@@ -262,17 +262,26 @@ const loadExistingSpd = async (id: string) => {
 
       if (data.nomorSpd) {
         form.fullNomorSpd = data.nomorSpd;
-        const match = data.nomorSpd.match(/^([A-Za-z0-9_-]*)\/?\s*(\d*)\s*\/SPD\/(\d+)$/);
-        if (match) {
+        const withPrefixMatch = data.nomorSpd.match(/^([A-Za-z0-9_-]+)\/([^\/]*)\/SPD\/(\d+)$/i);
+        if (withPrefixMatch) {
           form.nomorSpdMode = 'custom';
-          form.customPrefix = match[1] || '';
-          form.customSeq = match[2] || '';
+          form.customPrefix = withPrefixMatch[1];
+          form.customSeq = withPrefixMatch[2].trim();
+          form.tahunSpd = parseInt(withPrefixMatch[3], 10) || currentYear;
         } else {
-          form.nomorSpdMode = 'custom';
-          form.customSeq = data.nomorSpd;
+          const noPrefixMatch = data.nomorSpd.match(/^([^\/]*)\/SPD\/(\d+)$/i);
+          if (noPrefixMatch) {
+            form.nomorSpdMode = 'custom';
+            form.customPrefix = '';
+            form.customSeq = noPrefixMatch[1].trim();
+            form.tahunSpd = parseInt(noPrefixMatch[2], 10) || currentYear;
+          } else {
+            form.nomorSpdMode = 'custom';
+            form.customSeq = data.nomorSpd;
+            form.tahunSpd = currentYear;
+          }
         }
       }
-      form.tahunSpd = currentYear;
 
       form.pemberiPerintah = data.pemberiPerintah || 'Pengguna Anggaran (PA)';
       form.pegawai = data.pegawai || null;

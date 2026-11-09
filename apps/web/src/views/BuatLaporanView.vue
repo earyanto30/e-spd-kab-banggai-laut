@@ -13,6 +13,7 @@ import {
 } from '../components/core';
 import { apiFetch } from '../utils/api';
 import { useGovToast } from '../composables/useGovToast';
+import { formatLamaHari } from '@si-setda/shared-types';
 
 export interface SpdEligibleItem {
   id: string;
@@ -547,7 +548,7 @@ onMounted(() => {
               <div class="flex items-center justify-between pt-2">
                 <span class="text-text-muted">Waktu Pelaksanaan:</span>
                 <span class="font-medium text-text-main">
-                  {{ selectedSpd.lamaHari || '-' }} Hari
+                  {{ selectedSpd.lamaHari ? formatLamaHari(selectedSpd.lamaHari) : '-' }}
                   <span class="text-text-muted font-normal text-[11px]">
                     ({{ formatDate(selectedSpd.tanggalBerangkat) }} s/d {{ formatDate(selectedSpd.tanggalKembali) }})
                   </span>

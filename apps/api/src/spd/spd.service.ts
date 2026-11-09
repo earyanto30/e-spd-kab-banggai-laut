@@ -111,9 +111,11 @@ export class SpdService {
     }
     const cleanNomor = nomor.trim();
     if (
+      nomor.includes('  ') ||
       cleanNomor.includes('[') ||
       cleanNomor.includes(']') ||
       cleanNomor.includes('//') ||
+      cleanNomor.startsWith('/') ||
       cleanNomor.includes('  ')
     ) {
       return { available: true, isPlaceholder: true, message: 'Nomor otomatis / belum lengkap' };
@@ -283,11 +285,11 @@ export class SpdService {
     let nomorSpd = dto.nomorSpd;
     if (nomorSpd) {
       if (nomorSpd.includes('/SPD/')) {
-        // If nomor sequence before /SPD/ is empty or spaces, format as 4 spaces
+        // If prefix with empty/spaces sequence: [prefix]/ /SPD/ -> [prefix]/    /SPD/
         nomorSpd = nomorSpd
           .replace(/^([A-Za-z0-9_-]+)\/\s*\/SPD\//i, '$1/    /SPD/')
-          .replace(/^([A-Za-z0-9_-]*)\s*\/SPD\//i, '$1    /SPD/')
-          .replace(/\s+$/, '');
+          .replace(/^\s*\/SPD\//i, '    /SPD/')
+          .trimEnd();
       } else {
         nomorSpd = nomorSpd.trim();
       }

@@ -224,9 +224,24 @@ export class SuratTugasService {
           : `000.1.2.3/${nextSeq}/Bag.Umum/${year}`;
       }
     } else {
-      const existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat } });
+      let candidate = nomorSurat;
+      const isEmptySeq = /\/\s*\//.test(candidate);
+      if (isEmptySeq) {
+        candidate = candidate.replace(/\/\s*\//, '/    /');
+      }
+      let existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat: candidate } });
       if (existing) {
-        throw new ConflictException(`Nomor Surat '${nomorSurat}' sudah digunakan`);
+        if (isEmptySeq) {
+          while (existing) {
+            candidate = candidate.replace(/\/(\s+)\//, (m, p1) => `/${p1} /`);
+            existing = await this.prisma.suratTugas.findUnique({ where: { nomorSurat: candidate } });
+          }
+          nomorSurat = candidate;
+        } else {
+          throw new ConflictException(`Nomor Surat '${nomorSurat}' sudah digunakan`);
+        }
+      } else {
+        nomorSurat = candidate;
       }
     }
 
@@ -239,7 +254,7 @@ export class SuratTugasService {
       throw new NotFoundException('Tidak ada data pegawai valid yang ditemukan');
     }
 
-    const tglSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : new Date();
+    const tglSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : null;
 
     const dasarHukumText = dto.dasarHukum?.trim() || '';
 
@@ -320,12 +335,60 @@ export class SuratTugasService {
     }
 
     const updateData: any = {};
-    if (dto.nomorSurat) updateData.nomorSurat = dto.nomorSurat.trim();
+    if (dto.nomorSurat) {
+      let nomor = dto.nomorSurat.trim();
+      if (nomor.includes('//')) {
+        const existingParts = (existingSt.nomorSurat || '').split('/');
+        const existingSeq = existingParts.length >= 4 ? existingParts[1] : '';
+        if (existingSeq && existingSeq.trim()) {
+          nomor = nomor.replace('//', `/${existingSeq}/`);
+        } else {
+          const year = new Date().getFullYear();
+          const count = await this.prisma.suratTugas.count({
+            where: {
+              createdAt: {
+                gte: new Date(`${year}-01-01T00:00:00.000Z`),
+                lte: new Date(`${year}-12-31T23:59:59.999Z`),
+              },
+            },
+          });
+          const seq = String(count + 1).padStart(3, '0');
+          nomor = nomor.replace('//', `/${seq}/`);
+        }
+      } else {
+        let candidate = nomor;
+        const isEmptySeq = /\/\s*\//.test(candidate);
+        if (isEmptySeq) {
+          candidate = candidate.replace(/\/\s*\//, '/    /');
+        }
+        let existing = await this.prisma.suratTugas.findFirst({
+          where: { nomorSurat: candidate, NOT: { id } },
+        });
+        if (existing) {
+          if (isEmptySeq) {
+            while (existing) {
+              candidate = candidate.replace(/\/(\s+)\//, (m, p1) => `/${p1} /`);
+              existing = await this.prisma.suratTugas.findFirst({
+                where: { nomorSurat: candidate, NOT: { id } },
+              });
+            }
+            nomor = candidate;
+          } else {
+            throw new ConflictException(`Nomor Surat '${nomor}' sudah digunakan`);
+          }
+        } else {
+          nomor = candidate;
+        }
+      }
+      updateData.nomorSurat = nomor;
+    }
     if (dto.dasarHukum) updateData.dasarHukum = dto.dasarHukum.trim();
     if (dto.dalamRangka) updateData.dalamRangka = dto.dalamRangka.trim();
     if (dto.maksudHeader !== undefined) updateData.maksudHeader = dto.maksudHeader?.trim() || null;
     if (dto.tempatDikeluarkan) updateData.tempatDikeluarkan = dto.tempatDikeluarkan.trim();
-    if (dto.tanggalSurat) updateData.tanggalSurat = new Date(dto.tanggalSurat);
+    if (dto.tanggalSurat !== undefined) {
+      updateData.tanggalSurat = dto.tanggalSurat ? new Date(dto.tanggalSurat) : null;
+    }
     if (dto.penandatanganId !== undefined) {
       updateData.penandatanganId = dto.penandatanganId || null;
       if (dto.penandatanganId) {
@@ -399,7 +462,7 @@ export class SuratTugasService {
 
       // 2. Jika pegawaiIds dikirim, sinkronkan daftar personil SPD
       if (dto.pegawaiIds && Array.isArray(dto.pegawaiIds)) {
-        const year = new Date(updatedSt.tanggalSurat || new Date()).getFullYear();
+        const year = new Date(updatedSt.tanggalSurat || updatedSt.createdAt || new Date()).getFullYear();
         const currentPegawaiIds = new Set(currentSpdList.map((s) => s.pegawaiId));
         const newPegawaiIds = new Set(dto.pegawaiIds);
 
@@ -429,6 +492,7 @@ export class SuratTugasService {
             nomorSpd = `${String(spdCount + 2).padStart(3, '0')}/SPD/${year}`;
           }
 
+          const defaultSpdDate = updatedSt.tanggalSurat || updatedSt.createdAt || new Date();
           await this.prisma.spd.create({
             data: {
               nomorSpd,
@@ -440,8 +504,8 @@ export class SuratTugasService {
               tempatBerangkat: updatedSt.tempatDikeluarkan || 'Banggai',
               tempatTujuan: 'Sesuai Penugasan',
               lamaHari: 1,
-              tanggalBerangkat: updatedSt.tanggalSurat,
-              tanggalKembali: updatedSt.tanggalSurat,
+              tanggalBerangkat: defaultSpdDate,
+              tanggalKembali: defaultSpdDate,
               skpd: 'Bagian Umum Sekretariat Daerah Kab. Banggai Laut',
               penandatanganNama: updatedSt.penandatanganNama || null,
               penandatanganJabatan: 'Pengguna Anggaran',
@@ -479,7 +543,7 @@ export class SuratTugasService {
         'Surat Perjalanan Dinas (SPD) hanya dapat diterbitkan untuk Surat Tugas yang telah disetujui (status DISETUJUI).',
       );
     }
-    const year = new Date(suratTugas.tanggalSurat || new Date()).getFullYear();
+    const year = new Date(suratTugas.tanggalSurat || suratTugas.createdAt || new Date()).getFullYear();
 
     // Resolving input parameters for SPD from dto -> suratTugas -> default
     const pemberiPerintah = dto?.pemberiPerintah?.trim() || 'Pengguna Anggaran (PA)';
@@ -565,11 +629,21 @@ export class SuratTugasService {
           let updatedNomorSpd = spd.nomorSpd;
           if (isCustom) {
             updatedNomorSpd = getCustomNomorSpd(i);
-            const duplicate = await this.prisma.spd.findFirst({
+            const isEmptySpdSeq = !dto?.customSeq || !dto.customSeq.trim();
+            let duplicate = await this.prisma.spd.findFirst({
               where: { nomorSpd: updatedNomorSpd, NOT: { id: spd.id } },
             });
             if (duplicate) {
-              throw new ConflictException(`Nomor SPD '${updatedNomorSpd}' sudah digunakan`);
+              if (isEmptySpdSeq) {
+                while (duplicate) {
+                  updatedNomorSpd = updatedNomorSpd.replace(/\s*\/SPD\//, (m) => ` ${m}`);
+                  duplicate = await this.prisma.spd.findFirst({
+                    where: { nomorSpd: updatedNomorSpd, NOT: { id: spd.id } },
+                  });
+                }
+              } else {
+                throw new ConflictException(`Nomor SPD '${updatedNomorSpd}' sudah digunakan`);
+              }
             }
           }
           return this.prisma.spd.update({
@@ -614,9 +688,17 @@ export class SuratTugasService {
 
       if (isCustom) {
         nomorSpd = getCustomNomorSpd(i);
-        const existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
+        const isEmptySpdSeq = !dto?.customSeq || !dto.customSeq.trim();
+        let existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
         if (existing) {
-          throw new ConflictException(`Nomor SPD '${nomorSpd}' sudah digunakan`);
+          if (isEmptySpdSeq) {
+            while (existing) {
+              nomorSpd = nomorSpd.replace(/\s*\/SPD\//, (m) => ` ${m}`);
+              existing = await this.prisma.spd.findUnique({ where: { nomorSpd } });
+            }
+          } else {
+            throw new ConflictException(`Nomor SPD '${nomorSpd}' sudah digunakan`);
+          }
         }
       } else {
         const spdCount = await this.prisma.spd.count({

@@ -184,6 +184,7 @@ describe('SpdPdfService', () => {
     expect(extractedText).toContain('Dasar');
     expect(extractedText).toContain('Maksud Perjalanan');
     expect(extractedText).toContain('Lama Perjalanan');
+    expect(extractedText).toContain('3 (tiga) hari');
     expect(extractedText).toContain('Hasil Perjalanan');
     expect(extractedText).toContain('Demikian');
     expect(extractedText).toContain('Laporan Perjalanan Dinas ini dibuat');

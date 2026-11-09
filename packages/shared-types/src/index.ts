@@ -214,7 +214,7 @@ export const SuratTugasSchema = z.object({
   dalamRangka: z.string(),
   maksudHeader: z.string().nullable().optional(),
   tempatDikeluarkan: z.string().default('Banggai'),
-  tanggalSurat: z.date().or(z.string()),
+  tanggalSurat: z.date().or(z.string()).nullable().optional(),
   penandatanganId: z.string().nullable().optional(),
   penandatangan: z.any().optional(),
   penandatanganNama: z.string().nullable().optional(),
@@ -239,6 +239,33 @@ export const MODA_TRANSPORTASI_OPTIONS = [
   'Angkutan Umum Darat',
 ] as const;
 
+export function angkaTerbilang(n: number): string {
+  const kata = [
+    '',
+    'satu',
+    'dua',
+    'tiga',
+    'empat',
+    'lima',
+    'enam',
+    'tujuh',
+    'delapan',
+    'sembilan',
+    'sepuluh',
+    'sebelas',
+  ];
+  if (n <= 0) return 'nol';
+  if (n < 12) return kata[n];
+  if (n < 20) return `${kata[n - 10]} belas`;
+  if (n < 100) return `${kata[Math.floor(n / 10)]} puluh${n % 10 ? ' ' + kata[n % 10] : ''}`;
+  return String(n);
+}
+
+export function formatLamaHari(days?: number | null): string {
+  if (!days || days <= 0) return '-';
+  return `${days} (${angkaTerbilang(days)}) hari`;
+}
+
 export const CreateSuratTugasSchema = z.object({
   nomorSurat: z.string().optional(),
   dasarHukum: z.string().optional(),
@@ -246,7 +273,7 @@ export const CreateSuratTugasSchema = z.object({
   maksudHeader: z.string().nullable().optional(),
   pegawaiIds: z.array(z.string()).min(1, 'Minimal satu pegawai pelaksana wajib dipilih'),
   tempatDikeluarkan: z.string().optional(),
-  tanggalSurat: z.string().or(z.date()).optional(),
+  tanggalSurat: z.string().or(z.date()).nullable().optional(),
   penandatanganId: z.string().nullable().optional(),
   penandatanganNama: z.string().optional(),
   penandatanganJabatan: z.string().optional(),
